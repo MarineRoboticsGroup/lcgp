@@ -1,6 +1,16 @@
 #include "robot.h"
 
 
+namespace {
+
+	float gaussNoise(float mean, float stddev){
+		auto dist = std::bind(std::normal_distribution<double>{mean, stddev},
+			std::mt19937(std::random_device{}()));
+    	return dist();
+	}
+
+}
+
 Robot::Robot(Point2d startLoc, int nId) {
 	loc = startLoc;
 	id = nId;
@@ -11,11 +21,14 @@ Robot::Robot(){}
 Robot::~Robot(){}
 
 float Robot::distToRob(Robot rob){
+
 	Point2d p2 = rob.getCurrLoc();
 	int id2 = rob.getRobotId();
     float d = Point2d(loc.getX() - p2.getX(), 
         loc.getY() - p2.getY()).norm();
-    // ranges.at(id2) =  d;
+    
+    d += gaussNoise(0, rangeStddev);
+
     return d;
 }
 

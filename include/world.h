@@ -26,7 +26,6 @@ class World
 		bool addRobot(Robot r);
 		void addRobot(Point2d loc);
 		Robot& getRobot(int id) {return g.getVertex(id);}
-		Point2d getEstLoc(int id) const {return estLocs[id];}
 
 		// Graph Control
 		void fillRanges();
@@ -46,7 +45,5 @@ class World
 
 		DistanceGraph g;
 
-		std::vector <Point2d> estLocs;
 		std::vector <vertex_t> robots;
-		std::vector<std::vector<float>> edges;
 };

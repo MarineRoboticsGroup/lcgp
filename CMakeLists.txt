@@ -5,10 +5,12 @@ set(CMAKE_BUILD_TYPE Debug)
 project(RangeOnlyViz)
 
 find_package(PythonLibs REQUIRED)
+find_package(SCIP REQUIRED CONFIG)
 
 include_directories(${PYTHON_INCLUDE_DIRS}
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/include/matplotlib-cpp
+	${SCIP_INCLUDE_DIRS}
 )
 
 file(GLOB SOURCES
@@ -19,4 +21,4 @@ file(GLOB SOURCES
 add_executable(RangeOnlyViz ${SOURCES})
 # add_executable(RangeOnlyViz src/main.cpp)
 
-target_link_libraries(RangeOnlyViz ${PYTHON_LIBRARIES})
+target_link_libraries(RangeOnlyViz ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES})

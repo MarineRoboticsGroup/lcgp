@@ -8,6 +8,7 @@
 #include "plot.h"
 
 #include <iostream>
+#include <random>
 #include <vector>
 #include <array>
 #include <cmath>
@@ -47,6 +48,7 @@ class Robot
 	private:
 		int id;
 		float controlSat = .25;
+		float rangeStddev = .25;
 
 		// current location
 		Point2d loc;

@@ -11,8 +11,6 @@ namespace {
 		return r;
 	}
 
-
-
 }
 
 World::World(){}
@@ -117,9 +115,11 @@ void World::addRangeMeas(int id1, int id2, float dist){
 void World::printAdjGraph(){
 	for (int i = 0; i < nRobots; ++i)
 	{
+		Robot& r1 = getRobot(i);
 		for (int j = 0; j < nRobots; ++j)
 		{
-			printf("%.1f   ", edges[i][j]);;
+			Robot& r2 = getRobot(j);
+			printf("%2.1f   ", r1.distToRob(r2));;
 		}
 		std::cout << std::endl;
 	}
@@ -140,8 +140,8 @@ void World::randomMovements(){
 	float x, y;
 	for (int i = 1; i < nRobots; ++i){
 		Robot& r = getRobot(i);
-		x = genRandom(.1);
-		y = genRandom(.1);
+		x = genRandom(1);
+		y = genRandom(1);
 		r.move(x, y);
 	}
 }

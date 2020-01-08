@@ -13,11 +13,11 @@ void showRandomMovements(World w){
 
         w.fillRanges();
         // w.plotRangeCircles();
-        // w.plotRangeCircles(1);
+        w.plotRangeCircles(1);
 
         w.plotRobotConnections();
-        w.setAxis(20, 20);
-        // w.setAxisEqual();
+        // w.setAxis(20, 20);
+        w.setAxisEqual();
         w.showMap("animation");
         w.randomMovements();
 
@@ -30,7 +30,7 @@ void showStaticEnv(World w){
 
     w.fillRanges();
     // w.plotRangeCircles();
-    w.plotRangeCircles(0);
+    // w.plotRangeCircles(0);
     w.plotRangeCircles(1);
 
     w.plotRobotConnections();
@@ -47,10 +47,10 @@ int main()
     w.addRobot(Point2d(4.0,5.0));
     w.addRobot(Point2d(2.0,5.0));
     w.addRobot(Point2d(0.0,5.0));
-    w.addRobot(Point2d(3.7,5.0));
-
-    // showStaticEnv(w);
-    showRandomMovements(w);
+    // w.addRobot(Point2d(3.7,5.0));
+    w.printAdjGraph();
+    showStaticEnv(w);
+    // showRandomMovements(w);
        
     
     return 0;
