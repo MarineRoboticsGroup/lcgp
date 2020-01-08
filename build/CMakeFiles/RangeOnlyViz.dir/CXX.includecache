@@ -29,8 +29,6 @@ boost/graph/graph_traits.hpp
 -
 boost/graph/adjacency_list.hpp
 -
-boost/graph/undirected_graph.hpp
--
 boost/graph/bron_kerbosch_all_cliques.hpp
 -
 boost/graph/dijkstra_shortest_paths.hpp
@@ -112,31 +110,31 @@ vector
 cstdio
 -
 
-/home/alan/range_only_viz/src/graph.cpp
+/home/alan/range_only_robotics/src/graph.cpp
 graph.h
-/home/alan/range_only_viz/src/graph.h
+/home/alan/range_only_robotics/src/graph.h
 
-/home/alan/range_only_viz/src/main.cpp
+/home/alan/range_only_robotics/src/main.cpp
 world.h
-/home/alan/range_only_viz/src/world.h
+/home/alan/range_only_robotics/src/world.h
 robot.h
-/home/alan/range_only_viz/src/robot.h
+/home/alan/range_only_robotics/src/robot.h
 geom.h
-/home/alan/range_only_viz/src/geom.h
+/home/alan/range_only_robotics/src/geom.h
 cmath
 -
 
-/home/alan/range_only_viz/src/plot.cpp
+/home/alan/range_only_robotics/src/plot.cpp
 plot.h
-/home/alan/range_only_viz/src/plot.h
+/home/alan/range_only_robotics/src/plot.h
 
-/home/alan/range_only_viz/src/robot.cpp
+/home/alan/range_only_robotics/src/robot.cpp
 robot.h
-/home/alan/range_only_viz/src/robot.h
+/home/alan/range_only_robotics/src/robot.h
 
-/home/alan/range_only_viz/src/world.cpp
+/home/alan/range_only_robotics/src/world.cpp
 world.h
-/home/alan/range_only_viz/src/world.h
+/home/alan/range_only_robotics/src/world.h
 
 /usr/include/python3.6m/Python.h
 patchlevel.h

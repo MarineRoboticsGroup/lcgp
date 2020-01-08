@@ -10,7 +10,7 @@
 class World
 {
 	public:
-		World(int maxNRobots);
+		World();
 		~World();
 
 		// Plotting controls
@@ -24,13 +24,13 @@ class World
 
 		// Map Accessors
 		bool addRobot(Robot r);
-		Robot& getRobot(int id) {return robots[id];}
+		void addRobot(Point2d loc);
+		Robot& getRobot(int id) {return g.getVertex(id);}
 		Point2d getEstLoc(int id) const {return estLocs[id];}
 
 		// Graph Control
-		void runGraphSample();
 		void fillRanges();
-		void addEdge(int id1, int id2, float dist) {edges[id1][id2] = dist;}
+		void addRangeMeas(int id1, int id2, float dist);
 		void printAdjGraph();
 
 		// Controls
@@ -47,6 +47,6 @@ class World
 		DistanceGraph g;
 
 		std::vector <Point2d> estLocs;
-		std::vector <Robot> robots;
+		std::vector <vertex_t> robots;
 		std::vector<std::vector<float>> edges;
 };

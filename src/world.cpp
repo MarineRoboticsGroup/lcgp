@@ -15,13 +15,7 @@ namespace {
 
 }
 
-World::World(int maxNRobots){
-	// initialize 2d vector for robot connections
-	for (int i = 0; i < maxNRobots; ++i)
-	{
-		edges.push_back(std::vector<float>(maxNRobots));
-	}
-}
+World::World(){}
 World::~World(){}
 
 
@@ -38,7 +32,7 @@ void World::plotRangeCircles(){
 		Point2d cen = getRobot(i).getCurrLoc();
 		for (int j = 0; j < nRobots; ++j)
 		{
-			float range = getRobot(i).getRange(j);
+			float range = getRobot(i).distToRob(getRobot(j));
 			if (range > 0) {
 				map.plotCircle(cen, range, j);
 			}
@@ -49,8 +43,9 @@ void World::plotRangeCircles(){
 void World::plotRangeCircles(int id){
 	for (int i = 0; i < nRobots; ++i)
 	{
-		Point2d cen = getRobot(i).getCurrLoc();
-		float range = getRobot(i).getRange(id);
+		Robot r = getRobot(i);
+		Point2d cen = r.getCurrLoc();
+		float range = r.distToRob(getRobot(id));
 		if (range > 0) {
 			map.plotCircle(cen, range, id);
 		}
@@ -60,7 +55,7 @@ void World::plotRangeCircles(int id){
 void World::plotRobotConnections(){
 	for (int i = 0; i < nRobots; ++i)
 	{
-		Point2d pi = robots[i].getCurrLoc();
+		Point2d pi = getRobot(i).getCurrLoc();
 		for (int j = i+1; j < nRobots; ++j)
 		{
 			Point2d pj = getRobot(j).getCurrLoc();
@@ -91,11 +86,10 @@ void World::showMap(std::string display){
  *******GRAPH CONTROLS**********
 */
 
-void World::runGraphSample(){
-	g.runSample();
-}
+
 
 void World::fillRanges(){
+	float dist;
 	for (int i = 0; i < nRobots; ++i)
 	{
 		Robot& r1 = getRobot(i);
@@ -105,12 +99,21 @@ void World::fillRanges(){
 			Robot& r2 = getRobot(j);
 			int id2 = r2.getRobotId();
 			if(id1 != id2){
-				edges[id1][id2] = r1.distToRob(r2);
+				// remove edge id1->id2
+				// g.removeEdge(robots[id1], robots[id2]);
+				// add new edge
+				dist = r1.distToRob(r2);
+				g.addEdge(robots[id1], robots[id2], dist);
 			}
 		}
 	}
 }
 
+void World::addRangeMeas(int id1, int id2, float dist){
+	g.addEdge(robots[id1], robots[id2], dist);
+}
+
+// Note: Need to refactor to use graph
 void World::printAdjGraph(){
 	for (int i = 0; i < nRobots; ++i)
 	{
@@ -122,16 +125,12 @@ void World::printAdjGraph(){
 	}
 }
 
-bool World::addRobot(Robot r){
-	int rId = r.getRobotId();
-	if (rId < nRobots){
-		return false;
-	} 
-	robots.push_back(r);
-	nRobots++;
-	return true;
-}
 
+void World::addRobot(Point2d loc){
+	vertex_t v = g.addVertex(loc);
+	robots.push_back(v);
+	nRobots++;
+}
 
 /*
  *******CONTROLS**********

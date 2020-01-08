@@ -1,26 +1,21 @@
 #include "robot.h"
 
 
-Robot::Robot(Point2d startLoc, int nId, int maxNRobots) {
+Robot::Robot(Point2d startLoc, int nId) {
 	loc = startLoc;
 	id = nId;
-	ranges = std::vector<float>(maxNRobots);
 }
+
+Robot::Robot(){}
 
 Robot::~Robot(){}
-
-float Robot::getRange(int id) {
-	return this->ranges.at(id);
-}
 
 float Robot::distToRob(Robot rob){
 	Point2d p2 = rob.getCurrLoc();
 	int id2 = rob.getRobotId();
     float d = Point2d(loc.getX() - p2.getX(), 
         loc.getY() - p2.getY()).norm();
-    // update ranges
-    // ranges[id2] = d;
-    ranges.at(id2) =  d;
+    // ranges.at(id2) =  d;
     return d;
 }
 

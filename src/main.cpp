@@ -40,26 +40,17 @@ void showStaticEnv(World w){
 
 int main() 
 {
-    // max number of robots
-    int maxN = 100;
-    World w = World(maxN);
+    World w = World();
 
-    // Make robots and add to world
-    Robot r0 = Robot(Point2d(1.0,1.5), 0, maxN);
-    Robot r1 = Robot(Point2d(4.0,5.0), 1, maxN);
-    Robot r2 = Robot(Point2d(2.0,5.0), 2, maxN);
-    Robot r3 = Robot(Point2d(0.0,5.0), 3, maxN);
-    Robot r4 = Robot(Point2d(3.7,5.0), 4, maxN);
-
-    w.addRobot(r0);
-    w.addRobot(r1);
-    w.addRobot(r2);
-    w.addRobot(r3);
-    w.addRobot(r4);
+    // Add robots to world
+    w.addRobot(Point2d(1.0,1.5));
+    w.addRobot(Point2d(4.0,5.0));
+    w.addRobot(Point2d(2.0,5.0));
+    w.addRobot(Point2d(0.0,5.0));
+    w.addRobot(Point2d(3.7,5.0));
 
     // showStaticEnv(w);
-    // showRandomMovements(w);
-    w.runGraphSample();
+    showRandomMovements(w);
        
     
     return 0;

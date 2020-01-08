@@ -18,12 +18,12 @@ class Robot
 
 	public:
 
-		Robot(Point2d startLoc, int nId, int maxNRobots);
+		Robot(Point2d startLoc, int nId);
+		Robot();
 		~Robot();
 
 		Point2d getCurrLoc() const { return loc; }
 		int getRobotId() const { return id; }
-		float getRange(int id);
 
 		/**
 		 * @brief      Returns the distance between robots and updates 'dists'
@@ -48,12 +48,11 @@ class Robot
 		int id;
 		float controlSat = .25;
 
-		
 		// current location
 		Point2d loc;
 
 		// 'i'th index is distance to robot 'i'
-		std::vector<float> ranges;
+		// std::vector<float> ranges;
 
 };
 

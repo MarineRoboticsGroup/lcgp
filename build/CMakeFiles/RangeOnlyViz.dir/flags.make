@@ -6,5 +6,5 @@ CXX_FLAGS = -g
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/usr/include/python3.6m -I/home/alan/range_only_viz/include -I/home/alan/range_only_viz/include/matplotlib-cpp 
+CXX_INCLUDES = -I/usr/include/python3.6m -I/home/alan/range_only_robotics/include -I/home/alan/range_only_robotics/include/matplotlib-cpp 
 
