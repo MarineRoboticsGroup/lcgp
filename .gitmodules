@@ -1,0 +1,3 @@
+[submodule "include/matplotlib-cpp"]
+	path = include/matplotlib-cpp
+	url = https://github.com/MarineRoboticsGroup/matplotlib-cpp.git
