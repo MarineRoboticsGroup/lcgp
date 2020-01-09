@@ -31,8 +31,9 @@ target_include_directories(rov-lib PUBLIC
   ${PROJECT_SOURCE_DIR}/include
   # In addition to the necessary python things for plotting.
   ${PYTHON_INCLUDE_DIRS}
+  ${SCIP_INCLUDE_DIRS}
 	${PROJECT_SOURCE_DIR}/include/matplotlib-cpp)
-target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES})
+target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES})
 
 # Add executable, and now one just needs to link it to your custom library.
 add_executable(RangeOnlyViz src/main.cpp)

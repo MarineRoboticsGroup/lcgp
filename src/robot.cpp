@@ -11,19 +11,20 @@ namespace {
 
 }
 
-Robot::Robot(Point2d startLoc, int nId) {
+Robot::Robot(Point2d startLoc, int nId, bool isRob) {
 	loc = startLoc;
 	id = nId;
+	isRobot = isRob;
 }
 
 Robot::Robot(){}
 
 Robot::~Robot(){}
 
-float Robot::distToRob(Robot rob){
+float Robot::distTo(Robot rob){
 
 	Point2d p2 = rob.getCurrLoc();
-	int id2 = rob.getRobotId();
+	int id2 = rob.getId();W
     float d = Point2d(loc.getX() - p2.getX(), 
         loc.getY() - p2.getY()).norm();
     
@@ -33,6 +34,8 @@ float Robot::distToRob(Robot rob){
 }
 
 void Robot::move(float x, float y) {
+	if (!isRobot){ return; }
+
 	Point2d currLoc = getCurrLoc();
 	float netDist = sqrt(x*x + y*y);
 	if (netDist > controlSat)

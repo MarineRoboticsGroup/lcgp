@@ -4,11 +4,13 @@
 #include <cmath>
 
 
+
+
 void showRandomMovements(World w){
     for (int i = 0; i < 999; ++i)
     {
 
-        // Plot all robots
+        // Plot all beacons
         w.plotRobots();
 
         w.fillRanges();
@@ -16,8 +18,8 @@ void showRandomMovements(World w){
         w.plotRangeCircles(1);
 
         w.plotRobotConnections();
-        // w.setAxis(20, 20);
-        w.setAxisEqual();
+        w.setAxis(20, 20);
+        // w.setAxisEqual();
         w.showMap("animation");
         w.randomMovements();
 
@@ -25,7 +27,7 @@ void showRandomMovements(World w){
 }
 
 void showStaticEnv(World w){
-    // Plot all robots
+    // Plot all beacons
     w.plotRobots();
 
     w.fillRanges();
@@ -42,11 +44,12 @@ int main()
 {
     World w = World();
 
-    // Add robots to world
+    // Add beacons to world
     w.addRobot(Point2d(1.0,1.5));
     w.addRobot(Point2d(4.0,5.0));
     w.addRobot(Point2d(2.0,5.0));
     w.addRobot(Point2d(0.0,5.0));
+    w.addBeacon(Point2d(1.0,5.0));
     // w.addRobot(Point2d(3.7,5.0));
     w.printAdjGraph();
     showStaticEnv(w);

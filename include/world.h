@@ -25,6 +25,7 @@ class World
 		// Map Accessors
 		bool addRobot(Robot r);
 		void addRobot(Point2d loc);
+		void addBeacon(Point2d loc);
 		Robot& getRobot(int id) {return g.getVertex(id);}
 
 		// Graph Control
@@ -45,5 +46,5 @@ class World
 
 		DistanceGraph g;
 
-		std::vector <vertex_t> robots;
+		std::vector <vertex_t> beacons;
 };

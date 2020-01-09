@@ -2,11 +2,15 @@
 #define GRAPH_H_ 
 
 
-#include "helper.hpp"
 #include "robot.h"
 
 #include <iostream>
 #include <boost/config.hpp>
+
+#include <scip/scip.h>
+#include <scip/scipdefplugins.h>
+#include <objscip/objscip.h>
+#include <objscip/objscipdefplugins.h>
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -30,12 +34,14 @@ public:
 	// Graph level controls
 	bool addEdge(vertex_t r1, vertex_t r2, float dist);
 	bool removeEdge(vertex_t r1, vertex_t r2);
-	vertex_t addVertex(Point2d startLoc);
+	vertex_t addVertex(Point2d startLoc, bool isRob);
 	Robot& getVertex(int id) {return g[id];}
 
 	// Robot level controls
 	void moveRobot(int id, float x, float y);
 
+	// Graph Realization
+	void realizeGraph();
 
 };
 
