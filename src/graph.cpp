@@ -2,6 +2,22 @@
 
 using namespace scip;
 
+
+namespace {
+	static
+	SCIP_RETCODE setupProblem(
+    SCIP*                 scip,               /**< SCIP data structure */
+    unsigned int          n,                  /**< number of points for discretization */
+    SCIP_Real*            coord,              /**< array containing [y(0), y(N), x(0), x(N)] */
+    SCIP_VAR***           xvars,              /**< buffer to store pointer to x variables array */
+    SCIP_VAR***           yvars               /**< buffer to store pointer to y variables array */
+		)
+	{
+
+
+	}
+}
+
 bool DistanceGraph::addEdge(vertex_t r1, vertex_t r2, float dist){
 	edge_t e; bool b;
 	boost::tie(e,b) = boost::add_edge(r1,r2,dist,g);
@@ -42,7 +58,7 @@ void DistanceGraph::moveRobot(int id, float x, float y){
 
 SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 	std::cout << "simplify expression: ";
-    SCIPdebugMessage("simplify expression: ");
+	SCIPdebugMessage("simplify expression: ");
 	int nRobots = boost::num_vertices(g);
 	int nMeas = boost::num_edges(g);
 
@@ -50,8 +66,7 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 	SCIP* scip;
 	SCIP_CALL(SCIPcreate(& scip));
 	SCIP_CALL(SCIPincludeDefaultPlugins(scip));
-	SCIP_CALL(SCIPcreateProb(scip, "graph_realization", NULL, NULL,
-		NULL, NULL, NULL, NULL, NULL));
+	SCIP_CALL(SCIPcreateProbBasic(scip, "graph_realization"));
 
 	// set gap at which SCIP will stop 
 	SCIP_CALL( SCIPsetRealParam(scip, "limits/gap", 0.05) );
@@ -65,7 +80,6 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 	SCIP_Real x0 = 0;
 	SCIP_Real y0 = 0;
 	SCIP_Real x1 = x0;
-
 
      // variables:
      // * r[i] i=0..M, such that: value function=sum r[i]
@@ -128,6 +142,8 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 	// Coefficients
 	SCIP_Real minusone = -1.0;
 	SCIP_Real plusone = 1.0;
+	SCIP_Real diff[2] = {-1.0, 1.0};
+
 
 	// The actual distance measurement
 	SCIP_Real d_meas = -1.0;
@@ -137,6 +153,8 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 
 	int i = 0, a = 0, b = 0;
 	auto es = boost::edges(g);
+	FILE *fp = fopen("./test.txt", "w");		
+
 	for (auto eit = es.first; eit != es.second; ++eit)
 	{
 		SCIPsnprintf(namer, SCIP_MAXSTRLEN, "r(%d)", i);
@@ -144,36 +162,54 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 
 		// Get range measurement details
 		d_meas = g[*eit];
+		// d_meas = 4.0;
 		a = boost::source(*eit, g);
 		b = boost::target(*eit, g);
 
 		SCIP_VAR* varstoadd[4] = { x[a], y[a], x[b], y[b] };
+
+		SCIP_MESSAGEHDLR *messagehdlr;
 
 		// initialize child expressions with indices to assign variables later
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &x_a, SCIP_EXPR_VARIDX, 0) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &y_a, SCIP_EXPR_VARIDX, 1) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &x_b, SCIP_EXPR_VARIDX, 2) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &y_b, SCIP_EXPR_VARIDX, 3) );
+		SCIP_EXPR* xs[2] = { x_a, x_b};
+		SCIP_EXPR* ys[2] = { x_a, x_b};
+
 
 		// create intermediate constraints
+        // * expr1: (x_a - x_b)
+        // * expr2: (x_a - x_b)^2
+
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr1, SCIP_EXPR_MINUS, x_a, x_b) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr2, SCIP_EXPR_SQUARE, expr1) );
+
+        // * expr3: (y_a - y_b)
+        // * expr4: (y_a - y_b)^2
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr3, SCIP_EXPR_MINUS, y_a, y_b) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr4, SCIP_EXPR_SQUARE, expr3) );
+
+        // * expr5: (x_a - x_b)^2 + (y_a - y_b)^2
+        // * expr6: sqrt( (x_a - x_b)^2 + (y_a - y_b)^2 )
+        // * expr5: d - sqrt( (x_a - x_b)^2 + (y_a - y_b)^2 )
+        // * expr6: ( d - sqrt( (x_a - x_b)^2 + (y_a - y_b)^2 ) )^2
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr5, SCIP_EXPR_PLUS, expr4, expr2) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr6, SCIP_EXPR_SQRT, expr5) );
-		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr7, SCIP_EXPR_MINUS, d_meas, expr6) );
+		SCIP_CALL( SCIPexprCreateLinear(SCIPblkmem(scip), &expr7, 1, &expr6, &minusone, d_meas) );
+		// SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr7, SCIP_EXPR_MINUS, d_meas, expr6) );
 		SCIP_CALL( SCIPexprCreate(SCIPblkmem(scip), &expr8, SCIP_EXPR_SQUARE, expr7) );
+
+		// SCIPprintMemoryDiagnostic(scip);
 
 		// Create Expression Tree
 		SCIP_CALL( SCIPexprtreeCreate(SCIPblkmem(scip), &exprtree, expr8, 4, 0, NULL) );
 		SCIP_CALL( SCIPexprtreeSetVars(exprtree, 4, varstoadd) );
-
-
-		FILE *fp = fopen("./test.txt", "w+");		
-		SCIP_MESSAGEHDLR *messagehdlr;
-		SCIPdebug( SCIPexprPrint(expr1, messagehdlr, fp, NULL, NULL, NULL) );	
-		SCIP_CALL( SCIPexprtreePrintWithNames(exprtree, messagehdlr, fp) );	
+		if (i == 0)
+		{
+			SCIP_CALL( SCIPexprtreePrintWithNames(exprtree, SCIPgetMessagehdlr(scip), fp) );
+		}
 
 		// Create Constraint
 		SCIPsnprintf(consname, SCIP_MAXSTRLEN, "constraint(%d)", i);
@@ -181,18 +217,19 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 
 		// Add constraint and free constraint and tree
 		SCIP_CALL( SCIPaddCons(scip, cons) );
-		SCIP_CALL( SCIPreleaseCons(scip, &cons) );
-		SCIP_CALL( SCIPexprtreeFree(&exprtree) );\
 		i++;
+		// SCIP_CALL( SCIPreleaseCons(scip, &cons) );
+		// SCIP_CALL( SCIPexprtreeFree(&exprtree) );
 	}
+	fclose (fp);
 
      // release intermediate variables 
-	for( i = 0; i < nRobots; ++i )
-	{
-		SCIP_CALL( SCIPreleaseVar(scip, &r[i]) );
-	}
+	// for( i = 0; i < nRobots; ++i )
+	// {
+	// 	SCIP_CALL( SCIPreleaseVar(scip, &r[i]) );
+	// }
 
-	SCIPfreeBufferArray(scip, &r);
+	// SCIPfreeBufferArray(scip, &r);
 
 	SCIPinfoMessage(scip, NULL, "Original problem:\n");
 	SCIP_CALL( SCIPprintOrigProblem(scip, NULL, "cip", FALSE) );
@@ -209,40 +246,40 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 
 int DistanceGraph::realizeGraphIPOPT(){
 	   // Create an instance of your nlp...
-   SmartPtr<TNLP> mynlp = new MyNLP();
+	SmartPtr<TNLP> mynlp = new MyNLP();
 
    // Create an instance of the IpoptApplication
    //
    // We are using the factory, since this allows us to compile this
    // example with an Ipopt Windows DLL
-   SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
-   app->Options()->SetStringValue("mu_strategy", "adaptive");
-   app->Options()->SetStringValue("output_file", "ipopt.out");
-   app->Options()->SetStringValue("linear_solver", "mumps");
+	SmartPtr<IpoptApplication> app = IpoptApplicationFactory();
+	app->Options()->SetStringValue("mu_strategy", "adaptive");
+	app->Options()->SetStringValue("output_file", "ipopt.out");
+	app->Options()->SetStringValue("linear_solver", "mumps");
 
    // Initialize the IpoptApplication and process the options
-   ApplicationReturnStatus status;
-   status = app->Initialize();
-   if( status != Solve_Succeeded )
-   {
-      std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
-      return (int) status;
-   }
+	ApplicationReturnStatus status;
+	status = app->Initialize();
+	if( status != Solve_Succeeded )
+	{
+		std::cout << std::endl << std::endl << "*** Error during initialization!" << std::endl;
+		return (int) status;
+	}
 
-   status = app->OptimizeTNLP(mynlp);
+	status = app->OptimizeTNLP(mynlp);
 
-   if( status == Solve_Succeeded )
-   {
+	if( status == Solve_Succeeded )
+	{
       // Retrieve some statistics about the solve
-      Index iter_count = app->Statistics()->IterationCount();
-      std::cout << std::endl << std::endl << "*** The problem solved in " << iter_count << " iterations!" << std::endl;
+		Index iter_count = app->Statistics()->IterationCount();
+		std::cout << std::endl << std::endl << "*** The problem solved in " << iter_count << " iterations!" << std::endl;
 
-      Number final_obj = app->Statistics()->FinalObjective();
-      std::cout << std::endl << std::endl << "*** The final value of the objective function is " << final_obj << '.'
-                << std::endl;
-   }
+		Number final_obj = app->Statistics()->FinalObjective();
+		std::cout << std::endl << std::endl << "*** The final value of the objective function is " << final_obj << '.'
+		<< std::endl;
+	}
 
-   return (int) status;
+	return (int) status;
 
 }
 
