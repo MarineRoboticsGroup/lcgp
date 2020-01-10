@@ -39,7 +39,7 @@ class World
 		void addRangeMeas(int id1, int id2, float dist);
 		void printGraphInfo() { g.printInfo(); }
 		void printAdjGraph();
-		void printGraphReal() { g.realizeGraphSCIP(); }
+		void printGraphReal() { g.realizeGraphIPOPT(); }
 
 		// Controls
 		void randomMovements();

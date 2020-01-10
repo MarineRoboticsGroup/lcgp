@@ -8,6 +8,14 @@
 #include <cstdio>
 #include <boost/config.hpp>
 
+
+// Ipopt Libraries
+#include "IpIpoptApplication.hpp"
+#include "IpSolveStatistics.hpp"
+#include <IpOptionsList.hpp>
+#include "MyNLP.hpp"
+
+// SCIP Libraries
 #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
 #include <objscip/objscip.h>
@@ -46,6 +54,7 @@ public:
 
 	// Graph Realization
 	SCIP_RETCODE realizeGraphSCIP();
+	int realizeGraphIPOPT();
 };
 
 #endif
