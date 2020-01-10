@@ -5,6 +5,7 @@
 #include "robot.h"
 
 #include <iostream>
+#include <cstdio>
 #include <boost/config.hpp>
 
 #include <scip/scip.h>
@@ -18,10 +19,12 @@
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
 typedef boost::adjacency_list < boost::listS, boost::vecS, boost::undirectedS,
-	Robot, float > Graph;
+Robot, float > Graph;
 typedef boost::graph_traits < Graph >::vertex_descriptor vertex_t;
 typedef boost::graph_traits < Graph >::edge_descriptor edge_t;
 typedef std::pair<Robot, Robot> Edge;
+typedef boost::graph_traits<Graph>::edge_iterator edge_iter;
+
 
 
 class DistanceGraph
@@ -36,13 +39,13 @@ public:
 	bool removeEdge(vertex_t r1, vertex_t r2);
 	vertex_t addVertex(Point2d startLoc, bool isRob);
 	Robot& getVertex(int id) {return g[id];}
+	void printInfo();
 
 	// Robot level controls
 	void moveRobot(int id, float x, float y);
 
 	// Graph Realization
-	void realizeGraph();
-
+	SCIP_RETCODE realizeGraphSCIP();
 };
 
 #endif

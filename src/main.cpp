@@ -50,8 +50,13 @@ int main()
     w.addRobot(Point2d(2.0,5.0));
     w.addRobot(Point2d(0.0,5.0));
     w.addBeacon(Point2d(1.0,5.0));
-    // w.addRobot(Point2d(3.7,5.0));
-    w.printAdjGraph();
+    w.addRobot(Point2d(3.7,5.0));
+
+    w.fillRanges();
+
+    // w.printAdjGraph();
+    w.printGraphInfo();
+    w.printGraphReal();
     showStaticEnv(w);
     // showRandomMovements(w);
        

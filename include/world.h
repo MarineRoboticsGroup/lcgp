@@ -9,6 +9,12 @@
 
 class World
 {
+	private:
+		Plot map;
+		int nRobots = 0;
+		DistanceGraph g;
+		std::vector <vertex_t> beacons;
+
 	public:
 		World();
 		~World();
@@ -31,7 +37,9 @@ class World
 		// Graph Control
 		void fillRanges();
 		void addRangeMeas(int id1, int id2, float dist);
+		void printGraphInfo() { g.printInfo(); }
 		void printAdjGraph();
+		void printGraphReal() { g.realizeGraphSCIP(); }
 
 		// Controls
 		void randomMovements();
@@ -39,12 +47,4 @@ class World
 		bool localizeRobot(Robot r);
 		void localizeAll();
 
-	private:
-		Plot map;
-
-		int nRobots = 0;
-
-		DistanceGraph g;
-
-		std::vector <vertex_t> beacons;
 };

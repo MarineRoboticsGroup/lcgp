@@ -24,7 +24,7 @@ Robot::~Robot(){}
 float Robot::distTo(Robot rob){
 
 	Point2d p2 = rob.getCurrLoc();
-	int id2 = rob.getId();W
+	int id2 = rob.getId();
     float d = Point2d(loc.getX() - p2.getX(), 
         loc.getY() - p2.getY()).norm();
     

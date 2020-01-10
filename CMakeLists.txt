@@ -7,6 +7,9 @@ project(RangeOnlyViz)
 find_package(PythonLibs REQUIRED)
 find_package(SCIP REQUIRED CONFIG)
 
+set(CUR_MODULE_PATH ${PROJECT_SOURCE_DIR}/conf)
+set(CMAKE_MODULE_PATH ${CUR_MODULE_PATH} ${CMAKE_MODULE_PATH})
+
 # This is really bad practice... see:
 # https://pabloariasal.github.io/2018/02/19/its-time-to-do-cmake-right/
 # include_directories(${PYTHON_INCLUDE_DIRS}
