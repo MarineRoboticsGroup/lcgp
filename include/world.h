@@ -14,6 +14,7 @@ private:
 	int nRobots = 0;
 	DistanceGraph g;
 	std::vector <vertex_t> beacons;
+	std::vector <Point2d> estLocs;
 
 public:
 	World();
@@ -23,6 +24,7 @@ public:
 	void plotRangeCircles();
 	void plotRangeCircles(int id);
 	void plotRobots();
+	void plotEstLocs();
 	void plotRobotConnections();
 	void setAxis(float xlim, float ylim);
 	void setAxisEqual();
@@ -39,10 +41,7 @@ public:
 	void addRangeMeas(int id1, int id2, float dist);
 	void printGraphInfo() { g.printInfo(); }
 	void printAdjGraph();
-	void printGraphReal() { 
-		// g.realizeGraphIPOPT(); 
-		g.realizeGraphSCIP(); 
-	}
+	void realizeGraph();
 
 		// Controls
 	void randomMovements();

@@ -47,17 +47,16 @@ void DistanceGraph::moveRobot(int id, float x, float y){
 	g[id].move(x,y);
 }
 
-SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
+SCIP_RETCODE DistanceGraph::realizeGraphSCIP(std::vector<Point2d> &locs){
 	// Initialize Problem
 	SCIP* scip;
 	SCIP_VAR** y;
 	SCIP_VAR** x;
-
-
+	
 	SCIP_CALL( SCIPcreate(& scip) );
 	SCIP_CALL( SCIPincludeDefaultPlugins(scip) );
 	SCIP_CALL( SCIPsetRealParam(scip, "limits/gap", 0.5) );
-	SCIP_CALL( SCIPsetRealParam(scip, "limits/time", 10) );
+	SCIP_CALL( SCIPsetRealParam(scip, "limits/time", 2) );
 
 	SCIP_CALL( setupProblem(scip, &x, &y) );
 
@@ -67,15 +66,22 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(){
 	SCIPinfoMessage(scip, NULL, "\nSolving...\n");
 	SCIP_CALL( SCIPsolve(scip) );
 
+	if (0 < SCIPgetNSols(scip))
+	{
+		auto sol = SCIPgetBestSol(scip);
+		SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
+		for (int j = 0; j < boost::num_vertices(g); ++j)
+		{
+			auto xEst = SCIPgetSolVal(scip, sol, x[j]), yEst = SCIPgetSolVal(scip, sol, y[j]);
+			locs[j] = Point2d(xEst, yEst);
+		}
+		std::cout << "\n\n\n" << std::endl;
+	}
+
 	for (int i = 0; i < SCIPgetNSols(scip); ++i)
 	{
 		auto sol = SCIPgetSols(scip)[i];
 		SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
-		for (int j = 0; j < boost::num_vertices(g); ++j)
-		{
-			std::cout << SCIPgetSolVal(scip, sol, x[j]) << ", " <<   SCIPgetSolVal(scip, sol, y[j]) << std::endl;
-		}
-		std::cout << "\n\n\n" << std::endl;
 	}
 }
 
@@ -103,7 +109,6 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 	// Coefficients
 	SCIP_Real minusone = -1.0;
 	SCIP_Real plusone = 1.0;
-
 
      // variables:
      // * r[i] i=0..M, such that: value function=sum r[i]
@@ -160,6 +165,16 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 			SCIP_CALL( SCIPaddCons(scip, cons) );
 			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
 		}
+/*		else {
+			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "x%d_cons", i);
+			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &x[i], &plusone, x0, SCIPinfinity(scip)));
+			SCIP_CALL( SCIPaddCons(scip, cons) );
+			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
+			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "y%d_cons", i);
+			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &y[i], &plusone, y0, SCIPinfinity(scip)));
+			SCIP_CALL( SCIPaddCons(scip, cons) );
+			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
+		}*/
 	}
 
 	for (int i = 0; i < nMeas; ++i)

@@ -38,7 +38,6 @@ public:
 	 *
 	 */
 	void plotPoint(Point2d p, int col);
-	
 
 	void showPlot();
 	void animation();

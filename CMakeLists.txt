@@ -32,7 +32,7 @@ set(rov-src
 	${PROJECT_SOURCE_DIR}/src/plot.cpp
 	${PROJECT_SOURCE_DIR}/src/robot.cpp
 	${PROJECT_SOURCE_DIR}/src/world.cpp
-	${PROJECT_SOURCE_DIR}/src/MyNLP.cpp)
+	)
 
 add_library(rov-lib ${rov-src})
 

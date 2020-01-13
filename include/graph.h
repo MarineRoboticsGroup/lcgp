@@ -9,12 +9,6 @@
 #include <boost/config.hpp>
 
 
-// Ipopt Libraries
-#include "IpIpoptApplication.hpp"
-#include "IpSolveStatistics.hpp"
-#include <IpOptionsList.hpp>
-#include "MyNLP.hpp"
-
 // SCIP Libraries
  #include "scip/pub_misc.h"
  #include <scip/scip.h>
@@ -55,7 +49,7 @@ public:
 	void moveRobot(int id, float x, float y);
 
 	// Graph Realization
-	SCIP_RETCODE realizeGraphSCIP();
+	SCIP_RETCODE realizeGraphSCIP(std::vector<Point2d>& locs);
 	SCIP_RETCODE setupProblem( SCIP* scip, SCIP_VAR*** xvars,SCIP_VAR*** yvars);
 };
 

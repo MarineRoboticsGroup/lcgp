@@ -20,7 +20,7 @@ void showRandomMovements(World w){
         w.plotRangeCircles(1);
 
         w.plotRobotConnections();
-        w.setAxis(20, 20);
+        w.setAxis(10, 10);
         // w.setAxisEqual();
         w.showMap("animation");
         w.randomMovements();
@@ -28,7 +28,7 @@ void showRandomMovements(World w){
     }
 }
 
-void showStaticEnv(World w){
+void showRobotsStatic(World w){
     // Plot all beacons
     w.plotRobots();
 
@@ -38,7 +38,25 @@ void showStaticEnv(World w){
     w.plotRangeCircles(1);
 
     w.plotRobotConnections();
-    w.setAxisEqual();
+    w.setAxis(10, 10);
+    // w.setAxisEqual();
+    w.showMap("static");
+}
+
+void showRobotsEstimated(World w){
+    // Plot all beacons
+    w.plotEstLocs();
+    w.plotRobots();
+    w.plotRobotConnections();
+
+    // w.fillRanges();
+    // w.plotRangeCircles();
+    // w.plotRangeCircles(0);
+    // w.plotRangeCircles(1);
+
+    // w.plotRobotConnections();
+    w.setAxis(10, 10);
+    // w.setAxisEqual();
     w.showMap("static");
 }
 
@@ -52,18 +70,18 @@ int main(int argc, char **argv)
     w.addRobot(Point2d(1.0,1.5), FLAGS_noise);
     w.addRobot(Point2d(4.0,5.0), FLAGS_noise);
     w.addRobot(Point2d(2.0,7.0), FLAGS_noise);
-    w.addRobot(Point2d(0.0,4.0), FLAGS_noise);
+    // w.addRobot(Point2d(7.0,4.0), FLAGS_noise);
     // w.addBeacon(Point2d(1.0,9.0), FLAGS_noise);
     // w.addRobot(Point2d(3.7,2.0), FLAGS_noise);
 
     w.fillRanges();
+    w.realizeGraph();
 
     // w.printAdjGraph();
     // w.printGraphInfo();
-    showStaticEnv(w);
-    w.printGraphReal();
+    // showRobotsStatic(w);
     // showRandomMovements(w);
-       
+    showRobotsEstimated(w);
     
     return 0;
 }

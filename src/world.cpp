@@ -24,6 +24,13 @@ void World::plotRobots(){
 	}
 }
 
+void World::plotEstLocs(){
+	for (int i = 0; i < nRobots; ++i)
+	{
+		map.plotPoint(estLocs[i], i);
+	}
+}
+
 void World::plotRangeCircles(){
 	for (int i = 0; i < nRobots; ++i)
 	{
@@ -125,10 +132,15 @@ void World::printAdjGraph(){
 	}
 }
 
+void World::realizeGraph(){
+	g.realizeGraphSCIP(estLocs);
+}
+
 
 void World::addRobot(Point2d loc){
 	vertex_t v = g.addVertex(loc, true);
 	beacons.push_back(v);
+	estLocs.push_back(loc);
 	nRobots++;
 }
 
@@ -136,6 +148,7 @@ void World::addRobot(Point2d loc){
 void World::addRobot(Point2d loc, float stdDev){
 	vertex_t v = g.addVertex(loc, true, stdDev);
 	beacons.push_back(v);
+	estLocs.push_back(loc);
 	nRobots++;
 }
 
@@ -143,6 +156,7 @@ void World::addRobot(Point2d loc, float stdDev){
 void World::addBeacon(Point2d loc){
 	vertex_t v = g.addVertex(loc, false);
 	beacons.push_back(v);
+	estLocs.push_back(loc);
 	nRobots++;
 }
 
