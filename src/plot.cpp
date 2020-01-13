@@ -52,11 +52,6 @@ void Plot::plotPoint(Point2d p, int col){
 	plt::scatter(x, y, 50, {{"color", colors[col]}});
 }
 
-// Plot functions
-
-// void Plot::
-
-
 // Plot Controls
 
 void Plot::showPlot(){

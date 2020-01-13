@@ -6,6 +6,7 @@ project(RangeOnlyViz)
 
 find_package(PythonLibs REQUIRED)
 find_package(SCIP REQUIRED CONFIG)
+find_package(gflags REQUIRED)
 
 set(CUR_MODULE_PATH ${PROJECT_SOURCE_DIR}/conf)
 set(CMAKE_MODULE_PATH ${CUR_MODULE_PATH} ${CMAKE_MODULE_PATH})
@@ -47,4 +48,4 @@ target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES} ${IPO
 
 # Add executable, and now one just needs to link it to your custom library.
 add_executable(RangeOnlyViz src/main.cpp)
-target_link_libraries(RangeOnlyViz rov-lib)
+target_link_libraries(RangeOnlyViz rov-lib gflags)

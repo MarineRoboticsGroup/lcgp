@@ -16,7 +16,8 @@
 #include "MyNLP.hpp"
 
 // SCIP Libraries
-#include <scip/scip.h>
+ #include "scip/pub_misc.h"
+ #include <scip/scip.h>
 #include <scip/scipdefplugins.h>
 #include <objscip/objscip.h>
 #include <objscip/objscipdefplugins.h>
@@ -43,18 +44,19 @@ private:
 public:
 
 	// Graph level controls
+	void printInfo();
 	bool addEdge(vertex_t r1, vertex_t r2, float dist);
 	bool removeEdge(vertex_t r1, vertex_t r2);
 	vertex_t addVertex(Point2d startLoc, bool isRob);
+	vertex_t addVertex(Point2d startLoc, bool isRob, float stdDev);
 	Robot& getVertex(int id) {return g[id];}
-	void printInfo();
 
 	// Robot level controls
 	void moveRobot(int id, float x, float y);
 
 	// Graph Realization
 	SCIP_RETCODE realizeGraphSCIP();
-	int realizeGraphIPOPT();
+	SCIP_RETCODE setupProblem( SCIP* scip, SCIP_VAR*** xvars,SCIP_VAR*** yvars);
 };
 
 #endif

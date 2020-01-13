@@ -29,8 +29,8 @@ public:
 	void showMap(std::string display);
 
 		// Map Accessors
-	bool addRobot(Robot r);
 	void addRobot(Point2d loc);
+	void addRobot(Point2d loc, float stdDev);
 	void addBeacon(Point2d loc);
 	Robot& getRobot(int id) {return g.getVertex(id);}
 

@@ -17,6 +17,13 @@ Robot::Robot(Point2d startLoc, int nId, bool isRob) {
 	isRobot = isRob;
 }
 
+Robot::Robot(Point2d startLoc, int nId, bool isRob, float stdDev) {
+	loc = startLoc;
+	id = nId;
+	isRobot = isRob;
+	rangeStddev = stdDev;
+}
+
 Robot::Robot(){}
 
 Robot::~Robot(){}

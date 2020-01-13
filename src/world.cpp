@@ -132,6 +132,14 @@ void World::addRobot(Point2d loc){
 	nRobots++;
 }
 
+
+void World::addRobot(Point2d loc, float stdDev){
+	vertex_t v = g.addVertex(loc, true, stdDev);
+	beacons.push_back(v);
+	nRobots++;
+}
+
+
 void World::addBeacon(Point2d loc){
 	vertex_t v = g.addVertex(loc, false);
 	beacons.push_back(v);

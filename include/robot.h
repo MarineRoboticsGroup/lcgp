@@ -20,6 +20,7 @@ class Robot
 	public:
 
 		Robot(Point2d startLoc, int nId, bool isRob);
+		Robot(Point2d startLoc, int nId, bool isRob, float stdDev);
 		Robot();
 		~Robot();
 
@@ -50,7 +51,7 @@ class Robot
 		bool isRobot = true;
 		int id;
 		float controlSat = .25;
-		float rangeStddev = .25;
+		float rangeStddev = .01;
 
 		// current location
 		Point2d loc;
