@@ -34,10 +34,12 @@ void World::plotEstLocs(){
 void World::plotRangeCircles(){
 	for (int i = 0; i < nRobots; ++i)
 	{
+		vertex_t beac1 = beacons[i];
 		Point2d cen = getRobot(i).getCurrLoc();
 		for (int j = 0; j < nRobots; ++j)
 		{
-			float range = getRobot(i).distTo(getRobot(j));
+			vertex_t beac2 = beacons[j];
+			float range = g.getEdge(beac1, beac2);
 			if (range > 0) {
 				map.plotCircle(cen, range, j);
 			}
@@ -46,11 +48,12 @@ void World::plotRangeCircles(){
 }
 
 void World::plotRangeCircles(int id){
+	vertex_t beac1 = beacons[id];
 	for (int i = 0; i < nRobots; ++i)
 	{
-		Robot r = getRobot(i);
-		Point2d cen = r.getCurrLoc();
-		float range = r.distTo(getRobot(id));
+		vertex_t beac2 = beacons[i];
+		Point2d cen = getRobot(i).getCurrLoc();
+		float range = g.getEdge(beac1, beac2);
 		if (range > 0) {
 			map.plotCircle(cen, range, id);
 		}
@@ -99,14 +102,11 @@ void World::fillRanges(){
 	{
 		Robot& r1 = getRobot(i);
 		int id1 = r1.getId();
-		for (int j = 0; j < nRobots; ++j)
+		for (int j = i; j < nRobots; ++j)
 		{
 			Robot& r2 = getRobot(j);
 			int id2 = r2.getId();
 			if(id1 != id2){
-				// remove edge id1->id2
-				// g.removeEdge(beacons[id1], beacons[id2]);
-				// add new edge
 				dist = r1.distTo(r2);
 				g.addEdge(beacons[id1], beacons[id2], dist);
 			}
@@ -154,6 +154,13 @@ void World::addRobot(Point2d loc, float stdDev){
 
 
 void World::addBeacon(Point2d loc){
+	vertex_t v = g.addVertex(loc, false);
+	beacons.push_back(v);
+	estLocs.push_back(loc);
+	nRobots++;
+}
+
+void World::addBeacon(Point2d loc, float stdDev){
 	vertex_t v = g.addVertex(loc, false);
 	beacons.push_back(v);
 	estLocs.push_back(loc);

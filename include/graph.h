@@ -41,6 +41,7 @@ public:
 	void printInfo();
 	bool addEdge(vertex_t r1, vertex_t r2, float dist);
 	bool removeEdge(vertex_t r1, vertex_t r2);
+	float getEdge(vertex_t r1, vertex_t r2);
 	vertex_t addVertex(Point2d startLoc, bool isRob);
 	vertex_t addVertex(Point2d startLoc, bool isRob, float stdDev);
 	Robot& getVertex(int id) {return g[id];}

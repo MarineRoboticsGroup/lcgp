@@ -50,13 +50,13 @@ void showRobotsEstimated(World w){
     w.plotRobotConnections();
 
     // w.fillRanges();
-    // w.plotRangeCircles();
+    w.plotRangeCircles();
     // w.plotRangeCircles(0);
     // w.plotRangeCircles(1);
 
     // w.plotRobotConnections();
-    w.setAxis(10, 10);
-    // w.setAxisEqual();
+    // w.setAxis(10, 10);
+    w.setAxisEqual();
     w.showMap("static");
 }
 
@@ -68,9 +68,9 @@ int main(int argc, char **argv)
 
     // Add beacons to world
     w.addRobot(Point2d(1.0,1.5), FLAGS_noise);
-    w.addRobot(Point2d(4.0,5.0), FLAGS_noise);
+    w.addRobot(Point2d(7.0,7.0), FLAGS_noise);
     w.addRobot(Point2d(2.0,7.0), FLAGS_noise);
-    // w.addRobot(Point2d(7.0,4.0), FLAGS_noise);
+    w.addRobot(Point2d(7.0,4.0), FLAGS_noise);
     // w.addBeacon(Point2d(1.0,9.0), FLAGS_noise);
     // w.addRobot(Point2d(3.7,2.0), FLAGS_noise);
 

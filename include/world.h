@@ -34,6 +34,7 @@ public:
 	void addRobot(Point2d loc);
 	void addRobot(Point2d loc, float stdDev);
 	void addBeacon(Point2d loc);
+	void addBeacon(Point2d loc, float stdDev);
 	Robot& getRobot(int id) {return g.getVertex(id);}
 
 		// Graph Control

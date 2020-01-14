@@ -20,12 +20,23 @@ void DistanceGraph::printInfo(){
 
 bool DistanceGraph::addEdge(vertex_t r1, vertex_t r2, float dist){
 	edge_t e; bool b;
+	boost::remove_edge(r1, r2, g);
+	boost::remove_edge(r2, r1, g);
 	boost::tie(e,b) = boost::add_edge(r1,r2,dist,g);
 	return b;
 }
 
 bool DistanceGraph::removeEdge(vertex_t r1, vertex_t r2){
 	boost::remove_edge(r1,r2,g);
+}
+
+float DistanceGraph::getEdge(vertex_t r1, vertex_t r2){
+	edge_t e; bool b;
+	boost::tie(e,b) = boost::edge(r1,r2,g);
+	if (b){	return g[e]; }
+	boost::tie(e,b) = boost::edge(r2,r1,g);
+	if (b) { return g[e]; }
+	return -1;
 }
 
 
@@ -102,9 +113,9 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 	char namer[SCIP_MAXSTRLEN];
 
 	// Initial position constraints
-	SCIP_Real x0 = 1;
-	SCIP_Real y0 = 1.5;
-	SCIP_Real x1 = 4;
+	SCIP_Real x0 = g[0].getCurrLoc().getX();
+	SCIP_Real y0 = g[0].getCurrLoc().getY();
+	SCIP_Real x1 = g[1].getCurrLoc().getX();
 
 	// Coefficients
 	SCIP_Real minusone = -1.0;
