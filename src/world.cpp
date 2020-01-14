@@ -27,7 +27,7 @@ void World::plotRobots(){
 void World::plotEstLocs(){
 	for (int i = 0; i < nRobots; ++i)
 	{
-		map.plotPoint(estLocs[i], i);
+		map.plotPoint(estLocs[i], i, 0.5);
 	}
 }
 

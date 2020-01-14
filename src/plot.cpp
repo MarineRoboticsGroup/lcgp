@@ -52,6 +52,12 @@ void Plot::plotPoint(Point2d p, int col){
 	plt::scatter(x, y, 50, {{"color", colors[col]}});
 }
 
+void Plot::plotPoint(Point2d p, int col, float alpha){
+	std::vector<double> x(1), y(1); 
+	x[0] = p.getX(), y[0] = p.getY();
+	plt::scatter(x, y, 50, {{"color", colors[col]}, {"alpha", std::to_string(alpha)}});
+}
+
 // Plot Controls
 
 void Plot::showPlot(){

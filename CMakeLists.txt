@@ -7,11 +7,7 @@ project(RangeOnlyViz)
 find_package(PythonLibs REQUIRED)
 find_package(SCIP REQUIRED CONFIG)
 find_package(gflags REQUIRED)
-
-set(CUR_MODULE_PATH ${PROJECT_SOURCE_DIR}/conf)
-set(CMAKE_MODULE_PATH ${CUR_MODULE_PATH} ${CMAKE_MODULE_PATH})
-
-find_package(IPOPT REQUIRED)
+find_package(matplotlibcpp REQUIRED)
 
 # This is really bad practice... see:
 # https://pabloariasal.github.io/2018/02/19/its-time-to-do-cmake-right/
@@ -38,13 +34,11 @@ add_library(rov-lib ${rov-src})
 
 target_include_directories(rov-lib PUBLIC
 	${PROJECT_SOURCE_DIR}/include
-	# In addition to the necessary python things for plotting.
 	${PYTHON_INCLUDE_DIRS}
-	${SCIP_INCLUDE_DIRS}
-	${PROJECT_SOURCE_DIR}/include/matplotlib-cpp
-	${IPOPT_INCLUDE_DIRS})
+	${SCIP_INCLUDE_DIRS}W
+	)
 
-target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES} ${IPOPT_LIBRARIES})
+target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES} matplotlibcpp)
 
 # Add executable, and now one just needs to link it to your custom library.
 add_executable(RangeOnlyViz src/main.cpp)
