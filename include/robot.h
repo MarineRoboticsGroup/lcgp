@@ -26,6 +26,8 @@ class Robot
 
 		Point2d getCurrLoc() const { return loc; }
 		int getId() const { return id; }
+		float getStdDev() const { return rangeStddev; }
+		float getControlSat() const { return controlSat; }
 
 		/**
 		 * @brief      Returns the distance between beacons and updates 'dists'

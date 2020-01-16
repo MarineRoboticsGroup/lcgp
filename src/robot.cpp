@@ -47,11 +47,14 @@ void Robot::move(float x, float y) {
 	float netDist = sqrt(x*x + y*y);
 	if (netDist > controlSat)
 	{
-		netDist *= controlSat;
+		x /= netDist;
+		y /= netDist;
+		x *= controlSat;
+		y *= controlSat;	
 	}
 
-	float xNew = currLoc.getX() + x/netDist;
-	float yNew = currLoc.getY() + y/netDist;
+	float xNew = currLoc.getX() + x;
+	float yNew = currLoc.getY() + y;
 	Point2d newLoc = Point2d(xNew, yNew);
 	loc = newLoc;
 }

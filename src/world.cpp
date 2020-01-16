@@ -60,6 +60,36 @@ void World::plotRangeCircles(int id){
 	}
 }
 
+void World::plotRangeCirclesEst(){
+	for (int i = 0; i < nRobots; ++i)
+	{
+		vertex_t beac1 = beacons[i];
+		Point2d cen = estLocs[i];
+		for (int j = 0; j < nRobots; ++j)
+		{
+			vertex_t beac2 = beacons[j];
+			float range = g.getEdge(beac1, beac2);
+			if (range > 0) {
+				map.plotCircle(cen, range, j);
+			}
+		}
+	}
+}
+
+void World::plotRangeCirclesEst(int id){
+	vertex_t beac1 = beacons[id];
+	for (int i = 0; i < nRobots; ++i)
+	{
+		vertex_t beac2 = beacons[i];
+		Point2d cen = estLocs[i];
+		float range = g.getEdge(beac1, beac2);
+		if (range > 0) {
+			map.plotCircle(cen, range, id);
+		}
+	}
+}
+
+
 void World::plotRobotConnections(){
 	for (int i = 0; i < nRobots; ++i)
 	{
@@ -72,7 +102,7 @@ void World::plotRobotConnections(){
 	}
 }
 
-void World::setAxis(float xlim, float ylim){
+void World::setAxis(){
 	map.setAxis(xlim, ylim);
 }
 
@@ -86,6 +116,38 @@ void World::showMap(std::string display){
 	} else if (display == "static"){
 		map.showPlot();
 	}
+}
+
+void World::adjustLims(){
+	float xmax = 0, ymax = 0;
+	float x, y;
+	for (auto pts : estLocs){
+		x = abs(pts.getX());
+		y = abs(pts.getY());
+		if (x > xmax)
+		{
+			xmax = x;
+		}
+		if (y > ymax)
+		{
+			ymax = y;
+		}
+	}
+	for (int i = 0; i < nRobots; ++i){
+		x = abs(g.getVertex(i).getCurrLoc().getX());
+		y = abs(g.getVertex(i).getCurrLoc().getY());
+		if (x > xmax)
+		{
+			xmax = x;
+		}
+		if (y > ymax)
+		{
+			ymax = y;
+		}
+	}
+	if (xlim - xmax > 10 || xlim - xmax < 1) { xlim = xmax + 5;}
+	if (ylim - ymax > 10 || ylim - ymax < 1) { ylim = ymax + 5;}
+
 }
 
 

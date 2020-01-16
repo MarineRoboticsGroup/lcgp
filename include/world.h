@@ -15,6 +15,7 @@ private:
 	DistanceGraph g;
 	std::vector <vertex_t> beacons;
 	std::vector <Point2d> estLocs;
+	float xlim = 10, ylim = 10;
 
 public:
 	World();
@@ -23,12 +24,15 @@ public:
 		// Plotting controls
 	void plotRangeCircles();
 	void plotRangeCircles(int id);
+	void plotRangeCirclesEst();
+	void plotRangeCirclesEst(int id);
 	void plotRobots();
 	void plotEstLocs();
 	void plotRobotConnections();
-	void setAxis(float xlim, float ylim);
+	void setAxis();
 	void setAxisEqual();
 	void showMap(std::string display);
+	void adjustLims();
 
 		// Map Accessors
 	void addRobot(Point2d loc);

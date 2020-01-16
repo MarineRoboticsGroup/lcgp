@@ -67,39 +67,42 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(std::vector<Point2d> &locs){
 	SCIP_CALL( SCIPcreate(& scip) );
 	SCIP_CALL( SCIPincludeDefaultPlugins(scip) );
 	SCIP_CALL( SCIPsetRealParam(scip, "limits/gap", 0.5) );
-	SCIP_CALL( SCIPsetRealParam(scip, "limits/time", 2) );
+	SCIP_CALL( SCIPsetRealParam(scip, "limits/absgap", 0.05) );
+	// SCIP_CALL( SCIPsetRealParam(scip, "limits/time", .35) );
 
-	SCIP_CALL( setupProblem(scip, &x, &y) );
+	SCIP_CALL( setupProblem(scip, &x, &y, locs) );
 
-	SCIPinfoMessage(scip, NULL, "Original problem:\n");
-	SCIP_CALL( SCIPprintOrigProblem(scip, NULL, "cip", FALSE) );
+	// SCIPinfoMessage(scip, NULL, "Original problem:\n");
+	// SCIP_CALL( SCIPprintOrigProblem(scip, NULL, "cip", FALSE) );
 
-	SCIPinfoMessage(scip, NULL, "\nSolving...\n");
+	// SCIPinfoMessage(scip, NULL, "\nSolving...\n");
 	SCIP_CALL( SCIPsolve(scip) );
 
 	if (0 < SCIPgetNSols(scip))
 	{
 		auto sol = SCIPgetBestSol(scip);
-		SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
+		// SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
 		for (int j = 0; j < boost::num_vertices(g); ++j)
 		{
 			auto xEst = SCIPgetSolVal(scip, sol, x[j]), yEst = SCIPgetSolVal(scip, sol, y[j]);
 			locs[j] = Point2d(xEst, yEst);
+			SCIP_CALL( SCIPreleaseVar(scip, &y[j]) );
+			SCIP_CALL( SCIPreleaseVar(scip, &x[j]) );
 		}
-		std::cout << "\n\n\n" << std::endl;
+		// std::cout << "\n\n\n" << std::endl;
 	}
 
-	for (int i = 0; i < SCIPgetNSols(scip); ++i)
-	{
-		auto sol = SCIPgetSols(scip)[i];
-		SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
-	}
+	SCIPfreeMemoryArray(scip, &x);
+	SCIPfreeMemoryArray(scip, &y);
+
+	SCIP_CALL( SCIPfree(&scip) );
 }
 
 SCIP_RETCODE DistanceGraph::setupProblem(
     SCIP*                 scip,               /**< SCIP data structure */
     SCIP_VAR***           xvars,              /**< buffer to store pointer to x variables array */
-    SCIP_VAR***           yvars               /**< buffer to store pointer to y variables array */
+    SCIP_VAR***           yvars,              /**< buffer to store pointer to y variables array */
+	std::vector<Point2d> &estLocs
 	) {
 
 	SCIP_CALL(SCIPcreateProbBasic(scip, "graph_realization"));
@@ -116,6 +119,8 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 	SCIP_Real x0 = g[0].getCurrLoc().getX();
 	SCIP_Real y0 = g[0].getCurrLoc().getY();
 	SCIP_Real x1 = g[1].getCurrLoc().getX();
+	
+	SCIP_Real xlb, xub, ylb, yub, range; 
 
 	// Coefficients
 	SCIP_Real minusone = -1.0;
@@ -145,11 +150,20 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 	// Construct and add x and y variables 
 	for (int i = 0; i < nRobots; ++i)
 	{
+		// 5 sigma bounds on position std dev from last measurement
+		range = 3 * std::max(g[i].getControlSat(), g[i].getStdDev());
+
+		xlb = estLocs[i].getX() - range;
+		xub = estLocs[i].getX() + range;
+		ylb = estLocs[i].getY() - range;
+		yub = estLocs[i].getY() + range;
+
+
 		SCIPsnprintf(namex, SCIP_MAXSTRLEN, "x(%d)", i);
 		SCIPsnprintf(namey, SCIP_MAXSTRLEN, "y(%d)", i);
 
-		SCIP_CALL( SCIPcreateVarBasic(scip, &x[i], namex, -999, 999, 0.0, SCIP_VARTYPE_CONTINUOUS) );
-		SCIP_CALL( SCIPcreateVarBasic(scip, &y[i], namey, -999, 999, 0.0, SCIP_VARTYPE_CONTINUOUS) );
+		SCIP_CALL( SCIPcreateVarBasic(scip, &x[i], namex, xlb, xub, 0.0, SCIP_VARTYPE_CONTINUOUS) );
+		SCIP_CALL( SCIPcreateVarBasic(scip, &y[i], namey, ylb, yub, 0.0, SCIP_VARTYPE_CONTINUOUS) );
 		SCIP_CALL(SCIPaddVar(scip, x[i]));
 		SCIP_CALL(SCIPaddVar(scip, y[i]));
 
@@ -165,27 +179,6 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 			SCIP_CALL( SCIPaddCons(scip, cons) );
 			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
 		}
-		else if (i == 1)
-		{
-			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "x%d_cons", i);
-			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &x[i], &plusone, x1, x1));
-			SCIP_CALL( SCIPaddCons(scip, cons) );
-			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
-			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "y%d_cons", i);
-			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &y[i], &plusone, y0, SCIPinfinity(scip)));
-			SCIP_CALL( SCIPaddCons(scip, cons) );
-			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
-		}
-/*		else {
-			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "x%d_cons", i);
-			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &x[i], &plusone, x0, SCIPinfinity(scip)));
-			SCIP_CALL( SCIPaddCons(scip, cons) );
-			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
-			SCIPsnprintf(consname, SCIP_MAXSTRLEN, "y%d_cons", i);
-			SCIP_CALL( SCIPcreateConsBasicLinear(scip, &cons, consname, 1, &y[i], &plusone, y0, SCIPinfinity(scip)));
-			SCIP_CALL( SCIPaddCons(scip, cons) );
-			SCIP_CALL( SCIPreleaseCons(scip, &cons) );
-		}*/
 	}
 
 	for (int i = 0; i < nMeas; ++i)
@@ -193,7 +186,6 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 		SCIPsnprintf(namer, SCIP_MAXSTRLEN, "r(%d)", i);
 		SCIP_CALL( SCIPcreateVarBasic(scip, &r[i], namer, 0, 999, 1, SCIP_VARTYPE_CONTINUOUS) );
 		SCIP_CALL(SCIPaddVar(scip, r[i]));
-		SCIP_CALL( SCIPcaptureVar(scip, r[i]) );
 	}
 
 	// All the expressions necessary for constraint
@@ -270,13 +262,8 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 		SCIP_CALL( SCIPaddCons(scip, cons) );
 		SCIP_CALL( SCIPreleaseCons(scip, &cons) );
 		SCIP_CALL( SCIPexprtreeFree(&exprtree) );
-		i++;
-	}
-
-     // release intermediate variables 
-	for( i = 0; i < nRobots; ++i )
-	{
 		SCIP_CALL( SCIPreleaseVar(scip, &r[i]) );
+		i++;
 	}
 
 	SCIPfreeBufferArray(scip, &r);

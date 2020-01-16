@@ -65,7 +65,7 @@ void Plot::showPlot(){
 }
 
 void Plot::animation(){
-	plt::pause(0.01); 
+	plt::pause(0.25); 
 	plt::clf();
 }
 

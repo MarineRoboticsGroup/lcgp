@@ -51,7 +51,7 @@ public:
 
 	// Graph Realization
 	SCIP_RETCODE realizeGraphSCIP(std::vector<Point2d>& locs);
-	SCIP_RETCODE setupProblem( SCIP* scip, SCIP_VAR*** xvars,SCIP_VAR*** yvars);
+	SCIP_RETCODE setupProblem( SCIP* scip, SCIP_VAR*** xvars,SCIP_VAR*** yvars, std::vector<Point2d> &estLocs);
 };
 
 #endif
