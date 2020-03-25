@@ -11,13 +11,16 @@ class Environment():
 				return False
 		return True
 
-class RectObstacle():
-	def __init__(self, bounds):
-		self.boundaries = bounds
+	def getObstacleList():
+		return self.obstacles
 
-	def isInside(self, coords):
-		xpos, ypos = coords
-		left, right, upper, lower = self.boundaries
-		return ((left <= xpos <= right) and (lower <= ypos <= upper))
+	class CircObstacle():
+		def __init__(self, bounds):
+			self.boundaries = bounds
+
+		def isInside(self, coords):
+			xpos, ypos = coords
+			left, right, upper, lower = self.boundaries
+			return ((left <= xpos <= right) and (lower <= ypos <= upper))
 
 

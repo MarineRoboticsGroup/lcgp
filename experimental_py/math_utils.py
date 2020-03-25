@@ -272,5 +272,8 @@ def getRandomVector(nDim, length):
 	vec *= length
 	return vec
 
-
+def getRandomTuple(lb=0, ub=10, size=2):
+	vec = np.random.uniform(low=lb, high=ub, size=size)
+	t = tuple(tuple(row) for row in vec)
+	return t
 

@@ -1,14 +1,11 @@
 import swarm
+import rrt_planner
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-def makeSensitivityPlots():
-	sensorRadius = 10
-	robots = swarm.Swarm(sensingRadius = sensorRadius)
-	robots.initializeSwarm()
+def makeSensitivityPlotsRandomMotions(robots, environment):
 	vectorLength = 0.1
 
 	for vectorLength in [0.001, 0.01, 0.1, 0.15, 0.25, 0.5]:
@@ -78,4 +75,47 @@ def makeSensitivityPlots():
 			plt.savefig(absname)
 			plt.close()
 
+def planWithRRT(robots, environment):
+    
+    goal = [math_utils.genRandomTuple(size=2) for i in range(len(robots))]
+    startPos = robots.getPositionList()
+    obstacleList = environment.getObstacleList()
+    
+	# xStartPos = [x[0] for x in startPos]
+	# yStartPos = [x[1] for x in startPos]
+	# xGoalPos = [x[0] for x in goal]
+	# yGoalPos = [x[1] for x in goal]
+	# xMin = min(min(xStartPos), min(xGoalPos))
+	# yMin = min(min(yStartPos), min(yGoalPos))
+	# xMax = max(max(xStartPos), max(xGoalPos))
+	# yMax = max(max(yStartPos), max(yGoalPos))
 
+    rrt = rrt_planner.RRT(start=startPos,
+              goal=goal,
+              rand_area=[-2, 15],
+              obstacle_list=obstacleList)
+    path = rrt.planning(animation=True)
+
+    if path is None:
+        print("Cannot find path")
+    else:
+        print("found path!!")
+
+        # Draw final path
+        if show_animation:
+            rrt.draw_graph()
+            plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+            plt.grid(True)
+            plt.pause(0.01)  # Need for Mac
+            plt.show()
+
+
+
+def main():
+	robots = swarm.Swarm(sensingRadius = 10)
+	robots.initializeSwarm()
+
+
+
+if __name__ == '__main__':
+    main()
