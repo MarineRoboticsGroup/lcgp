@@ -264,7 +264,13 @@ def quadraticMultiplication(vec, mat):
 	quadMult =  vec.T @ mat @ vec
 	return np.real(quadMult)
 
+####### Random Generator Utils #######
 
+def getRandomVector(nDim, length):
+	vec = np.random.uniform(low=-2, high=2, size=nDim)
+	vec = vec/np.linalg.norm(vec,2)
+	vec *= length
+	return vec
 
 
 
