@@ -50,6 +50,10 @@ __pycache__/
 ###################
 build/
 
+# Python Experimental #
+###################
+# experimental_py/
+
 # Tensorflow #
 ##############
 *.tfrecord

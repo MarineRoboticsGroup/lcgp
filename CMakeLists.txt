@@ -35,7 +35,7 @@ add_library(rov-lib ${rov-src})
 target_include_directories(rov-lib PUBLIC
 	${PROJECT_SOURCE_DIR}/include
 	${PYTHON_INCLUDE_DIRS}
-	${SCIP_INCLUDE_DIRS}W
+	${SCIP_INCLUDE_DIRS}
 	)
 
 target_link_libraries(rov-lib PUBLIC ${PYTHON_LIBRARIES} ${SCIP_LIBRARIES} matplotlibcpp)

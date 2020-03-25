@@ -43,7 +43,7 @@ public:
 
 		// Graph Control
 	void fillRanges();
-	void addRangeMeas(int id1, int id2, float dist);
+	void addRangeMeas(int id1, int id2);
 	void printGraphInfo() { g.printInfo(); }
 	void printAdjGraph();
 	void realizeGraph();

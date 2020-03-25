@@ -124,13 +124,27 @@ int main(int argc, char **argv)
 
     // Add beacons to world
     w.addRobot(Point2d(0.0,0.0), FLAGS_noise);
-    w.addRobot(Point2d(5.0,0.0), FLAGS_noise);
-    w.addRobot(Point2d(10.0,0.0), FLAGS_noise);
-    w.addRobot(Point2d(0.0,5.0), FLAGS_noise);
-    // w.addBeacon(Point2d(1.0,9.0), FLAGS_noise);
-    // w.addRobot(Point2d(3.7,2.0), FLAGS_noise);
+    w.addRobot(Point2d(3.0,0.0), FLAGS_noise);
+    w.addRobot(Point2d(3.0,3.0), FLAGS_noise);
+    w.addRobot(Point2d(0.0,3.0), FLAGS_noise);
+    w.addRobot(Point2d(1.0,1.0), FLAGS_noise);
+    w.addRobot(Point2d(1.0,2.0), FLAGS_noise);
+    w.addRobot(Point2d(2.0,2.0), FLAGS_noise);
+    w.addRobot(Point2d(2.0,1.0), FLAGS_noise);
 
-    w.fillRanges();
+    // w.fillRanges();
+    w.addRangeMeas(1-1,2-1);
+    w.addRangeMeas(2-1,3-1);
+    w.addRangeMeas(3-1,4-1);
+    w.addRangeMeas(1-1,4-1);
+    w.addRangeMeas(1-1,5-1);
+    w.addRangeMeas(2-1,6-1);
+    w.addRangeMeas(3-1,7-1);
+    w.addRangeMeas(4-1,8-1);
+    w.addRangeMeas(5-1,6-1);
+    w.addRangeMeas(6-1,7-1);
+    w.addRangeMeas(7-1,8-1);
+    w.addRangeMeas(5-1,8-1);
     w.realizeGraph();
 
     if (FLAGS_random_move)

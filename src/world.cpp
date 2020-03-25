@@ -176,7 +176,10 @@ void World::fillRanges(){
 	}
 }
 
-void World::addRangeMeas(int id1, int id2, float dist){
+void World::addRangeMeas(int id1, int id2){
+	auto r1 = getRobot(id1);
+	auto r2 = getRobot(id2);
+	float dist = r1.distTo(r2);
 	g.addEdge(beacons[id1], beacons[id2], dist);
 }
 

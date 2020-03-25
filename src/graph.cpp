@@ -72,16 +72,11 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(std::vector<Point2d> &locs){
 
 	SCIP_CALL( setupProblem(scip, &x, &y, locs) );
 
-	// SCIPinfoMessage(scip, NULL, "Original problem:\n");
-	// SCIP_CALL( SCIPprintOrigProblem(scip, NULL, "cip", FALSE) );
-
-	// SCIPinfoMessage(scip, NULL, "\nSolving...\n");
 	SCIP_CALL( SCIPsolve(scip) );
 
 	if (0 < SCIPgetNSols(scip))
 	{
 		auto sol = SCIPgetBestSol(scip);
-		// SCIP_CALL( SCIPprintSol(scip, sol, NULL, TRUE) );
 		for (int j = 0; j < boost::num_vertices(g); ++j)
 		{
 			auto xEst = SCIPgetSolVal(scip, sol, x[j]), yEst = SCIPgetSolVal(scip, sol, y[j]);
@@ -89,7 +84,6 @@ SCIP_RETCODE DistanceGraph::realizeGraphSCIP(std::vector<Point2d> &locs){
 			SCIP_CALL( SCIPreleaseVar(scip, &y[j]) );
 			SCIP_CALL( SCIPreleaseVar(scip, &x[j]) );
 		}
-		// std::cout << "\n\n\n" << std::endl;
 	}
 
 	SCIPfreeMemoryArray(scip, &x);
@@ -126,10 +120,10 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 	SCIP_Real minusone = -1.0;
 	SCIP_Real plusone = 1.0;
 
-     // variables:
-     // * r[i] i=0..M, such that: value function=sum r[i]
-     // * y[i] i=0..N, Y position of node 'i'
-     // * x[i] i=0..N, Y position of node 'i'
+	// variables:
+	// * r[i] i=0..M, such that: value function=sum r[i]
+	// * y[i] i=0..N, Y position of node 'i'
+	// * x[i] i=0..N, Y position of node 'i'
 	SCIP_VAR** x;
 	SCIP_VAR** y;
 	SCIP_VAR** r;
@@ -204,7 +198,6 @@ SCIP_RETCODE DistanceGraph::setupProblem(
 
 	// Expression tree for nonlinear constraint
 	SCIP_EXPRTREE* exprtree;
-
 
 	// The actual distance measurement
 	SCIP_Real d_meas = -1.0;

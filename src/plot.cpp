@@ -31,7 +31,7 @@ void Plot::plotCircle(Point2d p, float r, int col){
 		x[i] = x0 + r*sin(2 * M_PI * i / n);
 		y[i] = y0 + r*cos(2 * M_PI * i / n);
 	}
-	plt::plot(x, y, {{"color", colors[col]}});
+	plt::plot(x, y, {{"color", colors[col%7]}});
 }
 
 void Plot::plotLine(Point2d p1, Point2d p2){
@@ -49,13 +49,13 @@ void Plot::plotLine(Point2d p1, Point2d p2){
 void Plot::plotPoint(Point2d p, int col){
 	std::vector<double> x(1), y(1); 
 	x[0] = p.getX(), y[0] = p.getY();
-	plt::scatter(x, y, 50, {{"color", colors[col]}});
+	plt::scatter(x, y, 50, {{"color", colors[col%7]}});
 }
 
 void Plot::plotPoint(Point2d p, int col, float alpha){
 	std::vector<double> x(1), y(1); 
 	x[0] = p.getX(), y[0] = p.getY();
-	plt::scatter(x, y, 50, {{"color", colors[col]}, {"alpha", std::to_string(alpha)}, {"marker", "^"}});
+	plt::scatter(x, y, 50, {{"color", colors[col%7]}, {"alpha", std::to_string(alpha)}, {"marker", "^"}});
 }
 
 // Plot Controls
