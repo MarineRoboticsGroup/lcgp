@@ -3,7 +3,7 @@ from numpy import linalg as la
 from scipy.linalg import null_space, toeplitz
 import matplotlib.pyplot as plt
 
-import mat_utils
+import math_utils
 
 class Graph:
 	
@@ -127,7 +127,7 @@ class Graph:
 	def getStiffnessMatrix(self, ):
 		n = self.nNodes
 		K = np.zeros((2*n, 2*n))
-		mat_utils.fillMatrix(self.edges, self.nodes, K)
+		math_utils.fillMatrix(self.edges, self.nodes, K)
 		return K
 
 	def getNodeLocationList(self, ):
