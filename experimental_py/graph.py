@@ -4,6 +4,7 @@ from scipy.linalg import null_space, toeplitz
 import matplotlib.pyplot as plt
 
 import math_utils
+import environment
 
 class Graph:
 	
@@ -14,43 +15,16 @@ class Graph:
 		self.nNodes = 0
 		self.nEdges = 0
 
-	class Node:
-		def __init__(self, x, y):
-			self._x = x
-			self._y = y
-			self._degree = 0
-			self._connections = []
-		
-		def getNodeConnections(self, ):
-			return self._connections
-
-		def getNodeDegree(self, ):
-			return self._degree
-
-		def getXYLocation(self, ):
-			return (self._x, self._y)
-
-		def addNodeEdge(self, edgeNodeNum):
-			self._degree += 1
-			self._connections.append(edgeNodeNum)
-
-		def removeNodeEdge(self, edgeNodeNum):
-			self._degree -= 1
-			self._connections.remove(edgeNodeNum)
-
-		def moveNodeAbsolute(self, newX, newY):
-			self._x = newX
-			self._y = newY
-
-		def moveNodeRelative(self, deltaX, deltaY):
-			self._x += deltaX
-			self._y += deltaY
-
-
 	###### Initialize and Format Graph ########
 
+	def initializeFromLocationList(self, locationList, radius):
+		self.removeAllNodes()
+		for loc in locationList:
+			self.addNode(loc[0], loc[1])
+		self.updateEdgesByRadius(radius)
+
 	def addNode(self, xLoc, yLoc):
-		self.nodes.append(self.Node(xLoc, yLoc))
+		self.nodes.append(Node(xLoc, yLoc))
 		self.nNodes += 1
 
 	def addGraphEdge(self, node1, node2):
@@ -129,6 +103,11 @@ class Graph:
 		K = np.zeros((2*n, 2*n))
 		math_utils.fillMatrix(self.edges, self.nodes, K)
 		return K
+
+	def getNthEigval(self, n):
+		eigvals = math_utils.getListOfAllEigvals(self.getStiffnessMatrix())
+		eigvals.sort()
+		return eigvals[n-1]
 
 	def getNodeLocationList(self, ):
 		locs = []
@@ -265,10 +244,10 @@ class Graph:
 		self.addGraphEdge(1, 3)
 
 	def initializeSquare(self):
-		self.addNode(0, 0)
-		self.addNode(0, 1)
 		self.addNode(1, 1)
-		self.addNode(1, 0)
+		self.addNode(1, 2)
+		self.addNode(2, 2)
+		self.addNode(2, 1)
 		# edges
 		self.addGraphEdge(0, 1)
 		self.addGraphEdge(1, 2)
@@ -283,24 +262,6 @@ class Graph:
 		yVal = np.random.uniform(low=0, high=bound, size=self.nNodes)
 		for i in range(self.nNodes):
 			self.addNode(xVal[i], yVal[i])
-
-	####### Display Utils #######
-
-	def displayGraphWithEdges(self):
-		nodeLocations = self.getNodeLocationList()
-		edges = self.getGraphEdgeList()
-
-		nodeXLocs = [x[0] for x in nodeLocations]
-		nodeYLocs = [x[1] for x in nodeLocations]
-
-		plt.scatter(nodeXLocs, nodeYLocs)
-		for e in edges:
-			xs = [nodeXLocs[e[0]], nodeXLocs[e[1]]]
-			ys = [nodeYLocs[e[0]], nodeYLocs[e[1]]]
-			plt.plot(xs, ys)
-		plt.ylim(min(nodeYLocs)-2, max(nodeYLocs)+2)
-		plt.xlim(min(nodeXLocs)-2,max(nodeXLocs)+2)
-		plt.show()
 
 	####### Controls #######
 
@@ -326,4 +287,36 @@ class Graph:
 	def nodeExists(self, node):
 		return (node < self.nNodes)
 
+
+class Node:
+	def __init__(self, x, y):
+		self._x = x
+		self._y = y
+		self._degree = 0
+		self._connections = []
+	
+	def getNodeConnections(self, ):
+		return self._connections
+
+	def getNodeDegree(self, ):
+		return self._degree
+
+	def getXYLocation(self, ):
+		return (self._x, self._y)
+
+	def addNodeEdge(self, edgeNodeNum):
+		self._degree += 1
+		self._connections.append(edgeNodeNum)
+
+	def removeNodeEdge(self, edgeNodeNum):
+		self._degree -= 1
+		self._connections.remove(edgeNodeNum)
+
+	def moveNodeAbsolute(self, newX, newY):
+		self._x = newX
+		self._y = newY
+
+	def moveNodeRelative(self, deltaX, deltaY):
+		self._x += deltaX
+		self._y += deltaY
 

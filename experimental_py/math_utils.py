@@ -210,17 +210,13 @@ def dKdVar(K, index, graph):
 		if v is 'x':
 			dKii_di = np.array(	[[2*(xi-xj), 		yi-yj	],
 								[yi-yj, 			0		]])
-			# dKjj_di = np.array(	[[2*(xj-xi), 		yj-yi	],
-			# 					[yj-yi, 			0		]])
-			dKjj_di = dKii_di 
 			dKij_di = np.array(	[[2*(xj-xi), 		yj-yi	],
 								[yj-yi, 			0		]])
+			dKjj_di = dKii_di 
 			dKji_di = dKij_di
 		elif v is 'y':
 			dKii_di = np.array(	[[0, 				xi-xj	],
 								[xi-xj, 			2*(yi-yj)]])
-			# dKjj_di = np.array(	[[0, 				xj-xi	],
-			# 					[xj-xi, 			2*(yj-yi)]])
 			dKij_di = np.array(	[[0,		 		xj-xi	],
 								[xj-xi, 			2*(yj-yi)]])
 			dKjj_di = dKii_di
@@ -266,14 +262,14 @@ def quadraticMultiplication(vec, mat):
 
 ####### Random Generator Utils #######
 
-def getRandomVector(nDim, length):
+def genRandomVector(nDim, length):
 	vec = np.random.uniform(low=-2, high=2, size=nDim)
 	vec = vec/np.linalg.norm(vec,2)
 	vec *= length
 	return vec
 
-def getRandomTuple(lb=0, ub=10, size=2):
+def genRandomTuple(lb=0, ub=10, size=2):
 	vec = np.random.uniform(low=lb, high=ub, size=size)
-	t = tuple(tuple(row) for row in vec)
+	t = tuple(vec)
 	return t
 
