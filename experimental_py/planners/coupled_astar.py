@@ -12,7 +12,7 @@ class CoupledAstar():
 		self.grid = env.getGrid()
 		self.gridBounds = env.getGridBounds()
 		self.goalIndexs = goals
-		self.startIndexs = self.robots.getPositionList()
+		self.startIndexs = self.robots.getPositionListTuples()
 		self.minEigval = minEigval
 		self.motionModel = self.getMotionModel(self.robots.getNumRobots(), self.env.getGridSquareSize())
 

@@ -11,7 +11,7 @@ class Swarm:
 
 	####### Swarm Utils #######
 
-	def initializeSwarm(self, formation='square', bound=10, seed=0):
+	def initializeSwarm(self, bounds, formation='square', nRobots=None):
 		# intialize formation and edges
 		self.robot_graph.removeAllNodes()
 		self.robot_graph.removeAllEdges()
@@ -20,13 +20,36 @@ class Swarm:
 			self.robot_graph.initializeSquare()
 		elif formation.lower() == 'line':
 			self.robot_graph.initializeLine()
-		elif formation.lower() == 'rigid-line':
+		elif formation.lower() == 'rigid_line':
 			self.robot_graph.initializeRigidLine()
 		elif formation.lower() == 'random':
-			self.robot_graph.initializeRandomConfig(bound, seed)
+			self.robot_graph.initializeRandomConfig(nRobots, bounds)
 		else:
 			print("The given formation is not valid")
 			raise AssertionError
+
+		self.updateSwarm()
+		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
+	
+	def initializeSwarmFromLocationListTuples(self, locList):
+		# intialize formation and edges
+		self.robot_graph.removeAllNodes()
+		self.robot_graph.removeAllEdges()
+
+		for loc in locList:
+			self.robot_graph.addNode(loc[0], loc[1])
+
+		self.updateSwarm()
+		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
+
+	def initializeSwarmFromLocationList(self, locList):
+		# intialize formation and edges
+		assert(len(locList)%2 == 0)
+		self.robot_graph.removeAllNodes()
+		self.robot_graph.removeAllEdges()
+
+		for i in range(int(len(locList)/2)):
+			self.robot_graph.addNode(locList[2*i], locList[2*i+1])
 
 		self.updateSwarm()
 		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
@@ -46,8 +69,14 @@ class Swarm:
 	def getNumRobots(self):
 		return self.robot_graph.getNumNodes()
 
-	def getPositionList(self):
+	def getPositionListTuples(self):
 		return self.robot_graph.getNodeLocationList()
+
+	def getPositionList(self):
+		posList = []
+		for loc in self.robot_graph.getNodeLocationList():
+			posList += list(loc)
+		return posList
 
 	def getNthEigval(self, n):
 		eigvals = math_utils.getListOfAllEigvals(self.relDistanceMatrix)
@@ -64,6 +93,36 @@ class Swarm:
 
 		gradient = math_utils.getGradientOfMatrixForEigenpair(self.relDistanceMatrix, nthEigenpair, self.robot_graph)
 		return gradient
+
+	def moveIsGood(self, move, moveRelative):
+		tempSwarm = Swarm(self.sensingRadius)
+		if moveRelative:
+			curLocs = self.getPositionList()
+			newLocs = [sum(i) for i in zip(curLocs, move)]
+			tempSwarm.initializeSwarmFromLocationList(newLocs)
+		else:
+			tempSwarm.initializeSwarmFromLocationList(move)
+
+		if tempSwarm.getNthEigval(4) > 0.75:
+			return True
+
+		return False
+
+	def findGoodMove(self):
+		grad = self.getGradientOfNthEigenval(4)
+		move = []
+		for i in range(int(len(grad)/2)):
+			if (abs(grad[2*i]) > abs(grad[2*i+1])):
+				if (grad[2*i] < 0):
+					move += [-1, 0]
+				else:
+					move += [1, 0]
+			else:
+				if (grad[2*i+1] < 0):
+					move += [0, -1]
+				else:
+					move += [0, 1]
+		return move
 
 	####### Checks #######
 

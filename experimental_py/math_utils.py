@@ -273,3 +273,7 @@ def genRandomTuple(lb=0, ub=10, size=2):
 	t = tuple(vec)
 	return t
 
+def genRandomLocation(xlb, xub, ylb, yub):
+	xval = np.random.uniform(low=xlb, high=xub)
+	yval = np.random.uniform(low=ylb, high=yub)
+	return (xval, yval)

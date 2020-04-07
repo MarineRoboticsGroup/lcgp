@@ -20,7 +20,37 @@ def animationNoGrid(graph, env, goals):
 
 def animationWithGrid(graph, env, goals):
 	goalList = env.gridIndexListToLocationList(goals)
-	print(goalList)
+	grid = env.getGrid()
+	clearPlot()
+	plotGraphWithEdges(graph)
+	plotObstacles(env)
+	plotGoals(goalList)
+	setXlim(env.getBounds()[0], env.getBounds()[1])
+	setYlim(env.getBounds()[2], env.getBounds()[3])
+	plotGrid(grid)
+	# showPlot()
+	showPlotAnimation()
+
+def plotNoGrid(graph, env, goals):
+	clearPlot()
+	plotGraphWithEdges(graph)
+	plotObstacles(env)
+	plotGoals(goals)
+	setXlim(env.getBounds()[0], env.getBounds()[1])
+	setYlim(env.getBounds()[2], env.getBounds()[3])
+	showPlot()
+
+def plotNoGridNoGoals(graph, env):
+	clearPlot()
+	plotGraphWithEdges(graph)
+	plotObstacles(env)
+	setXlim(env.getBounds()[0], env.getBounds()[1])
+	setYlim(env.getBounds()[2], env.getBounds()[3])
+	showPlot()
+
+
+def plotWithGrid(graph, env, goals):
+	goalList = env.gridIndexListToLocationList(goals)
 	grid = env.getGrid()
 	clearPlot()
 	plotGraphWithEdges(graph)
@@ -30,7 +60,6 @@ def animationWithGrid(graph, env, goals):
 	setYlim(env.getBounds()[2], env.getBounds()[3])
 	plotGrid(grid)
 	showPlot()
-	showPlotAnimation()
 
 
 
@@ -113,10 +142,10 @@ def setYlim(lb, ub):
 	plt.ylim(lb, ub)
 
 def showPlot():
-	plt.show()
+	plt.show(block=False)
 
 def showPlotAnimation():
-	plt.pause(0.5)
+	plt.pause(0.05)
 	plt.show(block=False)
 
 

@@ -244,10 +244,14 @@ class Graph:
 		self.addGraphEdge(1, 3)
 
 	def initializeSquare(self):
-		self.addNode(1, 1)
-		self.addNode(1, 2)
+		# self.addNode(1, 1)
+		# self.addNode(1, 2)
+		# self.addNode(2, 2)
+		# self.addNode(2, 1)
 		self.addNode(2, 2)
-		self.addNode(2, 1)
+		self.addNode(2, 4)
+		self.addNode(4, 4)
+		self.addNode(4, 2)
 		# edges
 		self.addGraphEdge(0, 1)
 		self.addGraphEdge(1, 2)
@@ -256,11 +260,11 @@ class Graph:
 		self.addGraphEdge(0, 3)
 		self.addGraphEdge(1, 3)
 
-	def initializeRandomConfig(self, bound, seed):
-		np.random.seed(seed)
-		xVal = np.random.uniform(low=0, high=bound, size=self.nNodes)
-		yVal = np.random.uniform(low=0, high=bound, size=self.nNodes)
-		for i in range(self.nNodes):
+	def initializeRandomConfig(self, numRobots, bounds):
+		xbound, ybound = bounds
+		xVal = np.random.uniform(low=0, high=xbound/2, size=numRobots)
+		yVal = np.random.uniform(low=0, high=ybound/2, size=numRobots)
+		for i in range(numRobots):
 			self.addNode(xVal[i], yVal[i])
 
 	####### Controls #######

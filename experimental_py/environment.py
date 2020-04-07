@@ -1,4 +1,6 @@
+import scipy.spatial
 import numpy as np
+
 import math_utils
 import math
 
@@ -8,7 +10,8 @@ class Environment():
 		self.obstacles = []
 		self.bounds = bounds # xlb, xub, ylb, yub
 		self.useGrid = useGrid
-		
+		self.obstacleKDTree = KDTree(self.getObstacleCentersList())
+
 		if useGrid:
 			self.grid = None
 			xlb, xub, ylb, yub = bounds
@@ -17,18 +20,63 @@ class Environment():
 			self.numSquaresTall = numSquaresTall
 			self.squareHeight = (yub-ylb)/numSquaresTall
 
-	###### Modify and Initialize ############
+	##### Modify and Initialize ############
 
 	def addObstacle(self, obs):
 		self.obstacles.append(obs)
+		return None
 
-	def initializeRandom(self, numObstacles=50):
+	def initializeCurvesObstacles(self, numObstacles=50):
+		# center = (0.5, 0.5)
+		self.curveMaze = True
+		xlb, xub, ylb, yub = self.bounds
+
+		radius = .75
+		# make left and right walls
+		for y in np.linspace(ylb, yub, 100):
+			cenLeft = (xlb, y)
+			cenRight = (xub, y)
+			obs = Obstacle(cenLeft, radius)
+			self.addObstacle(obs)
+			obs = Obstacle(cenRight, radius)
+			self.addObstacle(obs)
+
+		# make top and bottom walls
+		for x in np.linspace(xlb, xub, 100):
+			cenBot = (x, ylb)
+			cenTop = (x, yub)
+			obs = Obstacle(cenBot, radius)
+			self.addObstacle(obs)
+			obs = Obstacle(cenTop, radius)
+			self.addObstacle(obs)
+
+		# left divider
+		span = yub-ylb
+		dividerLen = 1/2
+		xCen = xlb+(xub-xlb)/3
+		for y in np.linspace(ylb, ylb + dividerLen*span, 100):
+			cen = (xCen, y)
+			obs = Obstacle(cen, radius)
+			self.addObstacle(obs)
+
+		# right divider
+		xCen = xlb+2*(xub-xlb)/3
+		for y in np.linspace(ylb+dividerLen*span, yub, 100):
+			cen = (xCen, y)
+			obs = Obstacle(cen, radius)
+			self.addObstacle(obs)
+
+
+		if self.useGrid:
+			self.initializeGrid()
+
+	def initializeRandomObstacles(self, numObstacles=50):
 		# center = (0.5, 0.5)
 		radius = 0.1
 		for i in range(numObstacles):
 			cnt = 0
-			low = min(self.bounds)	
-			upp = max(self.bounds)	
+			low = min(self.bounds)  
+			upp = max(self.bounds)  
 			radius = math_utils.genRandomTuple(lb=0, ub=.35, size=1)
 			center = math_utils.genRandomTuple(lb=low, ub=upp, size=2)
 			while not self.isInsideBounds(center):
@@ -65,10 +113,29 @@ class Environment():
 	def isFreeSpace(self, coords):
 		if (not self.isInsideBounds(coords)):
 			return False
-		for obs in self.obstacles:
-			if obs.isInsideObstacle(coords):
-				return False
+		idxs, dist = obstacleKDTree.search(np.array(coords).reshape(2, 1))
+		if dist[0] <= self.obstacles[idxs].getRadius():
+			return False  # collision
 		return True
+
+	def isValidPath(self, startLoc, endLoc):
+		if (not self.isInsideBounds(coords)):
+			return False
+		sx, sy = startLoc
+		gx, gy = startLoc
+		move = [gx-sx, gy-sy]
+		start = [sx, sy]
+		for i in range(15):
+			loc = [sx+(i+1)/15*move[0], sy+(i+1)/15*move[1]]
+			idxs, dist = obstacleKDTree.search(np.array(loc)).reshape(2, 1)
+			if dist[0] <= self.obstacles[idxs].getRadius():
+				return False  # collision
+				
+		# for obs in self.obstacles:
+		# 	if obs.isInsideObstacle(coords):
+		# 		return False
+		return True
+
 
 	def isInsideBounds(self, coords):
 		x, y = coords
@@ -93,9 +160,26 @@ class Environment():
 
 	def getObstacleList(self,):
 		return self.obstacles
+		return None
+
+	def getObstacleCentersList(self,):
+		centers = []
+		for obs in  self.obstacles:
+			cen = list(obs.getCenter())
+			centers.append(cen)
+		return centers
+
 
 	def getBounds(self,):
 		return self.bounds
+		return None
+
+	def getEndOfMazeCenter(self):
+		assert(self.curveMaze)
+		xlb, xub, ylb, yub = self.bounds
+		xCen = xlb+3*(xub-xlb)/4
+		yCen = ylb+3*(yub-ylb)/4
+		return(xCen, yCen)
 
 	###### Converter ############
 
@@ -114,7 +198,7 @@ class Environment():
 			yIndex = math.floor((y - ylb)/self.squareHeight)
 			return (xIndex, yIndex)
 		else:
-			return [-1, -1]
+			return None
 
 	def gridIndexListToLocationList(self, gridIndexList):
 		assert(self.useGrid)
@@ -131,18 +215,18 @@ class Environment():
 			raise AssertionError
 
 
-
 class Obstacle():
-	
 	def __init__(self, center, radius):
 		self.center = center
 		self.radius = radius
 
 	def getCenter(self,):
 		return self.center
+		return None
 
 	def getRadius(self,):
 		return self.radius
+		return None
 
 	def isInside(self, coords):
 		xpos, ypos = coords
@@ -166,19 +250,22 @@ class GridSquare():
 		assert(not self.hasObstacle) # shouldn't be changing status if has obstacle
 		self.isOccupied = occStatus
 
-	###### Accessors ############## 
-
 	def getGridSquareSize(self):
 		return (self.width, self.height)
+		return None
 		
 	def getGridSquareCenter(self):
 		return (self.x_center_, self.y_center_)
+		return None
 
 	def isOccupied(self):
 		return self.isOccupied
+		return None
+
 
 	def isSquareFree(self):
 		return (not(self.hasObstacle or self.isOccupied))
+		return None
 
 	def isGridSquareOccupiedByObstaclesInList(self, obstacles):
 		for obs in obstacles:
@@ -198,3 +285,43 @@ class GridSquare():
 				return True
 
 		return False
+
+class KDTree:
+	"""
+	Nearest neighbor search class with KDTree
+	"""
+
+	def __init__(self, data):
+		# store kd-tree
+		self.tree = scipy.spatial.cKDTree(data)
+
+	def search(self, inp, k=1):
+		"""
+		Search NN
+
+		inp: input data, single frame or multi frame
+
+		"""
+
+		if len(inp.shape) >= 2:  # multi input
+			index = []
+			dist = []
+
+			for i in inp.T:
+				idist, iindex = self.tree.query(i, k=k)
+				index.append(iindex)
+				dist.append(idist)
+
+			return index, dist
+
+		dist, index = self.tree.query(inp, k=k)
+		return index, dist
+
+	def search_in_distance(self, inp, r):
+		"""
+		find points with in a distance r
+		"""
+
+		index = self.tree.query_ball_point(inp, r)
+		return index
+

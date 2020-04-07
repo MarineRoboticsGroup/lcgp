@@ -32,7 +32,7 @@ class RRT:
 
 
     def __init__(self, robot_graph, goal_locs, obstacle_list, bounds,
-                 max_move_dist=2, goal_sample_rate=5, max_iter=999):
+                 max_move_dist=1, goal_sample_rate=5, max_iter=2000):
         """
         Setting Parameter
 
@@ -55,7 +55,7 @@ class RRT:
         self.found_goal = [False for i in range(self.nRobots)]
 
     def planning(self):
-        print("Beginning Planning")
+        print("Beginning Decoupled RRT Planner")
         for i, startPos in enumerate(self.start):
             print("Starting Location:", startPos.getXYLocation(), "End Goal:", self.end[i].getXYLocation())
 
