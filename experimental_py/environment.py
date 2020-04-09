@@ -1,16 +1,15 @@
-import scipy.spatial
 import numpy as np
-
-import math_utils
 import math
 
-class Environment():
-	
+import math_utils
+import kdtree
+
+class Environment:
 	def __init__(self, bounds, useGrid, numSquaresWide, numSquaresTall):
 		self.obstacles = []
 		self.bounds = bounds # xlb, xub, ylb, yub
 		self.useGrid = useGrid
-		self.obstacleKDTree = KDTree(self.getObstacleCentersList())
+		self.obstacleKDTree = None
 
 		if useGrid:
 			self.grid = None
@@ -66,7 +65,7 @@ class Environment():
 			obs = Obstacle(cen, radius)
 			self.addObstacle(obs)
 
-
+		self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
 		if self.useGrid:
 			self.initializeGrid()
 
@@ -84,6 +83,7 @@ class Environment():
 			obs = Obstacle(center, radius[0])
 			self.addObstacle(obs)
 
+		self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
 		if self.useGrid:
 			self.initializeGrid()
 
@@ -113,27 +113,35 @@ class Environment():
 	def isFreeSpace(self, coords):
 		if (not self.isInsideBounds(coords)):
 			return False
-		idxs, dist = obstacleKDTree.search(np.array(coords).reshape(2, 1))
-		if dist[0] <= self.obstacles[idxs].getRadius():
+		idxs, dist = self.obstacleKDTree.search(np.array(coords).reshape(2, 1))
+		if dist[0] <= self.obstacles[idxs[0]].getRadius():
 			return False  # collision
 		return True
 
+	def isFreeSpaceLocListTuples(self, locList):
+		for loc in locList:
+			if not self.isFreeSpace(loc):
+				return False
+		return True
+
 	def isValidPath(self, startLoc, endLoc):
-		if (not self.isInsideBounds(coords)):
+		if (not self.isInsideBounds(startLoc)):
+			return False
+		if (not self.isInsideBounds(endLoc)):
 			return False
 		sx, sy = startLoc
-		gx, gy = startLoc
+		gx, gy = endLoc
 		move = [gx-sx, gy-sy]
-		start = [sx, sy]
-		for i in range(15):
-			loc = [sx+(i+1)/15*move[0], sy+(i+1)/15*move[1]]
-			idxs, dist = obstacleKDTree.search(np.array(loc)).reshape(2, 1)
-			if dist[0] <= self.obstacles[idxs].getRadius():
+
+		nsteps = 10
+		for i in range(nsteps):
+			dx = (i+1)/nsteps*move[0]
+			dy = (i+1)/nsteps*move[1]
+			loc = [sx+dx, sy+dy]
+			idxs, dist = self.obstacleKDTree.search(np.array(loc).reshape(2, 1))
+			if dist[0] <= self.obstacles[idxs[0]].getRadius():
 				return False  # collision
 				
-		# for obs in self.obstacles:
-		# 	if obs.isInsideObstacle(coords):
-		# 		return False
 		return True
 
 
@@ -214,8 +222,10 @@ class Environment():
 		else:
 			raise AssertionError
 
-
-class Obstacle():
+class Obstacle:
+	"""
+	Nearest neighbor search class with KDTree
+	"""
 	def __init__(self, center, radius):
 		self.center = center
 		self.radius = radius
@@ -234,7 +244,10 @@ class Obstacle():
 		delta = np.array([xpos-xcenter, ypos-ycenter])
 		return (np.linalg.norm(delta, 2) < self.radius)
 
-class GridSquare():
+class GridSquare:
+	"""
+	Nearest neighbor search class with KDTree
+	"""
 
 	def __init__(self, width, height, centerCoords, obstacleList):
 		cx, cy = centerCoords
@@ -285,43 +298,4 @@ class GridSquare():
 				return True
 
 		return False
-
-class KDTree:
-	"""
-	Nearest neighbor search class with KDTree
-	"""
-
-	def __init__(self, data):
-		# store kd-tree
-		self.tree = scipy.spatial.cKDTree(data)
-
-	def search(self, inp, k=1):
-		"""
-		Search NN
-
-		inp: input data, single frame or multi frame
-
-		"""
-
-		if len(inp.shape) >= 2:  # multi input
-			index = []
-			dist = []
-
-			for i in inp.T:
-				idist, iindex = self.tree.query(i, k=k)
-				index.append(iindex)
-				dist.append(idist)
-
-			return index, dist
-
-		dist, index = self.tree.query(inp, k=k)
-		return index, dist
-
-	def search_in_distance(self, inp, r):
-		"""
-		find points with in a distance r
-		"""
-
-		index = self.tree.query_ball_point(inp, r)
-		return index
 

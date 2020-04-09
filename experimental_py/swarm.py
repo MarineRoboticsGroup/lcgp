@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 import graph
@@ -11,22 +12,28 @@ class Swarm:
 
 	####### Swarm Utils #######
 
-	def initializeSwarm(self, bounds, formation='square', nRobots=None):
+	def initializeSwarm(self, bounds, formation='square', nRobots=None, minEigval=0.75):
 		# intialize formation and edges
+		self.startConfig = formation
+		self.minEigval = minEigval
 		self.robot_graph.removeAllNodes()
 		self.robot_graph.removeAllEdges()
 
 		if formation.lower() == 'square':
 			self.robot_graph.initializeSquare()
-		elif formation.lower() == 'line':
-			self.robot_graph.initializeLine()
-		elif formation.lower() == 'rigid_line':
-			self.robot_graph.initializeRigidLine()
+		elif formation.lower() == 'test6':
+			self.robot_graph.initializeTest6()
+		elif formation.lower() == 'test8':
+			self.robot_graph.initializeTest8()
 		elif formation.lower() == 'random':
 			self.robot_graph.initializeRandomConfig(nRobots, bounds)
 		else:
-			print("The given formation is not valid")
-			raise AssertionError
+			print("The given formation is not valid\n")
+			raise NotImplementedError
+
+		print("Reordering Robots as Needed")
+		# self.reorderRobotsBasedOnConnectivity()
+
 
 		self.updateSwarm()
 		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
@@ -54,9 +61,20 @@ class Swarm:
 		self.updateSwarm()
 		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
 
+	def reorderRobotsBasedOnConnectivity(self):
+		raise NotImplementedError
+
 	def updateSwarm(self):
+		startPlanning = time.time()
 		self.robot_graph.updateEdgesByRadius(self.sensingRadius)
+		endPlanning= time.time()
+
+		startPlanning = time.time()
 		self.relDistanceMatrix = self.robot_graph.getStiffnessMatrix()
+		endPlanning= time.time()
+		
+		# print('Time Updating:', endPlanning - startPlanning)
+		# print('Time Building Matrix:', endPlanning - startPlanning)
 
 	####### Accessors #######
 

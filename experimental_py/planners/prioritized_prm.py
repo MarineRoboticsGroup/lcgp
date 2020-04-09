@@ -11,35 +11,36 @@ import math
 import numpy as np
 import scipy.spatial
 import matplotlib.pyplot as plt
+import os.path
+from os import path
+import string
+import time
 
+import math_utils
+import plot
+import swarm
 
 class PriorityPrm():
-
-	def __init__(self, robots, env, goals, minEigval=0.75):
-		self.robots = robots
-		self.env = env.getBounds()
-		self.obstacles = env.getObstacleList()
-		self.bounds = env.getGridBounds()
-		self.goalLocs = goals
-		self.startLocs = self.robots.getPositionListTuples()
-		self.minEigval = minEigval
-		self.obstacleKDTree = KDTree(self.env.getObstacleCentersList())
-
-		self.N_SAMPLE = 1000
-		self.N_KNN = 15
-		self.MAX_EDGE_LEN = self.robots.getSensingRadius()
 
 	class Node:
 		"""
 		Node class for dijkstra search
 		"""
 
-		def __init__(self, loc, cost, pind):
+		def __init__(self, loc, cost, pind, timestep, index, useTime):
 			self.loc = loc
 			self.x = loc[0]
 			self.y = loc[1]
 			self.cost = cost
 			self.pind = pind
+			self.timestep = timestep
+			self.index = index
+			if useTime:
+				self.pkey = (pind, timestep-1)
+			else:
+				self.pkey = pind
+
+
 
 		def __str__(self):
 			return str(self.x) + "," + str(self.y) + "," + str(self.cost) + "," + str(self.pind)
@@ -47,6 +48,8 @@ class PriorityPrm():
 		def getLocation(self):
 			return self.loc
 
+		def setTimestep(self, timestep):
+			self.timestep = timestep
 
 	class KDTree:
 		"""
@@ -87,22 +90,66 @@ class PriorityPrm():
 			index = self.tree.query_ball_point(inp, r)
 			return index
 
-	# TODO ALAN
-	def planning(self,):
-		sampleLocs = self.generateSampleLocations()
-		road_map = self.generateRoadmap(sampleLocs, obstacleKDTree)
+	def __init__(self, robots, env, goals, maxsteps=99999):
+		self.robots = robots
+		self.sensingRadius = self.robots.getSensingRadius()
+		self.startLocs = self.robots.getPositionListTuples()
+		self.numRobots = robots.getNumRobots()
+		self.startConfig = self.robots.startConfig
 
-		trajs = [[] for x in range(robots.getNumRobots())]
-		foundGoals = [False for x in range(robots.getNumRobots())]
+		self.env = env
+		self.obstacles = env.getObstacleList()
+		self.bounds = env.getBounds()
+		self.goalLocs = goals
+		
+		self.minEigval = robots.minEigval
+		self.maxsteps = maxsteps
+
+		self.N_SAMPLE = 3000
+		self.N_KNN = 30
+		self.MAX_EDGE_LEN = 2
+		self.roadmapFilename = 'roadmap_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.numRobots)
+
+
+	# TODO: constraint handling and propogation
+	def planning(self, addTimeDimension=False):
+
+		print("Sampling Locations")
+		sampleLocs = self.generateSampleLocations()
+		print("%d Locations Sampled\n"%len(sampleLocs))
+		
+		roadmap = self.readRoadmap()
+		if roadmap and (len(roadmap) > 0):
+			print("Read from existing roadmap file: %s\n"%self.roadmapFilename)
+		else:
+			print("%s not found.\nGenerating Roadmap"%self.roadmapFilename)
+			roadmap = self.generateRoadmap(sampleLocs)
+			self.writeRoadmap(roadmap)
+			print("New roadmap written to file\n")
+		# self.plot_roadmap(roadmap, sampleLocs)
+
+		print("Beginning Planning")
+		print()
+		trajs = [[] for x in range(self.robots.getNumRobots())]
+		coordTrajs = [[] for x in range(self.robots.getNumRobots())]
+		foundGoals = [False for x in range(self.robots.getNumRobots())]
 		curIdx = 0
 		while False in foundGoals:
-			print("planning for robot", curIdx)
-			traj, planSuccess = self.astar_planning(road_map, sampleLocs, curIdx)
-			if planSuccess:
+			print("Planning for robot", curIdx)
+			timeStart = time.time()
+			traj, conflict = self.astarPlanning(roadmap, sampleLocs, curIdx, trajs, useTime=addTimeDimension)
+			timeEnd = time.time()
+			print("Planning completed in: %f (s)"%(timeEnd-timeStart))
+			if conflict is None:
+				print("Planning succesful for robot %d \n"%curIdx)
 				trajs[curIdx] = traj
+				coordTrajs[curIdx] = self.convertTrajectoryToCoords(traj, sampleLocs)
 				foundGoals[curIdx] = True
 				curIdx += 1
+
+				plot.showTrajectories(coordTrajs, self.env, self.goalLocs)
 			else:
+				print("Planning Failed for robot %d. \nPropagating Constraint\n"%curIdx)
 				raise NotImplementedError
 				# Identify constraint
 				# Propagate constraint
@@ -110,7 +157,104 @@ class PriorityPrm():
 				foundGoals[curIdx] = True
 				curIdx -= 1
 
+
+		trajs = self.convertTrajectoriesToCoords(trajs, sampleLocs)
+		print("Full set of trajectories found!")
 		return trajs
+
+	# TODO: add conflict checking
+	# TODO: way of returning conflict
+	def astarPlanning(self, roadmap, sampleLocs, curRobotId, currTrajs, useTime=False):
+		"""
+		roadmap: ??? [m]
+		sampleLocs: ??? [(m, m), .., (m, m)]
+
+		@return: list of node ids ([id0, id1, ..., idN]), empty list when no path was found
+		"""
+		startId = len(roadmap) - 2*self.numRobots+curRobotId
+		goalId = len(roadmap) - self.numRobots+curRobotId
+		print("StartID", startId, sampleLocs[startId])
+		print("GoalID", goalId, sampleLocs[goalId])
+		print()
+		# loc cost pind timestep index
+		startNode = self.Node(self.startLocs[curRobotId], cost=0.0, pind=-1, timestep=0, index=startId, useTime=useTime)
+		goalNode = self.Node(self.goalLocs[curRobotId], cost=0.0, pind=-1, timestep=-1, index=goalId, useTime=useTime)
+
+		open_set, closed_set = dict(), dict()
+		open_set[self.getNodeKey(startNode, useTime)] = startNode
+
+		conflict = None
+
+		while True:
+
+
+			# if out of options, return conflict information
+			if not open_set:
+				conflict = True
+				return ([], conflict)
+
+			# find minimum cost in open_set
+			currKey = min(open_set, key=lambda o: open_set[o].cost + self.calcHeuristic(open_set[o], goalNode, useTime))
+
+			currNode = open_set[currKey]
+			# print("Open Set:", len(open_set))
+			# print("Closed Set:", len(closed_set))
+			# print("cKey", currKey, "pind", currNode.pind)
+			# print()
+			# Remove the item from the open set
+			del open_set[currKey]
+			closed_set[currKey] = currNode
+
+			# if goal location
+			if self.foundGoal(currNode, goalNode):
+				goalNode.pind = currNode.pind
+				goalNode.cost = currNode.cost
+				goalNode.timestep = currNode.timestep
+				goalNode.pkey = currNode.pkey
+				break
+
+
+			# If node is valid continue to expand path
+			if self.nodeIsValid(currNode, currTrajs, sampleLocs, curRobotId):
+				# Add it to the closed set
+				closed_set[currKey] = currNode
+				curLoc = currNode.getLocation()
+
+				# expand search grid based on motion model
+				for i in range(len(roadmap[currNode.index])):
+					new_id = roadmap[currNode.index][i]
+					if new_id in closed_set:
+						continue
+									
+					newLoc = sampleLocs[new_id]
+					dist = self.calcDistanceBetweenLocations(curLoc, newLoc)
+					newNode = self.Node(loc=newLoc, cost=currNode.cost + dist, pind=currNode.index, timestep=currNode.timestep+1, index=new_id, useTime=useTime)
+					newKey = self.getNodeKey(newNode, useTime)
+
+					# Otherwise if it is already in the open set
+					if newKey in open_set:
+						if open_set[newKey].cost > newNode.cost:
+							# open_set[newKey] = newNode
+							open_set[newKey].cost = newNode.cost
+							open_set[newKey].pind = newNode.pind
+							open_set[newKey].timestep = newNode.timestep
+							open_set[newKey].pkey = newNode.pkey
+					else:
+						open_set[newKey] = newNode
+
+		# generate final course
+		pathIdxs = [len(roadmap)-self.numRobots+curRobotId] # Add goal node
+		pkey = goalNode.pkey
+		pind = goalNode.pind
+		while pind != -1:
+			pathIdxs.append(pind)
+			node = closed_set[pkey]
+			pkey = node.pkey
+			pind = node.pind
+
+		pathIdxs.reverse()
+		return (pathIdxs, None)
+
 
 	def isValidPath(self, curLoc, connectingLoc):
 		dx = curLoc[0] - connectingLoc[0]
@@ -118,7 +262,7 @@ class PriorityPrm():
 		dist = math.hypot(dx, dy)
 
 		# node too far away
-		if dist >= MAX_EDGE_LEN:
+		if dist >= self.MAX_EDGE_LEN:
 			return False
 		return self.env.isValidPath(curLoc, connectingLoc)
 
@@ -130,10 +274,9 @@ class PriorityPrm():
 
 		@return: list of list of edge ids ([[edges, from, 0], ...,[edges, from, N])
 		"""
-
-		road_map = []
+		roadmap = []
 		nsample = len(sampleLocs)
-		sampleKDTree = KDTree(sampleLocs)
+		sampleKDTree = self.KDTree(sampleLocs)
 
 		for curLoc in sampleLocs:
 
@@ -147,133 +290,168 @@ class PriorityPrm():
 				if self.isValidPath(curLoc, connectingLoc):
 					edge_id.append(inds[ii])
 
-				if len(edge_id) >= N_KNN:
+				if len(edge_id) >= self.N_KNN:
 					break
 
-			road_map.append(edge_id)
-
-		 plot_road_map(road_map, sampleLocs)
-
-		return road_map
-
-	# TODO ALAN
-	def astar_planning(self, road_map, sampleLocs, curRobotId):
-		"""
-		road_map: ??? [m]
-		sampleLocs: ??? [(m, m), .., (m, m)]
-
-		@return: list of node ids ([id0, id1, ..., idN]), empty list when no path was found
-		"""
-
-		nstart = Node(self.startLocs, 0.0, -1)
-		ngoal = Node(self.goalLocs, 0.0, -1)
-
-		openset, closedset = dict(), dict()
-		openset[len(road_map) - 2] = nstart
-
-		path_found = True
-
-		while True:
-			if not openset:
-				print("Cannot find path")
-				path_found = False
-				break
-
-			# find minimum cost in openset
-			curr_id = min(open_set, key=lambda o: open_set[o].cost + calcHeuristic(open_set[o], ngoal))
-			# curr_id = min(openset, key=lambda o: openset[o].cost)
-			currNode = openset[curr_id]
-			curLoc = currNode.getLocation()
-
-			# show graph
-			# if show_animation and len(closedset.keys()) % 2 == 0:
-			# 	# for stopping simulation with the esc key.
-			# 	plt.gcf().canvas.mpl_connect('key_release_event',
-			# 			lambda event: [exit(0) if event.key == 'escape' else None])
-			# 	plt.plot(currNode.x, currNode.y, "xg")
-			# 	plt.pause(0.001)
-
-			if curr_id == (len(road_map) - 1):
-				print("goal is found!")
-				ngoal.pind = currNode.pind
-				ngoal.cost = currNode.cost
-				break
-
-			# Remove the item from the open set
-			del openset[curr_id]
-			# Add it to the closed set
-			closedset[curr_id] = currNode
-
-			# expand search grid based on motion model
-			for i in range(len(road_map[curr_id])):
-				new_id = road_map[curr_id][i]
-				if new_id in closedset:
-					continue
-								
-				newLoc = sampleLocs[new_id]
-				dist = calcDistanceBetweenLocations(curLoc, newLoc)
-				newNode = Node(newLoc, currNode.cost + dist, curr_id)
-
-				# Otherwise if it is already in the open set
-				if new_id in openset:
-					if openset[new_id].cost > newNode.cost:
-						openset[new_id].cost = newNode.cost
-						openset[new_id].pind = curr_id
-				else:
-					openset[new_id] = newNode
-
-		if path_found is False:
-			return ([], False)
-
-		# generate final course
-		pathIdxs = [len(road_map)-1] # Add goal node
-		pind = ngoal.pind
-		while pind != -1:
-			pathIdxs.append(pind)
-			n = closedset[pind]
-			pind = n.pind
-
-		return (pathIdxs, True)
-
-
-	def plot_road_map(road_map, sampleLocs):  # pragma: no cover
-
-		for i, _ in enumerate(road_map):
-			for ii in range(len(road_map[i])):
-				ind = road_map[i][ii]
-
-				plt.plot([sampleLocs[i][0], sampleLocs[ind][0]],
-						 [sampleLocs[i][1], sampleLocs[ind][1]], "-k")
+			roadmap.append(edge_id)
+		return roadmap
 
 	def generateSampleLocations(self, ):
-
 		xlb, xub, ylb, yub = self.bounds
-
 		sampleLocs = []
-
-		while len(sampleLocs) <= N_SAMPLE:
-			tx, ty = math_utils.genRandomLocation(xlb, xub, ylb, yub) 
-
-			index, dist = obstacleKDTree.search(np.array([tx, ty]).reshape(2, 1))
+		while len(sampleLocs) < self.N_SAMPLE:
+			newLoc = math_utils.genRandomLocation(xlb, xub, ylb, yub) 
 
 			# If not within obstacle
-			if dist[0] >= self.obstacles[index].getRadius():
-				sampleLocs.append([tx, ty])
+			if self.env.isFreeSpace(newLoc):
+				sampleLocs.append(list(newLoc))
 
-		sampleLocs.append([sx, sy])
-		sampleLocs.append([gx, gy])
+		for loc in self.startLocs:
+			sampleLocs.append(list(loc))
+		for loc in self.goalLocs:
+			sampleLocs.append(list(loc))
 
 		return sampleLocs
 
+	def nodeIsValid(self, currNode, currTrajs, sampleLocs, curRobotId):
+		timestep = currNode.timestep
+		if timestep > self.maxsteps:
+			# print("Timestep is past allowable range")
+			return False
 
-	def calcHeuristic(curNode, goalNode):
+		for roboId in range(curRobotId):
+			lastStep = len(currTrajs[roboId])-1
+			locId = currTrajs[roboId][min(timestep, lastStep)]
+			if locId == currNode.index:
+				# print("%d cannot occupy same space as %d"%(curRobotId,roboId) )
+				return False
+
+		if curRobotId == 0:
+			return True
+		if curRobotId == 1:
+			lastStep = len(currTrajs[0])-1
+			index1 = currTrajs[0][min(timestep, lastStep)]
+			loc1 = sampleLocs[index1]
+			loc2 = sampleLocs[currNode.index]
+			if (self.calcDistanceBetweenLocations(loc1, loc2) < self.sensingRadius):
+				return True
+			else:
+				# print("%d would be too far from %d"%(curRobotId,roboId) )
+				return False
+		if curRobotId >= 2:
+			locList = self.getAssignedLocations(currTrajs, sampleLocs, timestep, curRobotId)
+			locList.append(sampleLocs[currNode.index])
+			minEigval = self.getMinEigenvalFromLocList(locList)
+			if (minEigval > self.minEigval):
+				return True
+			else:
+				# if minEigval == 0:
+				# 	print("The matrix would be flexible")
+				# else:
+				# 	print("The matrix would not be sufficiently rigid:", minEigval)
+				# print()
+				return False
+
+	def getMinEigenvalFromLocList(self, locList):
+		tempSwarm = swarm.Swarm(self.sensingRadius)
+		tempSwarm.initializeSwarmFromLocationListTuples(locList)
+		return tempSwarm.getNthEigval(4)
+
+	@staticmethod
+	def getNodeKey(node, useTime):
+		if useTime:
+			return (node.index, node.timestep)
+		else:
+			return node.index
+
+	@staticmethod
+	def foundGoal(currNode, goalNode):
+		return (currNode.index == goalNode.index)
+
+	@staticmethod
+	def setGoalToCurrent(currNode, goalNode):
+		goalNode.pind = currNode.pind
+		goalNode.pkey = currNode.pkey
+		goalNode.cost = currNode.cost
+		goalNode.timestep = currNode.timestep
+
+	@staticmethod
+	def getAssignedLocations(currTrajs, sampleLocs, timestep, curRobotId):
+		locList = []
+		for i in range(curRobotId):
+			lastStep = len(currTrajs[i])-1
+			locList.append(sampleLocs[currTrajs[i][min(timestep, lastStep)]])
+		return locList
+
+	@staticmethod
+	def convertTrajectoriesToCoords(trajs, sampleLocs):
+		newTrajs = []
+		for traj in trajs:
+			newTraj = []
+			for index in traj:
+				newTraj.append(sampleLocs[index])
+			newTrajs.append(newTraj)
+		return newTrajs
+
+	@staticmethod
+	def convertTrajectoryToCoords(traj, sampleLocs):
+		coords = []
+		for index in traj:
+			coords.append(sampleLocs[index])
+		return coords
+
+	@staticmethod
+	def plot_roadmap(roadmap, sampleLocs):  # pragma: no cover
+		for i, _ in enumerate(roadmap):
+			for ii in range(len(roadmap[i])):
+				ind = roadmap[i][ii]
+
+				plt.plot([sampleLocs[i][0], sampleLocs[ind][0]],
+						 [sampleLocs[i][1], sampleLocs[ind][1]], "-k")
+		plt.show(block=True)
+
+	@staticmethod
+	def calcHeuristic(curNode, goalNode, useTime):
 		curLoc = curNode.getLocation()
 		goalLoc = goalNode.getLocation()
-		return calcDistance(curLoc, goalLoc)
+		nx, ny = curLoc
+		gx, gy = goalLoc
+		dx = gx-nx
+		dy = gy-ny
+		if useTime:
+			return math.hypot(dx, dy) + 5*curNode.timestep
+		else:
+			return math.hypot(dx, dy)
 
+	@staticmethod
 	def calcDistanceBetweenLocations(loc1, loc2):
 		nx, ny = loc1
 		gx, gy = loc2
 		dx = gx-nx
 		dy = gy-ny
 		return math.hypot(dx, dy)
+
+	# TODO: Finish
+	@staticmethod
+	def plotFailedSearch(trajs):
+		raise NotImplementedError			
+
+	def readRoadmap(self,):
+		if not path.exists(self.roadmapFilename):
+			return False
+
+		rmap = []
+		with open(self.roadmapFilename, 'r') as filehandle:
+			for line in filehandle:
+				roads = list(map(int, line.split()))
+				rmap.append(roads)
+
+		return rmap
+
+	def writeRoadmap(self, roadmap):
+		with open(self.roadmapFilename, 'w') as filehandle:
+			for roads in roadmap:
+				line = str(roads).translate(str.maketrans('', '', string.punctuation))
+				filehandle.write('%s\n' % line)
+
+

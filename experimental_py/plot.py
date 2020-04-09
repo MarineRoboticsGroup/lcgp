@@ -7,6 +7,7 @@ import numpy as np
 colors = ['b','g','r','c','m','y']
 
 
+####### Animation Calls #######
 
 def animationNoGrid(graph, env, goals):
 	clearPlot()
@@ -31,6 +32,8 @@ def animationWithGrid(graph, env, goals):
 	# showPlot()
 	showPlotAnimation()
 
+####### Single Frame Calls #######
+
 def plotNoGrid(graph, env, goals):
 	clearPlot()
 	plotGraphWithEdges(graph)
@@ -48,7 +51,6 @@ def plotNoGridNoGoals(graph, env):
 	setYlim(env.getBounds()[2], env.getBounds()[3])
 	showPlot()
 
-
 def plotWithGrid(graph, env, goals):
 	goalList = env.gridIndexListToLocationList(goals)
 	grid = env.getGrid()
@@ -61,7 +63,17 @@ def plotWithGrid(graph, env, goals):
 	plotGrid(grid)
 	showPlot()
 
+def showTrajectories(trajs, env, goals):
+	for i, traj in enumerate(trajs):
+		if traj == []:
+			break
+		plt.plot(*zip(*traj), color=colors[i])
+	plotObstacles(env)
+	plotGoals(goals)
+	showPlot()
 
+
+####### Atomic Calls #######
 
 def plotGraphWithEdges(graph):
 	nodeLocations = graph.getNodeLocationList()
@@ -142,7 +154,7 @@ def setYlim(lb, ub):
 	plt.ylim(lb, ub)
 
 def showPlot():
-	plt.show(block=False)
+	plt.show(block=True)
 
 def showPlotAnimation():
 	plt.pause(0.05)

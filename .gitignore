@@ -42,6 +42,12 @@ auto/
 __pycache__/
 
 
+# Cached Files from Python #
+##########
+roadmap*
+recent_traj*
+
+
 # PyTorch #
 ###########
 *.pt

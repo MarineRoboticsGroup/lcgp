@@ -234,11 +234,6 @@ def dKdVar(K, index, graph):
 		A[2*j:2*j+2, 2*i:2*i+2] += dKji_di
 
 
-	# print(v, i)
-	# print()
-	# matprintBlock(A)
-	# print()
-	# print()
 	return A
 
 ####### Lin. Alg. Utils #######

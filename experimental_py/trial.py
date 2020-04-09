@@ -1,9 +1,11 @@
 import sys
 sys.path.insert(1, '/home/alan/range_only_robotics/experimental_py/planners')
+
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
-
+import flamegraph
+import time
 
 import math_utils
 import swarm
@@ -13,13 +15,26 @@ import plot
 # planners
 import decoupled_rrt
 import coupled_astar
+import prioritized_prm
 
 
-def checkFeasibility(swarm, env, goals):
+def checkFeasibility(swarm, env, goals): # pragma: no cover
+	feasible = True
+
 	startEigval = swarm.getNthEigval(4)
 	startLocs = swarm.getPositionList()
 	graph = swarm.getRobotGraph()
 	plot.plotNoGrid(graph, env, goals)
+
+
+	if not (env.isFreeSpaceLocListTuples(swarm.getPositionListTuples())):
+		print("\nStart Config Inside Obstacles")
+		print()
+		feasible = False
+	if not (env.isFreeSpaceLocListTuples(goals)):
+		print("\nGoals Config Inside Obstacles")
+		print()
+		feasible = False
 
 	goalLoc = []
 	for goal in goals:
@@ -35,16 +50,16 @@ def checkFeasibility(swarm, env, goals):
 	swarm.moveSwarm(startLocs, moveRelative=False)
 	swarm.updateSwarm()
 
-	if (0 == startEigval):
-		print("Starting Config Invalid")
+	if (startEigval < swarm.minEigval):
+		print("\nStarting Config Insufficiently Rigid")
 		print()
-		return False
-	elif (0 == goalEigval):
-		print("Goal Config Invalid")
+		feasible = False
+	if (goalEigval < swarm.minEigval):
+		print("\nGoal Config Insufficiently Rigid")
 		print()
-		return False
-	else:
-		return True
+		feasible = False
+
+	return feasible
 
 def readTrajFromFile(filename, useGrid=False):
 	# define an empty list
@@ -91,7 +106,8 @@ def convertAbsoluteTrajToRelativeTraj(locLists):
 			relMoves[robotNum].append((deltax, deltay))
 	return relMoves
 
-def testTrajectory(robots, env, trajs, goals, trajNum=1, useGrid=False, delayAnimationStart=False, relativeTraj=False):
+def testTrajectory(robots, env, trajs, goals, trajNum=1,
+ useGrid=False, delayAnimationStart=False, relativeTraj=False):
 	"""
 	Takes a generic input trajectory of absolute states 
 	and moves the swarm through the trajectory
@@ -139,9 +155,9 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1, useGrid=False, delayAni
 				
 				move += list(newLoc)
 
-			while not (robots.moveIsGood(move, moveRelative=relativeTraj)):
-				move = [x for x in robots.findGoodMove()]
-				print("Fixing move!!")
+			# while not (robots.moveIsGood(move, moveRelative=relativeTraj)):
+			# 	move = [x for x in robots.findGoodMove()]
+			# 	print("Fixing move!!")
 
 			robots.moveSwarm(move, moveRelative=relativeTraj)
 			robots.updateSwarm()
@@ -167,16 +183,15 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1, useGrid=False, delayAni
 		plt.close()
 
 		plt.plot(minEigvals)
-		plt.hlines([0.2, 0.8], 0, len(minEigvals))
+		plt.hlines([0.2, 0.75], 0, len(minEigvals))
 		plt.title("Minimum Eigenvalue over Time")
 		plt.ylabel("Eigenvalue")
 		plt.xlabel("time")
 		plt.show()
 
-		# with open('recent_traj.txt', 'w') as filehandle:
-		# 	for traj in trajs:
-		# 		filehandle.write('%s\n' % traj)
-				
+		with open('recent_traj.txt', 'w') as filehandle:
+			for traj in trajs:
+				filehandle.write('%s\n' % traj)			
 
 def makeSensitivityPlotsRandomMotions(robots, environment):
 	"""
@@ -276,10 +291,16 @@ def getCoupledAstarPath(robots, environment, goals):
 	traj = a_star.planning()
 	return traj
 
-def main(experiment, swarmInfo, envInfo, seed=999999):
+def getPriorityPrmPath(robots, environment, goals, useTime):
+	priority_prm = prioritized_prm.PriorityPrm(robots=robots, env=environment, goals=goals)
+	traj = priority_prm.planning(addTimeDimension=useTime)
+	return traj
+
+def main(experimentInfo, swarmInfo, envInfo, seed=999999):
 	np.random.seed(seed)
 
-	nRobots, swarmFormation, sensingRadius = swarmInfo
+	expName, useTime, useRelative, showAnimation, profile = experimentInfo
+	nRobots, swarmFormation, sensingRadius, minEigval = swarmInfo
 	setting, bounds, nObst, useGrid = envInfo
 
 	envBounds = (0, bounds[0], 0, bounds[1])
@@ -287,31 +308,35 @@ def main(experiment, swarmInfo, envInfo, seed=999999):
 	nSquaresTall=bounds[1]
 	nObst = nObst
 
-	# Initialize Robots
-	robots = swarm.Swarm(sensingRadius=sensingRadius)
-	if swarmFormation=='random':
-		robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots)
-	else:
-		robots.initializeSwarm(bounds=bounds, formation=swarmFormation)
 	
 	# Initialize Environment
 	env = environment.Environment(envBounds, useGrid=useGrid, numSquaresWide=nSquaresWide, numSquaresTall=nSquaresTall)
 	if setting == 'random':
 		env.initializeRandomObstacles(numObstacles=nObst)
-		goals = [math_utils.genRandomTuple(lb=0, ub=envBounds[1], size=2) for i in range(robots.getNumRobots())]
 	elif setting == 'curve_maze':
 		env.initializeCurvesObstacles(numObstacles=nObst)
-		mazeGoal = env.getEndOfMazeCenter()
-		xlb = mazeGoal[0]-3
-		xub = mazeGoal[0]+3
-		ylb = mazeGoal[1]-3
-		yub = mazeGoal[1]+3
-		goals = [math_utils.genRandomLocation(xlb, xub, ylb, yub) for i in range(robots.getNumRobots())]
+		# mazeGoal = env.getEndOfMazeCenter()
+		# xlb = mazeGoal[0]
+		# xub = mazeGoal[0]+6
+		# ylb = mazeGoal[1]-3
+		# yub = mazeGoal[1]+3
+		# goals = [math_utils.genRandomLocation(xlb, xub, ylb, yub) for i in range(nRobots)]
 	else:
 		raise NotImplementedError
 	
-	assert(checkFeasibility(robots, env, goals))
+	# Initialize Robots
+	robots = swarm.Swarm(sensingRadius=sensingRadius)
+	if swarmFormation=='random':
+		robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
+		while not checkFeasibility(robots, env, goals):
+			robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
+	else:
+		robots.initializeSwarm(bounds=bounds, formation=swarmFormation, minEigval=minEigval)
+	
+	goals = [(loc[0]+27, loc[1]+24) for loc in robots.getPositionListTuples()]
 
+	assert(checkFeasibility(robots, env, goals))
+	assert(nRobots == robots.getNumRobots())
 	# if grid convert robot locations to grid indices
 	if useGrid:
 		startLoc = env.locationListToGridIndexList(robots.getPositionList())
@@ -319,30 +344,51 @@ def main(experiment, swarmInfo, envInfo, seed=999999):
 		goals = env.locationListToGridIndexList(goals)
 
 	# Perform Planning
-	if experiment == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
+	startPlanning = time.time()
+	if profile:
+		flamegraph.start_profile_thread(fd=open("./perf.log", "w"))
+
+	if expName == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
 		trajs = getDecoupledRrtPath(robots, env, goals) 
-	elif experiment == 'coupled_astar':
+	elif expName == 'coupled_astar':
 		trajs = getCoupledAstarPath(robots, env, goals) 
-	elif experiment == 'read_file':
+	elif expName == 'priority_prm':
+		trajs = getPriorityPrmPath(robots, env, goals, useTime=useTime)
+	elif expName == 'read_file':
 		trajs = readTrajFromFile('recent_traj.txt', useGrid=useGrid)
 	else:
 		raise AssertionError
 
-	trajs = convertAbsoluteTrajToRelativeTraj(trajs)
-	testTrajectory(robots, env, trajs, goals, useGrid=useGrid, relativeTraj=True)
+	endPlanning= time.time()
+	print('Time Planning:', endPlanning - startPlanning)
+
+
+	if useRelative:
+		print("Converting trajectory from absolute to relative")
+		trajs = convertAbsoluteTrajToRelativeTraj(trajs)
+
+	if showAnimation:
+		print("Showing trajectory animation")
+		testTrajectory(robots, env, trajs, goals, useGrid=useGrid, relativeTraj=useRelative)
 
 
 if __name__ == '__main__':
 	# exp = 'coupled_astar'
 	# exp = 'decoupled_rrt'
-	exp = 'read_file'
+	exp = 'priority_prm'
+	# exp = 'read_file'
+	useTime = False
+	useRelative = False
+	showAnimation = True
+	profile = True
 
-	swarmForm = 'square'
-	# swarmForm = 'line'
-	# swarmForm = 'rigid_line'
+	# swarmForm = 'square'
+	# swarmForm = 'test6'
+	swarmForm = 'test8'
 	# swarmForm = 'random'
-	nRobots = 30
-	sensingRadius = 5
+	nRobots = 8
+	sensingRadius = 4
+	minEigval= 0.3
 
 	# setting = 'random'
 	setting = 'curve_maze'
@@ -350,8 +396,9 @@ if __name__ == '__main__':
 	envSize = (35, 35)
 	numObstacles = 0
 
-	swarmInfo = (nRobots, swarmForm, sensingRadius)
+	experimentInfo = (exp, useTime, useRelative, showAnimation, profile)
+	swarmInfo = (nRobots, swarmForm, sensingRadius, minEigval)
 	envInfo = (setting, envSize, numObstacles, useGrid)
 
-	main(experiment=exp, swarmInfo=swarmInfo, envInfo=envInfo)
+	main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo)
 

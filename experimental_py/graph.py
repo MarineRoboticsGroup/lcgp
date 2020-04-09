@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import math_utils
 import environment
+import kdtree
 
 class Graph:
 	
@@ -28,16 +29,16 @@ class Graph:
 		self.nNodes += 1
 
 	def addGraphEdge(self, node1, node2):
-		edge = (node1, node2)
-		assert(not(self.edgeExists(edge)))
 		assert(self.nodeExists(node1))
 		assert(self.nodeExists(node2))
 
-		self.edges.append(edge)
-		self.edgeDistances.append(self.getEdgeDistScal(edge))
-		self.nEdges += 1
-		self.nodes[node1].addNodeEdge(node2)
-		self.nodes[node2].addNodeEdge(node1)
+		edge = (node1, node2)
+		if not (self.edgeExists(edge)):
+			self.edges.append(edge)
+			self.edgeDistances.append(self.getEdgeDistScal(edge))
+			self.nEdges += 1
+			self.nodes[node1].addNodeEdge(node2)
+			self.nodes[node2].addNodeEdge(node1)
 
 	def removeGraphNode(self, nodeNum):
 		assert(self.nodeExists(nodeNum))
@@ -68,13 +69,15 @@ class Graph:
 
 	def updateEdgesByRadius(self, radius):
 		self.removeAllEdges()
+		nodeKDTree = kdtree.KDTree(self.getNodeLocationList())
 		self.nEdges = 0
 		for r1 in range(self.nNodes):
-			for r2 in range(r1+1, self.nNodes):
-				assert(self.nodeExists(r1))
-				assert(self.nodeExists(r2))
-				dist = self.getDistBetweenNodes(r1, r2)
-				if dist <= radius:
+			curLoc = self.nodes[r1].getXYLocation()
+			index, dists = nodeKDTree.search(np.array(curLoc).reshape(2, 1), k=self.nNodes)
+			inds = index[0][1:]
+			ds = dists[0][1:]
+			for r2, d2 in zip(inds, ds):
+				if d2 < radius:
 					self.addGraphEdge(r1, r2)
 
 	def removeConnectingNodeEdges(self, nodeNum):
@@ -174,74 +177,23 @@ class Graph:
 
 	####### Construct Graph Formations #######
 
-	def initializeRarelyFlex(self):
+	def initializeTest6(self):
 		self.addNode(0, 0)
 		self.addNode(0, 2)
 		self.addNode(1, 3)
 		self.addNode(2, 2)
 		self.addNode(2, 0)
 		self.addNode(1, 1)
-		# Edges
-		self.addGraphEdge(0, 1)
-		self.addGraphEdge(1, 2)
-		self.addGraphEdge(1, 3)
-		self.addGraphEdge(2, 3)
-		self.addGraphEdge(3, 4)
-		self.addGraphEdge(4, 0)
-		self.addGraphEdge(4, 5)
-		self.addGraphEdge(5, 0)
-		self.addGraphEdge(5, 2)
-
-	def initializeRarelyRigid(self):
-		self.addNode(0, 3)
-		self.addNode(3, 3)
-		self.addNode(3, 0)
-		self.addNode(0, 0)
-		self.addNode(1, 2)
+		
+	def initializeTest8(self):
 		self.addNode(2, 2)
-		self.addNode(2, 1)
-		self.addNode(1, 1)
-		# outer square
-		self.addGraphEdge(0, 1)
-		self.addGraphEdge(1, 2)
-		self.addGraphEdge(2, 3)
-		self.addGraphEdge(0, 3)
-		# inner square
-		self.addGraphEdge(4, 5)
-		self.addGraphEdge(5, 6)
-		self.addGraphEdge(6, 7)
-		self.addGraphEdge(4, 7)
-		# inner-outer connects
-		self.addGraphEdge(0, 4)
-		self.addGraphEdge(1, 5)
-		self.addGraphEdge(2, 6)
-		self.addGraphEdge(3, 7)
-
-	def initializeLine(self):
-		self.addNode(0, 0)
-		self.addNode(1, 0)
-		self.addNode(2, 0)
-		self.addNode(3, 0)
-		# edges
-		self.addGraphEdge(0, 1)
-		self.addGraphEdge(1, 2)
-		self.addGraphEdge(2, 3)
-		self.addGraphEdge(0, 2)
-		self.addGraphEdge(0, 3)
-		self.addGraphEdge(1, 3)
-
-	def initializeRigidLine(self):
-		self.addNode(0, 0)
-		self.addNode(1, .1)
-		self.addNode(2, 0)
-		self.addNode(3, 0)
-		# edges
-		self.addGraphEdge(0, 1)
-		self.addGraphEdge(1, 2)
-		self.addGraphEdge(2, 3)
-		self.addGraphEdge(0, 2)
-		self.addGraphEdge(0, 3)
-		self.addGraphEdge(1, 3)
+		self.addNode(2, 4)
+		self.addNode(4, 2)
+		self.addNode(6, 4)
+		self.addNode(4.5, 4.5)
+		self.addNode(5.5, 6.5)
+		self.addNode(2.5, 6.5)
+		self.addNode(4, 7)
 
 	def initializeSquare(self):
 		# self.addNode(1, 1)
@@ -262,9 +214,10 @@ class Graph:
 
 	def initializeRandomConfig(self, numRobots, bounds):
 		xbound, ybound = bounds
-		xVal = np.random.uniform(low=0, high=xbound/2, size=numRobots)
-		yVal = np.random.uniform(low=0, high=ybound/2, size=numRobots)
+		xVal = np.random.uniform(low=1, high=10, size=numRobots)
+		yVal = np.random.uniform(low=1, high=10, size=numRobots)
 		for i in range(numRobots):
+
 			self.addNode(xVal[i], yVal[i])
 
 	####### Controls #######
