@@ -51,45 +51,6 @@ class PriorityPrm():
 		def setTimestep(self, timestep):
 			self.timestep = timestep
 
-	class KDTree:
-		"""
-		Nearest neighbor search class with KDTree
-		"""
-
-		def __init__(self, data):
-			# store kd-tree
-			self.tree = scipy.spatial.cKDTree(data)
-
-		def search(self, inp, k=1):
-			"""
-			Search NN
-
-			inp: input data, single frame or multi frame
-
-			"""
-
-			if len(inp.shape) >= 2:  # multi input
-				index = []
-				dist = []
-
-				for i in inp.T:
-					idist, iindex = self.tree.query(i, k=k)
-					index.append(iindex)
-					dist.append(idist)
-
-				return index, dist
-
-			dist, index = self.tree.query(inp, k=k)
-			return index, dist
-
-		def search_in_distance(self, inp, r):
-			"""
-			find points with in a distance r
-			"""
-
-			index = self.tree.query_ball_point(inp, r)
-			return index
-
 	def __init__(self, robots, env, goals, maxsteps=99999):
 		self.robots = robots
 		self.sensingRadius = self.robots.getSensingRadius()
@@ -109,6 +70,8 @@ class PriorityPrm():
 		self.N_KNN = 30
 		self.MAX_EDGE_LEN = 2
 		self.roadmapFilename = 'roadmap_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.numRobots)
+		self.nodeKDTree = None
+
 
 
 	# TODO: constraint handling and propogation
@@ -116,6 +79,7 @@ class PriorityPrm():
 
 		print("Sampling Locations")
 		sampleLocs = self.generateSampleLocations()
+		self.nodeKDTree = kdtree.KDTree(sampleLocs)
 		print("%d Locations Sampled\n"%len(sampleLocs))
 		
 		roadmap = self.readRoadmap()
@@ -278,7 +242,7 @@ class PriorityPrm():
 		"""
 		roadmap = []
 		nsample = len(sampleLocs)
-		sampleKDTree = self.KDTree(sampleLocs)
+		sampleKDTree = self.nodeKDTree
 
 		for curLoc in sampleLocs:
 
