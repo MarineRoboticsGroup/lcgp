@@ -17,6 +17,94 @@ import decoupled_rrt
 import coupled_astar
 import prioritized_prm
 
+def testTrajectory(robots, env, trajs, goals, trajNum=1,
+ useGrid=False, delayAnimationStart=True, relativeTraj=False):
+	"""
+	Takes a generic input trajectory of absolute states 
+	and moves the swarm through the trajectory
+
+	:param      robots:               The robots
+	:type       robots:               Swarm object
+	:param      env:                  The environment
+	:type       env:                  Environment object
+	:param      trajs:                The trajs
+	:type       trajs:                list of lists of tuples of doubles
+	:param      goals:                The goals
+	:type       goals:                List of tuples
+	:param      trajNum:              The traj number
+	:type       trajNum:              integer
+	:param      delayAnimationStart:  Whether to delay the animation beginning
+	:type       delayAnimationStart:  boolean
+	"""
+
+	firstImage = delayAnimationStart
+	if trajs is None:
+		print("Cannot find path")
+	else:
+		trajIndex = [-1 for traj in trajs]
+		finalTrajIndex = [len(traj)-1 for traj in trajs]
+		move = []
+		minEigvals = []
+
+		while not (trajIndex == finalTrajIndex):
+			move.clear()
+			for robotIndex in range(robots.getNumRobots()):
+				
+				# Increment trajectory for unfinished paths
+				if trajIndex[robotIndex] != finalTrajIndex[robotIndex]:
+					trajIndex[robotIndex] += 1
+
+				# Get next step on paths
+				if relativeTraj and trajIndex[robotIndex] == finalTrajIndex[robotIndex]:
+					newLoc = (0,0)
+				else:
+					newLoc = trajs[robotIndex][trajIndex[robotIndex]]
+				
+				# If in grid mode convert indices to locations
+				if useGrid:
+					newLoc = env.gridIndexToLocation(newLoc)
+				
+				move += list(newLoc)
+
+			# while not (robots.moveIsGood(move, moveRelative=relativeTraj)):
+			# 	move = [x for x in robots.findGoodMove()]
+			# 	print("Fixing move!!")
+
+			robots.moveSwarm(move, moveRelative=relativeTraj)
+			robots.updateSwarm()
+
+			graph = robots.getRobotGraph()
+
+			minEigval = robots.getNthEigval(4)
+			# if minEigval < 0.5:
+			# 	plot.plotNoGrid(graph, env, goals)
+
+			minEigvals.append(minEigval)
+			
+
+			if useGrid:
+				plot.animationWithGrid(graph, env, goals)
+			else:
+				plot.animationNoGrid(graph, env, goals)
+
+			if firstImage:
+				plt.pause(10)
+				firstImage = False
+
+		plt.close()
+
+		plt.plot(minEigvals)
+		plt.hlines([0.2, robots.minEigval], 0, len(minEigvals))
+		plt.title("Minimum Eigenvalue over Time")
+		plt.ylabel("Eigenvalue")
+		plt.xlabel("time")
+		plt.show()
+
+		with open('recent_traj.txt', 'w') as filehandle:
+			for traj in trajs:
+				filehandle.write('%s\n' % traj)			
+
+
 
 def checkFeasibility(swarm, env, goals): # pragma: no cover
 	feasible = True
@@ -105,93 +193,6 @@ def convertAbsoluteTrajToRelativeTraj(locLists):
 			deltay = ynew-yold 
 			relMoves[robotNum].append((deltax, deltay))
 	return relMoves
-
-def testTrajectory(robots, env, trajs, goals, trajNum=1,
- useGrid=False, delayAnimationStart=False, relativeTraj=False):
-	"""
-	Takes a generic input trajectory of absolute states 
-	and moves the swarm through the trajectory
-
-	:param      robots:               The robots
-	:type       robots:               Swarm object
-	:param      env:                  The environment
-	:type       env:                  Environment object
-	:param      trajs:                The trajs
-	:type       trajs:                list of lists of tuples of doubles
-	:param      goals:                The goals
-	:type       goals:                List of tuples
-	:param      trajNum:              The traj number
-	:type       trajNum:              integer
-	:param      delayAnimationStart:  Whether to delay the animation beginning
-	:type       delayAnimationStart:  boolean
-	"""
-
-	firstImage = delayAnimationStart
-	if trajs is None:
-		print("Cannot find path")
-	else:
-		trajIndex = [-1 for traj in trajs]
-		finalTrajIndex = [len(traj)-1 for traj in trajs]
-		move = []
-		minEigvals = []
-
-		while not (trajIndex == finalTrajIndex):
-			move.clear()
-			for robotIndex in range(robots.getNumRobots()):
-				
-				# Increment trajectory for unfinished paths
-				if trajIndex[robotIndex] != finalTrajIndex[robotIndex]:
-					trajIndex[robotIndex] += 1
-
-				# Get next step on paths
-				if relativeTraj and trajIndex[robotIndex] == finalTrajIndex[robotIndex]:
-					newLoc = (0,0)
-				else:
-					newLoc = trajs[robotIndex][trajIndex[robotIndex]]
-				
-				# If in grid mode convert indices to locations
-				if useGrid:
-					newLoc = env.gridIndexToLocation(newLoc)
-				
-				move += list(newLoc)
-
-			# while not (robots.moveIsGood(move, moveRelative=relativeTraj)):
-			# 	move = [x for x in robots.findGoodMove()]
-			# 	print("Fixing move!!")
-
-			robots.moveSwarm(move, moveRelative=relativeTraj)
-			robots.updateSwarm()
-
-			graph = robots.getRobotGraph()
-
-			minEigval = robots.getNthEigval(4)
-			if minEigval < 0.5:
-				plot.plotNoGrid(graph, env, goals)
-
-			minEigvals.append(minEigval)
-			
-			if firstImage:
-				plt.pause(10)
-				firstImage = False
-
-			if useGrid:
-				plot.animationWithGrid(graph, env, goals)
-			else:
-				plot.animationNoGrid(graph, env, goals)
-
-
-		plt.close()
-
-		plt.plot(minEigvals)
-		plt.hlines([0.2, 0.75], 0, len(minEigvals))
-		plt.title("Minimum Eigenvalue over Time")
-		plt.ylabel("Eigenvalue")
-		plt.xlabel("time")
-		plt.show()
-
-		with open('recent_traj.txt', 'w') as filehandle:
-			for traj in trajs:
-				filehandle.write('%s\n' % traj)			
 
 def makeSensitivityPlotsRandomMotions(robots, environment):
 	"""
@@ -382,13 +383,13 @@ if __name__ == '__main__':
 	showAnimation = True
 	profile = True
 
-	# swarmForm = 'square'
+	swarmForm = 'square'
 	# swarmForm = 'test6'
-	swarmForm = 'test8'
+	# swarmForm = 'test8'
 	# swarmForm = 'random'
-	nRobots = 8
+	nRobots = 4
 	sensingRadius = 4
-	minEigval= 0.3
+	minEigval= 0.5
 
 	# setting = 'random'
 	setting = 'curve_maze'

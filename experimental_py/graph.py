@@ -69,6 +69,8 @@ class Graph:
 
 	def updateEdgesByRadius(self, radius):
 		self.removeAllEdges()
+		if self.nNodes <= 1:
+			return
 		nodeKDTree = kdtree.KDTree(self.getNodeLocationList())
 		self.nEdges = 0
 		for r1 in range(self.nNodes):
@@ -189,8 +191,8 @@ class Graph:
 		self.addNode(2, 2)
 		self.addNode(2, 4)
 		self.addNode(4, 2)
-		self.addNode(6, 4)
 		self.addNode(4.5, 4.5)
+		self.addNode(6, 4)
 		self.addNode(5.5, 6.5)
 		self.addNode(2.5, 6.5)
 		self.addNode(4, 7)

@@ -63,14 +63,16 @@ def plotWithGrid(graph, env, goals):
 	plotGrid(grid)
 	showPlot()
 
-def showTrajectories(trajs, env, goals):
+def showTrajectories(trajs, robots, env, goals):
 	for i, traj in enumerate(trajs):
 		if traj == []:
 			break
-		plt.plot(*zip(*traj), color=colors[i])
+		plt.plot(*zip(*traj), color=colors[i%6])
+	plotGraphNoEdges(robots.getRobotGraph())
 	plotObstacles(env)
 	plotGoals(goals)
 	showPlot()
+	plt.close()
 
 
 ####### Atomic Calls #######
@@ -88,10 +90,9 @@ def plotGraphNoEdges(graph):
 	nodeLocations = graph.getNodeLocationList()
 	edges = graph.getGraphEdgeList()
 
-	nodeXLocs = [x[0] for x in nodeLocations]
-	nodeYLocs = [x[1] for x in nodeLocations]
+	for i, nodeLoc in enumerate(nodeLocations):
+		plt.scatter(nodeLoc[0], nodeLoc[1], color=colors[i%6])
 
-	plt.scatter(nodeXLocs, nodeYLocs)
 
 def plotGoals(goals):
 	for i, goalLoc in enumerate(goals):
@@ -157,7 +158,7 @@ def showPlot():
 	plt.show(block=True)
 
 def showPlotAnimation():
-	plt.pause(0.05)
+	plt.pause(0.1)
 	plt.show(block=False)
 
 

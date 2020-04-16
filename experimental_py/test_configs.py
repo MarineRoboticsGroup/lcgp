@@ -2,7 +2,6 @@ import math_utils
 import swarm
 import environment
 import plot
-++++++++++++++++++++++++++++++++++++++++++++++
 
 import time
 import numpy as np
@@ -22,7 +21,7 @@ robots = swarm.Swarm(sensingRadius=sensingRadius)
 # environment
 envBounds = (0, 1, 0, 1)
 env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1)
-env.initializeRandomObstacles(numObstacles=0)
+# env.initializeRandomObstacles(numObstacles=0)
 
 
 

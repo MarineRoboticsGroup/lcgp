@@ -126,10 +126,15 @@ class PriorityPrm():
 			roadmap = self.generateRoadmap(sampleLocs)
 			self.writeRoadmap(roadmap)
 			print("New roadmap written to file\n")
-		# self.plot_roadmap(roadmap, sampleLocs)
+
+		# self.plotRoadmap(roadmap, sampleLocs)
+		# plot.showPlot()
 
 		print("Beginning Planning")
 		print()
+
+		feasTraj = self.initFeasTraj(roadmap)
+
 		trajs = [[] for x in range(self.robots.getNumRobots())]
 		coordTrajs = [[] for x in range(self.robots.getNumRobots())]
 		foundGoals = [False for x in range(self.robots.getNumRobots())]
@@ -147,7 +152,7 @@ class PriorityPrm():
 				foundGoals[curIdx] = True
 				curIdx += 1
 
-				plot.showTrajectories(coordTrajs, self.env, self.goalLocs)
+				plot.showTrajectories(coordTrajs, self.robots, self.env, self.goalLocs)
 			else:
 				print("Planning Failed for robot %d. \nPropagating Constraint\n"%curIdx)
 				raise NotImplementedError
@@ -180,8 +185,8 @@ class PriorityPrm():
 		startNode = self.Node(self.startLocs[curRobotId], cost=0.0, pind=-1, timestep=0, index=startId, useTime=useTime)
 		goalNode = self.Node(self.goalLocs[curRobotId], cost=0.0, pind=-1, timestep=-1, index=goalId, useTime=useTime)
 
-		open_set, closed_set = dict(), dict()
-		open_set[self.getNodeKey(startNode, useTime)] = startNode
+		openSet, closedSet = dict(), dict()
+		openSet[self.getNodeKey(startNode, useTime)] = startNode
 
 		conflict = None
 
@@ -189,21 +194,19 @@ class PriorityPrm():
 
 
 			# if out of options, return conflict information
-			if not open_set:
+			if not openSet:
+				self.plotFailedSearch(closedSet, sampleLocs, roadmap)
 				conflict = True
 				return ([], conflict)
 
-			# find minimum cost in open_set
-			currKey = min(open_set, key=lambda o: open_set[o].cost + self.calcHeuristic(open_set[o], goalNode, useTime))
+			# find minimum cost in openSet
+			currKey = min(openSet, key=lambda o: openSet[o].cost + self.calcHeuristic(openSet[o], goalNode, useTime))
 
-			currNode = open_set[currKey]
-			# print("Open Set:", len(open_set))
-			# print("Closed Set:", len(closed_set))
-			# print("cKey", currKey, "pind", currNode.pind)
-			# print()
+			currNode = openSet[currKey]
+
 			# Remove the item from the open set
-			del open_set[currKey]
-			closed_set[currKey] = currNode
+			del openSet[currKey]
+			closedSet[currKey] = currNode
 
 			# if goal location
 			if self.foundGoal(currNode, goalNode):
@@ -217,13 +220,13 @@ class PriorityPrm():
 			# If node is valid continue to expand path
 			if self.nodeIsValid(currNode, currTrajs, sampleLocs, curRobotId):
 				# Add it to the closed set
-				closed_set[currKey] = currNode
+				closedSet[currKey] = currNode
 				curLoc = currNode.getLocation()
 
 				# expand search grid based on motion model
 				for i in range(len(roadmap[currNode.index])):
 					new_id = roadmap[currNode.index][i]
-					if new_id in closed_set:
+					if new_id in closedSet:
 						continue
 									
 					newLoc = sampleLocs[new_id]
@@ -232,15 +235,15 @@ class PriorityPrm():
 					newKey = self.getNodeKey(newNode, useTime)
 
 					# Otherwise if it is already in the open set
-					if newKey in open_set:
-						if open_set[newKey].cost > newNode.cost:
-							# open_set[newKey] = newNode
-							open_set[newKey].cost = newNode.cost
-							open_set[newKey].pind = newNode.pind
-							open_set[newKey].timestep = newNode.timestep
-							open_set[newKey].pkey = newNode.pkey
+					if newKey in openSet:
+						if openSet[newKey].cost > newNode.cost:
+							# openSet[newKey] = newNode
+							openSet[newKey].cost = newNode.cost
+							openSet[newKey].pind = newNode.pind
+							openSet[newKey].timestep = newNode.timestep
+							openSet[newKey].pkey = newNode.pkey
 					else:
-						open_set[newKey] = newNode
+						openSet[newKey] = newNode
 
 		# generate final course
 		pathIdxs = [len(roadmap)-self.numRobots+curRobotId] # Add goal node
@@ -248,13 +251,12 @@ class PriorityPrm():
 		pind = goalNode.pind
 		while pind != -1:
 			pathIdxs.append(pind)
-			node = closed_set[pkey]
+			node = closedSet[pkey]
 			pkey = node.pkey
 			pind = node.pind
 
 		pathIdxs.reverse()
 		return (pathIdxs, None)
-
 
 	def isValidPath(self, curLoc, connectingLoc):
 		dx = curLoc[0] - connectingLoc[0]
@@ -333,7 +335,7 @@ class PriorityPrm():
 			index1 = currTrajs[0][min(timestep, lastStep)]
 			loc1 = sampleLocs[index1]
 			loc2 = sampleLocs[currNode.index]
-			if (self.calcDistanceBetweenLocations(loc1, loc2) < self.sensingRadius):
+			if (1 < self.calcDistanceBetweenLocations(loc1, loc2) < self.sensingRadius):
 				return True
 			else:
 				# print("%d would be too far from %d"%(curRobotId,roboId) )
@@ -401,14 +403,20 @@ class PriorityPrm():
 		return coords
 
 	@staticmethod
-	def plot_roadmap(roadmap, sampleLocs):  # pragma: no cover
+	def plotRoadmap(roadmap, sampleLocs):  # pragma: no cover
+		print("Displaying Roadmap... May take time :)")
+		edges = set()
 		for i, _ in enumerate(roadmap):
 			for ii in range(len(roadmap[i])):
 				ind = roadmap[i][ii]
-
-				plt.plot([sampleLocs[i][0], sampleLocs[ind][0]],
-						 [sampleLocs[i][1], sampleLocs[ind][1]], "-k")
-		plt.show(block=True)
+				
+				edge = (ind, i) if ind < i else (i, ind) 
+				if edge in edges:
+					continue
+				else:
+					edges.add(edge)
+					plt.plot([sampleLocs[i][0], sampleLocs[ind][0]],
+							 [sampleLocs[i][1], sampleLocs[ind][1]], "-k")
 
 	@staticmethod
 	def calcHeuristic(curNode, goalNode, useTime):
@@ -431,15 +439,52 @@ class PriorityPrm():
 		dy = gy-ny
 		return math.hypot(dx, dy)
 
-	# TODO: Finish
+	def initFeasTraj(self, roadmap):
+		feasTraj = [[] for x in range(self.numRobots)]
+
+		# for every robot create feasibility path
+		for curRobotId in range(self.numRobots):
+			startNodeId = len(roadmap) - 2*self.numRobots + curRobotId
+			feasTraj[curRobotId].append(set())
+			feasTraj[curRobotId][0].add(startNodeId)
+			
+			openSet = set([startNodeId])
+			connSet = set()
+
+			# continue until robot is capable of reaching all locations
+			# Note: Assumes connected roadmap
+			while len(openSet) < len(roadmap):
+
+				# for each node in current state add connected nodes
+				for nodeId in openSet:
+					connSet.update(roadmap[nodeId])
+
+				# clear current state, update feasibility
+				openSet.clear()
+				feasTraj[curRobotId].append(set())
+				feasTraj[curRobotId][-1].update(connSet)
+				openSet.update(connSet)
+				connSet.clear()
+		return feasTraj
+
+	def plotFailedSearch(self, closedSet, sampleLocs, roadmap):
+		nodes = closedSet.values()
+		for node in nodes:
+			if node.pind == -1:
+				continue
+			path = [sampleLocs[node.index], sampleLocs[node.pind]]
+			plt.plot(*zip(*path), color='b')
+		plot.plotObstacles(self.env)
+		plot.plotGoals(self.goalLocs)
+		plot.showPlot()
+
 	@staticmethod
-	def plotFailedSearch(trajs):
-		raise NotImplementedError			
+	def getConnectingNodesRoadmap(roadmap, index):
+		return roadmap[index]
 
 	def readRoadmap(self,):
 		if not path.exists(self.roadmapFilename):
 			return False
-
 		rmap = []
 		with open(self.roadmapFilename, 'r') as filehandle:
 			for line in filehandle:
