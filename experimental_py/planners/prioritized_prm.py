@@ -19,6 +19,7 @@ import time
 import math_utils
 import plot
 import swarm
+import kdtree
 
 class PriorityPrm():
 
