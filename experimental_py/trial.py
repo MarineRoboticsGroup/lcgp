@@ -18,9 +18,9 @@ import coupled_astar
 import prioritized_prm
 
 def testTrajectory(robots, env, trajs, goals, trajNum=1,
- useGrid=False, delayAnimationStart=True, relativeTraj=False):
+ useGrid=False, delayAnimationStart=False, relativeTraj=False):
 	"""
-	Takes a generic input trajectory of absolute states 
+	Takes a generic input trajectory of absolute states
 	and moves the swarm through the trajectory
 
 	:param      robots:               The robots
@@ -49,7 +49,7 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1,
 		while not (trajIndex == finalTrajIndex):
 			move.clear()
 			for robotIndex in range(robots.getNumRobots()):
-				
+
 				# Increment trajectory for unfinished paths
 				if trajIndex[robotIndex] != finalTrajIndex[robotIndex]:
 					trajIndex[robotIndex] += 1
@@ -59,11 +59,11 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1,
 					newLoc = (0,0)
 				else:
 					newLoc = trajs[robotIndex][trajIndex[robotIndex]]
-				
+
 				# If in grid mode convert indices to locations
 				if useGrid:
 					newLoc = env.gridIndexToLocation(newLoc)
-				
+
 				move += list(newLoc)
 
 			# while not (robots.moveIsGood(move, moveRelative=relativeTraj)):
@@ -76,11 +76,9 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1,
 			graph = robots.getRobotGraph()
 
 			minEigval = robots.getNthEigval(4)
-			# if minEigval < 0.5:
-			# 	plot.plotNoGrid(graph, env, goals)
 
 			minEigvals.append(minEigval)
-			
+
 
 			if useGrid:
 				plot.animationWithGrid(graph, env, goals)
@@ -102,7 +100,7 @@ def testTrajectory(robots, env, trajs, goals, trajNum=1,
 
 		with open('recent_traj.txt', 'w') as filehandle:
 			for traj in trajs:
-				filehandle.write('%s\n' % traj)			
+				filehandle.write('%s\n' % traj)
 
 
 
@@ -112,7 +110,7 @@ def checkFeasibility(swarm, env, goals): # pragma: no cover
 	startEigval = swarm.getNthEigval(4)
 	startLocs = swarm.getPositionList()
 	graph = swarm.getRobotGraph()
-	plot.plotNoGrid(graph, env, goals)
+	# plot.plotNoGrid(graph, env, goals)
 
 
 	if not (env.isFreeSpaceLocListTuples(swarm.getPositionListTuples())):
@@ -162,7 +160,7 @@ def readTrajFromFile(filename, useGrid=False):
 			# remove linebreak which is the last character of the string
 			startInd = line.find('(')
 			endInd = line.find(')')
-			
+
 			while(startInd != -1):
 				sect = line[startInd+1:endInd]
 				commaInd = sect.find(',')
@@ -184,13 +182,13 @@ def readTrajFromFile(filename, useGrid=False):
 
 def convertAbsoluteTrajToRelativeTraj(locLists):
 	relMoves = [[(0,0)] for i in locLists]
-	
+
 	for robotNum in range(len(locLists)):
 		for i in range(len(locLists[robotNum])-1):
 			xold, yold = locLists[robotNum][i]
 			xnew, ynew = locLists[robotNum][i+1]
-			deltax = xnew-xold 
-			deltay = ynew-yold 
+			deltax = xnew-xold
+			deltay = ynew-yold
 			relMoves[robotNum].append((deltax, deltay))
 	return relMoves
 
@@ -230,7 +228,7 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
 					while (predChange < vectorLength*.8):
 						dirVector = math_utils.genRandomVector(len(grad), vectorLength)
 						predChange = np.dot(grad, dirVector)
-				
+
 
 				robots.moveSwarm(dirVector)
 				robots.updateSwarm()
@@ -254,7 +252,7 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
 			# plot ratio
 			print("Making plots for step size:", vectorLength, "\n\n")
 			plt.figure()
-			plt.plot(predRatios)	
+			plt.plot(predRatios)
 			plt.ylim(-3, 10)
 			plt.show(block=False)
 			title = "ratio of actual change to 1st order predicted change: {0}".format((int)(vectorLength*1000))
@@ -265,8 +263,8 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
 
 			# plot pred vs actual
 			plt.figure()
-			plt.plot(predChanges)	
-			plt.plot(actChanges)	
+			plt.plot(predChanges)
+			plt.plot(actChanges)
 			plt.show(block=False)
 			title = "absolute change in eigenvalue: {0}".format((int)(vectorLength*1000))
 			plt.title(title)
@@ -277,9 +275,9 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
 def getDecoupledRrtPath(robots, environment, goals):
 	obstacleList = environment.getObstacleList()
 	graph = robots.getRobotGraph()
-	
+
 	rrt_planner = decoupled_rrt.RRT(robot_graph=graph,
-			  goal_locs=goals, 
+			  goal_locs=goals,
 			  obstacle_list=obstacleList,
 			  bounds=environment.getBounds())
 	# robot_graph, goal_locs, obstacle_list, bounds,
@@ -294,7 +292,7 @@ def getCoupledAstarPath(robots, environment, goals):
 
 def getPriorityPrmPath(robots, environment, goals, useTime):
 	priority_prm = prioritized_prm.PriorityPrm(robots=robots, env=environment, goals=goals)
-	traj = priority_prm.planning(addTimeDimension=useTime)
+	traj = priority_prm.planning(useTime=useTime)
 	return traj
 
 def main(experimentInfo, swarmInfo, envInfo, seed=999999):
@@ -309,7 +307,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999):
 	nSquaresTall=bounds[1]
 	nObst = nObst
 
-	
+
 	# Initialize Environment
 	env = environment.Environment(envBounds, useGrid=useGrid, numSquaresWide=nSquaresWide, numSquaresTall=nSquaresTall)
 	if setting == 'random':
@@ -324,7 +322,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999):
 		# goals = [math_utils.genRandomLocation(xlb, xub, ylb, yub) for i in range(nRobots)]
 	else:
 		raise NotImplementedError
-	
+
 	# Initialize Robots
 	robots = swarm.Swarm(sensingRadius=sensingRadius)
 	if swarmFormation=='random':
@@ -333,7 +331,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999):
 			robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
 	else:
 		robots.initializeSwarm(bounds=bounds, formation=swarmFormation, minEigval=minEigval)
-	
+
 	goals = [(loc[0]+27, loc[1]+24) for loc in robots.getPositionListTuples()]
 
 	assert(checkFeasibility(robots, env, goals))
@@ -350,9 +348,9 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999):
 		flamegraph.start_profile_thread(fd=open("./perf.log", "w"))
 
 	if expName == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
-		trajs = getDecoupledRrtPath(robots, env, goals) 
+		trajs = getDecoupledRrtPath(robots, env, goals)
 	elif expName == 'coupled_astar':
-		trajs = getCoupledAstarPath(robots, env, goals) 
+		trajs = getCoupledAstarPath(robots, env, goals)
 	elif expName == 'priority_prm':
 		trajs = getPriorityPrmPath(robots, env, goals, useTime=useTime)
 	elif expName == 'read_file':
@@ -378,7 +376,7 @@ if __name__ == '__main__':
 	# exp = 'decoupled_rrt'
 	exp = 'priority_prm'
 	# exp = 'read_file'
-	useTime = False
+	useTime = True
 	useRelative = False
 	showAnimation = True
 	profile = True
@@ -388,8 +386,8 @@ if __name__ == '__main__':
 	# swarmForm = 'test8'
 	# swarmForm = 'random'
 	nRobots = 4
-	sensingRadius = 4
-	minEigval= 0.5
+	sensingRadius = 6
+	minEigval= 0.75
 
 	# setting = 'random'
 	setting = 'curve_maze'
@@ -402,4 +400,3 @@ if __name__ == '__main__':
 	envInfo = (setting, envSize, numObstacles, useGrid)
 
 	main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo)
-
