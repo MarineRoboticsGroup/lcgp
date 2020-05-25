@@ -149,7 +149,7 @@ def buildStiffnessMatrix(edges, nodes):
     # print()
     # print()
     # matprintBlock(K)
-    A = A[:, 4:]
+    # A = A[:, 4:]
     return (A.T @ A)
 
 def groundNodesInMatrix(A, n, nodes):
