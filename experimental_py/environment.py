@@ -1,15 +1,26 @@
 import numpy as np
 import math
-
 import math_utils
 import kdtree
 
 class Environment:
-    def __init__(self, bounds, useGrid, numSquaresWide, numSquaresTall):
+    def __init__(self, bounds, useGrid, numSquaresWide, numSquaresTall, setting, nObst):
+        self.setting = setting
         self.obstacles = []
         self.bounds = bounds # xlb, xub, ylb, yub
         self.useGrid = useGrid
         self.obstacleKDTree = None
+
+        if setting == 'random':
+            self.initializeRandomObstacles(numObstacles=nObst)
+        elif setting == 'curve_maze':
+            self.initializeCurvesObstacles()
+        elif setting == 'adversarial1':
+            self.initializeAdversarial1()
+        elif setting == 'adversarial2':
+            self.initializeAdversarial2()
+        elif not setting == 'empty':
+            raise NotImplementedError
 
         if useGrid:
             self.grid = None
@@ -20,14 +31,11 @@ class Environment:
             self.squareHeight = (yub-ylb)/numSquaresTall
 
     ##### Modify and Initialize ############
-
     def addObstacle(self, obs):
         self.obstacles.append(obs)
         return None
 
-    def initializeCurvesObstacles(self, numObstacles=50):
-        # center = (0.5, 0.5)
-        self.curveMaze = True
+    def initializeCurvesObstacles(self):
         xlb, xub, ylb, yub = self.bounds
 
         radius = .75
@@ -70,8 +78,155 @@ class Environment:
         if self.useGrid:
             self.initializeGrid()
 
+    def initializeAdversarial1(self):
+        xlb, xub, ylb, yub = self.bounds
+        radius = .75
+        increments = 65
+        # make left and right walls
+        for y in np.linspace(ylb, yub, increments):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.addObstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, increments):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.addObstacle(obs)
+
+        # left divider
+        span = yub-ylb
+        dividerLen = 4/5
+        xCen = xlb+(xub-xlb)/3
+        for y in np.linspace(ylb, ylb + dividerLen*span, increments):
+            cen = (xCen, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        # right divider
+        xCen = xlb+2*(xub-xlb)/3
+        for y in np.linspace(yub-dividerLen*span, yub, increments):
+            cen = (xCen, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        if self.useGrid:
+            self.initializeGrid()
+
+    def initializeAdversarial2(self):
+        xlb, xub, ylb, yub = self.bounds
+        radius = .75
+        increments = 65
+        # make left and right walls
+        for y in np.linspace(ylb, yub, increments):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.addObstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, increments):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.addObstacle(obs)
+
+        # left divider
+        span = yub-ylb
+        dividerLen = .45
+        xCenLeft = xlb+(xub-xlb)/4
+        for y in np.linspace(ylb, ylb + dividerLen*span, increments):
+            cen = (xCenLeft, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        # right divider
+        xCenRight = xub-(xub-xlb)/4
+        for y in np.linspace(yub-dividerLen*span, yub, increments):
+            cen = (xCenRight, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        # upper and lower dividers
+        yCenUpper = yub-dividerLen*span
+        yCenLower = ylb+dividerLen*span
+        for x in np.linspace(xCenLeft, xCenRight, 20):
+            cen = (x, yCenUpper)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+            cen = (x, yCenLower)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        if self.useGrid:
+            self.initializeGrid()
+
+    def initializeAdversarialEasy(self):
+        xlb, xub, ylb, yub = self.bounds
+        radius = .75
+        increments = 65
+        # make left and right walls
+        for y in np.linspace(ylb, yub, increments):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.addObstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, increments):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.addObstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.addObstacle(obs)
+
+        # left divider
+        span = yub-ylb
+        dividerLen = 1/3
+        xCenLeft = xlb+(xub-xlb)/3
+        for y in np.linspace(ylb, ylb + dividerLen*span, increments):
+            cen = (xCenLeft, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        # right divider
+        xCenRight = xlb+2*(xub-xlb)/3
+        for y in np.linspace(yub-dividerLen*span, yub, increments):
+            cen = (xCenRight, y)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        # upper and lower dividers
+        yCenUpper = yub-dividerLen*span
+        yCenLower = ylb+dividerLen*span
+        for x in np.linspace(xCenLeft, xCenRight, 20):
+            cen = (x, yCenUpper)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+            cen = (x, yCenLower)
+            obs = Obstacle(cen, radius)
+            self.addObstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        if self.useGrid:
+            self.initializeGrid()
+
     def initializeRandomObstacles(self, numObstacles=50):
-        # center = (0.5, 0.5)
         radius = 0.1
         for i in range(numObstacles):
             cnt = 0
@@ -84,19 +239,16 @@ class Environment:
             obs = Obstacle(center, radius[0])
             self.addObstacle(obs)
 
-        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-        if self.useGrid:
-            self.initializeGrid()
+        if numObstacles > 0:
+            self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+            if self.useGrid:
+                self.initializeGrid()
 
     def initializeGrid(self):
         xlb, xub, ylb, yub = self.bounds
-
-
         grid = [[] for i in range(self.numSquaresTall)]
-
         # start top left work across and then down
         curYCenter = ylb + self.squareHeight/2
-
         row = 0
         while curYCenter < yub:
             curXCenter =  xlb + self.squareWidth/2
@@ -106,12 +258,12 @@ class Environment:
                 curXCenter += self.squareWidth
             curYCenter += self.squareHeight
             row += 1
-
         self.grid = grid
 
     ###### Check Status ############
-
     def isFreeSpace(self, coords):
+        if self.getNumObstacles() == 0:
+            return True
         if (not self.isInsideBounds(coords)):
             return False
         idxs, dist = self.obstacleKDTree.search(np.array(coords).reshape(2, 1))
@@ -126,6 +278,8 @@ class Environment:
         return True
 
     def isValidPath(self, startLoc, endLoc):
+        if self.getNumObstacles() == 0:
+            return True
         if (not self.isInsideBounds(startLoc)):
             return False
         if (not self.isInsideBounds(endLoc)):
@@ -145,14 +299,12 @@ class Environment:
 
         return True
 
-
     def isInsideBounds(self, coords):
         x, y = coords
         xlb, xub, ylb, yub = self.bounds
         return ((xlb < x < xub) and (ylb < y < yub))
 
     ###### Accessors ############
-
     def getGrid(self):
         assert(self.useGrid)
         assert(self.grid is not None)
@@ -178,20 +330,12 @@ class Environment:
             centers.append(cen)
         return centers
 
-
     def getBounds(self,):
         return self.bounds
-        return None
 
-    def getEndOfMazeCenter(self):
-        assert(self.curveMaze)
-        xlb, xub, ylb, yub = self.bounds
-        xCen = xlb+3*(xub-xlb)/4
-        yCen = ylb+3*(yub-ylb)/4
-        return(xCen, yCen)
-
+    def getNumObstacles(self):
+        return len(self.obstacles)
     ###### Converter ############
-
     def locationListToGridIndexList(self, locationList):
         assert(self.useGrid)
         gridList = []
@@ -224,9 +368,6 @@ class Environment:
             raise AssertionError
 
 class Obstacle:
-    """
-    Nearest neighbor search class with KDTree
-    """
     def __init__(self, center, radius):
         self.center = center
         self.radius = radius
@@ -246,10 +387,6 @@ class Obstacle:
         return (np.linalg.norm(delta, 2) < self.radius)
 
 class GridSquare:
-    """
-    Nearest neighbor search class with KDTree
-    """
-
     def __init__(self, width, height, centerCoords, obstacleList):
         cx, cy = centerCoords
         self.x_center_ = cx
@@ -258,7 +395,6 @@ class GridSquare:
         self.height = height
         self.hasObstacle = self.isGridSquareOccupiedByObstaclesInList(obstacleList)
         self.isOccupied = False
-
 
     def setOccupied(self, occStatus):
         assert(not self.hasObstacle) # shouldn't be changing status if has obstacle
@@ -275,7 +411,6 @@ class GridSquare:
     def isOccupied(self):
         return self.isOccupied
         return None
-
 
     def isSquareFree(self):
         return (not(self.hasObstacle or self.isOccupied))

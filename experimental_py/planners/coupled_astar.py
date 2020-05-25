@@ -1,6 +1,6 @@
 import copy
 import math
-from itertools import permutations 
+from itertools import permutations
 import itertools
 
 import graph
@@ -123,11 +123,11 @@ class CoupledAstar():
 				temp_motions = (itertools.product(temp_motions, temp_motions_i))
 
 		for i in range(nRobots-2):
-			temp_motions = [(*x[0], *x[1:]) for x in temp_motions] 
+			temp_motions = [(*x[0], *x[1:]) for x in temp_motions]
 
 		gridW, gridH = gridSizes
 		for i, moveList in enumerate(temp_motions):
-			
+
 			dists = []
 			for move in moveList:
 				deltax = move[0]*gridW
@@ -149,7 +149,7 @@ class CoupledAstar():
 			if (xind < 0) or (yind < 0) or (xind >= self.gridBounds[0]) or (yind >= self.gridBounds[1]):
 				return False
 
-			# check if free space 
+			# check if free space
 			if not self.grid[xind][yind].isSquareFree():
 				return False
 

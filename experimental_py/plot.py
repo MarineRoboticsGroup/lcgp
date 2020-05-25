@@ -3,6 +3,7 @@ import graph
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
+from numpy import linalg as la
 
 colors = ['b','g','r','c','m','y']
 
@@ -34,7 +35,7 @@ def animationWithGrid(graph, env, goals):
 
 ####### Single Frame Calls #######
 def plotNoGrid(graph, env, goals):
-    clearPlot()
+    # clearPlot()
     plotGraphWithEdges(graph)
     plotObstacles(env)
     plotGoals(goals)
@@ -49,6 +50,14 @@ def plotNoGridNoGoals(graph, env):
     setXlim(env.getBounds()[0], env.getBounds()[1])
     setYlim(env.getBounds()[2], env.getBounds()[3])
     showPlot()
+
+def plotNoGridNoGoalsNoBlock(graph, env):
+    clearPlot()
+    plotGraphWithEdges(graph)
+    plotObstacles(env)
+    setXlim(env.getBounds()[0], env.getBounds()[1])
+    setYlim(env.getBounds()[2], env.getBounds()[3])
+    plt.plot(block=False)
 
 def plotWithGrid(graph, env, goals):
     goalList = env.gridIndexListToLocationList(goals)
@@ -73,10 +82,11 @@ def showTrajectories(trajs, robots, env, goals):
             loc = traj[time]
             plt.scatter(loc[0], loc[1], color=colors[i%6])
             plt.plot(*zip(*traj), color=colors[i%6])
-        # plotGraphNoEdges(robots.getRobotGraph())
         plotObstacles(env)
         plotGoals(goals)
         showPlotAnimation()
+        # if timestep == 0:
+        #     plt.pause(5)
         clearPlot()
     plt.close()
 
@@ -109,6 +119,22 @@ def plotEdges(graph):
         xs = [nodeXLocs[e[0]], nodeXLocs[e[1]]]
         ys = [nodeYLocs[e[0]], nodeYLocs[e[1]]]
         plt.plot(xs, ys, color='k')
+
+def plotNthEigenvector(robots, n):
+    eigpair = robots.getNthEigpair(n)
+    eigval, eigvect = eigpair
+    robots.printAllEigvals()
+    K = robots.stiffnessMatrix
+    # print(np.matmul(K, eigvect) - eigval*eigvect)
+    # robots.printStiffnessMatrix()
+    # print("Eigval", eigval)
+    locList = robots.getPositionListTuples()
+    dirVects = np.array([[eigvect[2*i], eigvect[2*i+1]] for i in range(int(len(eigvect)/2))])
+    dirVects = np.real(dirVects)
+    dirVects = 4*dirVects/ la.norm(dirVects)
+    for i, vector in enumerate(np.real(dirVects)):
+        loc = locList[i]
+        plt.arrow(loc[0], loc[1],  vector[0], vector[1])
 
 def plotObstacles(env):
     obstacles = env.getObstacleList()
