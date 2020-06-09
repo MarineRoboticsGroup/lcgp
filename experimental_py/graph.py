@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(1, '/home/alan/range_only_robotics/experimental_py/snl')
+
 import numpy as np
 from numpy import linalg as la
 from scipy.linalg import null_space, toeplitz
@@ -6,15 +9,46 @@ import matplotlib.pyplot as plt
 import math_utils
 import environment
 import kdtree
+from snl_sdp import SolveSNLWithSDP
 
 class Graph:
-    def __init__(self):
+    def __init__(self, normalize_edge_len):
         self.edges = []
         self.edgeDistances = []
         self.nodes = []
         self.nNodes = 0
         self.nEdges = 0
+        self.normalize_edge_len = normalize_edge_len
         self.stiffnessMatrix = None
+
+    def PerformSNL(self, noise_stddev, noise_mode="absolute", init_guess=None, use_spring_solver=True):
+        num_anchors = 3
+        num_nodes = self.getNumNodes() - num_anchors
+        anchor_ids = [v+num_nodes for v in range(num_anchors)]
+        anchor_locs = {}
+        for id in anchor_ids:
+            anchor_locs[id] = self.getNodePositionTuple(id)
+        node_node_dists = {}
+        node_anchor_dists = {}
+        for edge in self.getGraphEdgeList():
+            i, j = edge
+            dist = self.getEdgeDistScal(edge)
+            if noise_mode == "absolute":
+                noise = np.random.normal(0, noise_stddev)
+                noisy_dist = dist+noise
+            elif noise_mode == "relative":
+                noise = np.random.normal(1, noise_stddev)
+                noisy_dist = dist*noise
+
+            if i in anchor_ids and j in anchor_ids:
+                continue
+            elif i in anchor_ids or j in anchor_ids:
+                node_anchor_dists[edge] = noisy_dist
+            else:
+                node_node_dists[edge] = noisy_dist
+
+        loc_est = SolveSNLWithSDP(num_nodes, node_node_dists, node_anchor_dists, anchor_locs, anchor_ids, init_guess=init_guess, use_spring_solver=use_spring_solver)
+        return loc_est
 
     ###### Initialize and Format Graph ########
     def initializeFromLocationList(self, locationList, radius):
@@ -109,7 +143,7 @@ class Graph:
     def getStiffnessMatrix(self, ):
         n = self.nNodes
         K = np.zeros((2*n, 2*n))
-        return math_utils.buildStiffnessMatrix(self.edges, self.nodes)
+        return math_utils.buildStiffnessMatrix(self.edges, self.nodes, self.normalize_edge_len)
 
     def getNodeLocationList(self, ):
         locs = []

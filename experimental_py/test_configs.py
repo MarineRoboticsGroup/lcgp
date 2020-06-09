@@ -8,14 +8,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 colors = ['b','g','r','c','m','y']
+nEig = 4
 
 def tellme(s):
     print(s)
     plt.title(s, fontsize=16)
     plt.draw()
-def ClickPlaceNodes():
-    sensingRadius = 100
-    robots = swarm.Swarm(sensingRadius=sensingRadius)
+def ClickPlaceNodes(normalize_edge_len):
+    sensingRadius = 0.5
+    robots = swarm.Swarm(sensingRadius, normalize_edge_len)
     envBounds = (0, 1, 0, 1)
     env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1, setting='empty', nObst=0)
 
@@ -37,12 +38,13 @@ def ClickPlaceNodes():
         graph = robots.getRobotGraph()
         plot.plotNoGridNoGoalsNoBlock(graph, env)
         if robots.getNumRobots() >= 3:
-            eigval = robots.getNthEigval(4)
+            eigval = robots.getNthEigval(nEig)
             print(eigval)
+            plot.plotNthEigenvector(robots,nEig)
 
-def PrintEigenvalOfLocs(loc_list):
+def PrintEigenvalOfLocs(loc_list, normalize_edge_len):
     sensingRadius = 100
-    robots = swarm.Swarm(sensingRadius=sensingRadius)
+    robots = swarm.Swarm(sensingRadius, normalize_edge_len)
     min_x = min(loc_list[:,0]) - 1
     max_x = max(loc_list[:,0]) + 1
     min_y = min(loc_list[:,1]) - 1
@@ -52,12 +54,12 @@ def PrintEigenvalOfLocs(loc_list):
     robots.initializeSwarmFromLocationListTuples(loc_list)
     graph = robots.getRobotGraph()
     if robots.getNumRobots() >= 3:
-        eigval = robots.getNthEigval(4)
+        eigval = robots.getNthEigval(nEig)
         print(eigval)
     else:
         print("Needs more nodes")
     # plot.plotNoGridNoGoalsNoBlock(graph, env)
-    # plot.plotNthEigenvector(robots,0)
+    # plot.plotNthEigenvector(robots,nEig)
     # plt.show(block=True)
     return eigval
 

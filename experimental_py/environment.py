@@ -4,11 +4,10 @@ import math_utils
 import kdtree
 
 class Environment:
-    def __init__(self, bounds, useGrid, numSquaresWide, numSquaresTall, setting, nObst):
+    def __init__(self, bounds, numSquaresWide, numSquaresTall, setting, nObst):
         self.setting = setting
         self.obstacles = []
         self.bounds = bounds # xlb, xub, ylb, yub
-        self.useGrid = useGrid
         self.obstacleKDTree = None
 
         if setting == 'random':
@@ -21,14 +20,6 @@ class Environment:
             self.initializeAdversarial2()
         elif not setting == 'empty':
             raise NotImplementedError
-
-        if useGrid:
-            self.grid = None
-            xlb, xub, ylb, yub = bounds
-            self.numSquaresWide = numSquaresWide
-            self.squareWidth = (xub-xlb)/numSquaresWide
-            self.numSquaresTall = numSquaresTall
-            self.squareHeight = (yub-ylb)/numSquaresTall
 
     ##### Modify and Initialize ############
     def addObstacle(self, obs):
@@ -75,8 +66,6 @@ class Environment:
             self.addObstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-        if self.useGrid:
-            self.initializeGrid()
 
     def initializeAdversarial1(self):
         xlb, xub, ylb, yub = self.bounds
@@ -117,8 +106,6 @@ class Environment:
             self.addObstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-        if self.useGrid:
-            self.initializeGrid()
 
     def initializeAdversarial2(self):
         xlb, xub, ylb, yub = self.bounds
@@ -170,8 +157,6 @@ class Environment:
             self.addObstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-        if self.useGrid:
-            self.initializeGrid()
 
     def initializeAdversarialEasy(self):
         xlb, xub, ylb, yub = self.bounds
@@ -223,8 +208,6 @@ class Environment:
             self.addObstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-        if self.useGrid:
-            self.initializeGrid()
 
     def initializeRandomObstacles(self, numObstacles=50):
         radius = 0.1
@@ -232,7 +215,7 @@ class Environment:
             cnt = 0
             low = min(self.bounds)
             upp = max(self.bounds)
-            radius = math_utils.genRandomTuple(lb=0, ub=.35, size=1)
+            radius = math_utils.genRandomTuple(lb=.5, ub=1, size=1)
             center = math_utils.genRandomTuple(lb=low, ub=upp, size=2)
             while not self.isInsideBounds(center):
                 center = math_utils.genRandomTuple(lb=low, ub=upp, size=2)
@@ -241,24 +224,6 @@ class Environment:
 
         if numObstacles > 0:
             self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
-            if self.useGrid:
-                self.initializeGrid()
-
-    def initializeGrid(self):
-        xlb, xub, ylb, yub = self.bounds
-        grid = [[] for i in range(self.numSquaresTall)]
-        # start top left work across and then down
-        curYCenter = ylb + self.squareHeight/2
-        row = 0
-        while curYCenter < yub:
-            curXCenter =  xlb + self.squareWidth/2
-            while curXCenter < xub:
-                g = GridSquare(self.squareWidth, self.squareHeight, (curXCenter, curYCenter), self.obstacles)
-                grid[row].append(g)
-                curXCenter += self.squareWidth
-            curYCenter += self.squareHeight
-            row += 1
-        self.grid = grid
 
     ###### Check Status ############
     def isFreeSpace(self, coords):
@@ -305,20 +270,6 @@ class Environment:
         return ((xlb < x < xub) and (ylb < y < yub))
 
     ###### Accessors ############
-    def getGrid(self):
-        assert(self.useGrid)
-        assert(self.grid is not None)
-        return self.grid
-
-    def getGridBounds(self):
-        assert(self.useGrid)
-        assert(self.grid is not None)
-        return (self.numSquaresWide, self.numSquaresTall)
-
-    def getGridSquareSize(self):
-        assert(self.useGrid)
-        return (self.squareWidth, self.squareHeight)
-
     def getObstacleList(self,):
         return self.obstacles
         return None
@@ -335,38 +286,6 @@ class Environment:
 
     def getNumObstacles(self):
         return len(self.obstacles)
-    ###### Converter ############
-    def locationListToGridIndexList(self, locationList):
-        assert(self.useGrid)
-        gridList = []
-        for loc in locationList:
-            gridList.append(self.locationToGridIndex(loc))
-        return gridList
-
-    def locationToGridIndex(self, location):
-        if self.isInsideBounds(location):
-            xlb, xub, ylb, yub = self.bounds
-            x, y = location
-            xIndex = math.floor((x - xlb)/self.squareWidth)
-            yIndex = math.floor((y - ylb)/self.squareHeight)
-            return (xIndex, yIndex)
-        else:
-            return None
-
-    def gridIndexListToLocationList(self, gridIndexList):
-        assert(self.useGrid)
-        locList = []
-        for gridIndex in gridIndexList:
-            locList.append(self.gridIndexToLocation(gridIndex))
-        return locList
-
-    def gridIndexToLocation(self, gridIndex):
-        xInd, yInd = gridIndex
-        if (0 <= xInd < self.numSquaresWide) and (0 <= yInd < self.numSquaresTall):
-            return self.grid[yInd][xInd].getGridSquareCenter()
-        else:
-            raise AssertionError
-
 class Obstacle:
     def __init__(self, center, radius):
         self.center = center
@@ -385,53 +304,4 @@ class Obstacle:
         xcenter, ycenter = self.center
         delta = np.array([xpos-xcenter, ypos-ycenter])
         return (np.linalg.norm(delta, 2) < self.radius)
-
-class GridSquare:
-    def __init__(self, width, height, centerCoords, obstacleList):
-        cx, cy = centerCoords
-        self.x_center_ = cx
-        self.y_center_ = cy
-        self.width = width
-        self.height = height
-        self.hasObstacle = self.isGridSquareOccupiedByObstaclesInList(obstacleList)
-        self.isOccupied = False
-
-    def setOccupied(self, occStatus):
-        assert(not self.hasObstacle) # shouldn't be changing status if has obstacle
-        self.isOccupied = occStatus
-
-    def getGridSquareSize(self):
-        return (self.width, self.height)
-        return None
-
-    def getGridSquareCenter(self):
-        return (self.x_center_, self.y_center_)
-        return None
-
-    def isOccupied(self):
-        return self.isOccupied
-        return None
-
-    def isSquareFree(self):
-        return (not(self.hasObstacle or self.isOccupied))
-        return None
-
-    def isGridSquareOccupiedByObstaclesInList(self, obstacles):
-        for obs in obstacles:
-            if self.isObstacleInGridSquare(obs):
-                return True
-        return False
-
-    def isObstacleInGridSquare(self, obs):
-        cx = self.x_center_
-        cy = self.y_center_
-        xoff = self.width/2
-        yoff = self.height/2
-        corners = [(cx-xoff, cy-yoff), (cx-xoff, cy+yoff), (cx+xoff, cy-yoff), (cx+xoff, cy+yoff)]
-
-        for point in corners:
-            if obs.isInside(point):
-                return True
-
-        return False
 

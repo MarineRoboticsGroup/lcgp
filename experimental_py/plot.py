@@ -131,7 +131,7 @@ def plotNthEigenvector(robots, n):
     locList = robots.getPositionListTuples()
     dirVects = np.array([[eigvect[2*i], eigvect[2*i+1]] for i in range(int(len(eigvect)/2))])
     dirVects = np.real(dirVects)
-    dirVects = 4*dirVects/ la.norm(dirVects)
+    dirVects = 0.5*dirVects/ la.norm(dirVects)
     for i, vector in enumerate(np.real(dirVects)):
         loc = locList[i]
         plt.arrow(loc[0], loc[1],  vector[0], vector[1])

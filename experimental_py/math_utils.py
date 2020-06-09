@@ -107,7 +107,7 @@ def sortEigs(vals, vecs):
     srtVec = a[:,:-1]
     return(srtVal, srtVec)
 
-def buildStiffnessMatrix(edges, nodes):
+def buildStiffnessMatrix(edges, nodes, normalize_edge_len=False):
     numNodes = len(nodes)
     A = None
     for cnt, e in enumerate(edges):
@@ -126,7 +126,11 @@ def buildStiffnessMatrix(edges, nodes):
         row[2*i+1] = delYij
         row[2*j] = -delXij
         row[2*j+1] = -delYij
-        row = row/(dist)
+
+        # Note: default normalize_lengths is False
+        if normalize_edge_len:
+            row = row/(dist)
+
         if A is None:
             A = row
         else:
@@ -149,7 +153,10 @@ def buildStiffnessMatrix(edges, nodes):
     # print()
     # print()
     # matprintBlock(K)
-    # A = A[:, 4:]
+
+    # if len(edges) > 2:
+    #     A = A[:, 4:]
+
     return (A.T @ A)
 
 def groundNodesInMatrix(A, n, nodes):
@@ -286,3 +293,19 @@ def genRandomLocation(xlb, xub, ylb, yub):
     xval = np.random.uniform(low=xlb, high=xub)
     yval = np.random.uniform(low=ylb, high=yub)
     return (xval, yval)
+
+def CalculateLocalizationError(gnd_truth, est_locs):
+    if not (gnd_truth.shape == est_locs.shape):
+        print("Ground Truth Locs", gnd_truth)
+        print("Estimated Locs", est_locs)
+        return None
+        # assert(gnd_truth.shape == est_locs.shape)
+    n_rows, n_cols = gnd_truth.shape
+
+    errors = []
+    diff = gnd_truth - est_locs
+    for row in range(n_rows):
+        errors.append(la.norm(diff[row]))
+    return errors
+
+

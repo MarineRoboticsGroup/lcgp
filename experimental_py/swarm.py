@@ -5,9 +5,10 @@ import graph
 import math_utils
 
 class Swarm:
-    def __init__(self, sensingRadius):
+    def __init__(self, sensingRadius, normalize_edge_len):
         self.sensingRadius = sensingRadius
-        self.robot_graph = graph.Graph()
+        self.normalize_edge_len = normalize_edge_len
+        self.robot_graph = graph.Graph(self.normalize_edge_len)
 
     ####### Swarm Utils #######
     def initializeSwarm(self, bounds, formation='square', nRobots=None, minEigval=0.75):
@@ -29,19 +30,15 @@ class Swarm:
             print("The given formation is not valid\n")
             raise NotImplementedError
 
-        print("Reordering Robots as Needed")
         # self.reorderRobotsBasedOnConnectivity()
-
         self.updateSwarm()
         self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
 
     def initializeSwarmFromLocationListTuples(self, locList):
         self.robot_graph.removeAllNodes()
         self.robot_graph.removeAllEdges()
-
         for loc in locList:
             self.robot_graph.addNode(loc[0], loc[1])
-
         self.updateSwarm()
         if self.robot_graph.getNumEdges() > 0:
             self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
@@ -103,7 +100,7 @@ class Swarm:
 
     ####### Checks #######
     def testRigidityFromLocList(self, locList):
-        testGraph = graph.Graph()
+        testGraph = graph.Graph(self.normalize_edge_len)
         testGraph.initializeFromLocationList(locList, self.sensingRadius)
         eigval = testGraph.getNthEigval(4)
         return (self.minEigval <= eigval)

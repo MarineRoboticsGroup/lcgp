@@ -283,10 +283,6 @@ class PriorityPrm():
 
     ###### Member Classes #######
     class Node:
-        """
-        Node class for dijkstra search
-        """
-
         def __init__(self, loc, cost, pind, timestep, index, useTime):
             self.loc = loc
             self.x = loc[0]
@@ -431,7 +427,7 @@ class PriorityPrm():
         def convertTrajectoryToCoords(self, traj):
             coords = []
             for index in traj:
-                coords.append(self.sampleLocs[index])
+                coords.append(tuple(self.sampleLocs[index]))
             return coords
 
         ###### Utils #######
@@ -624,7 +620,7 @@ class PriorityPrm():
                 if cur_robot_id == 0:
                     validSet.add(loc_id)
                 # elif cur_robot_id == 1:
-                elif cur_robot_id == 1 or cur_robot_id == 2:
+                elif cur_robot_id <= 3 :
                     if self.isConnectedState(cur_robot_id, timestep, loc_id):
                         validSet.add(loc_id)
                 else:
@@ -790,7 +786,7 @@ class PriorityPrm():
                 self.plotConnectedStates(cur_robot_id, timestep)
                 self.plotRigidStates(cur_robot_id, timestep)
                 self.plotValidStates(cur_robot_id, timestep)
-                plt.scatter(goalLoc[0], goalLoc[1])
+                plt.scatter(goalLoc[0], goalLoc[1], color='k')
                 # for i, traj in enumerate(trajs):
                 #     if traj == []:
                 #         continue
