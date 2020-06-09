@@ -48,7 +48,7 @@ def RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, f
         print("\nOn robot %d."%(num_robot), num_robot_list)
         for sensor_noise in sensor_noise_list:
             print("Sensor Noise:", sensor_noise, sensor_noise_list)
-            pbar = tqdm(total=num_repeats)
+            # pbar = tqdm(total=num_repeats)
             i = 0
             while i < num_repeats:
                 res = SingleTrial(num_robot, sensor_noise, noise_mode, bounds, use_spring_solver, normalize_edge_len)
@@ -62,8 +62,8 @@ def RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, f
                     df1 = pd.concat([df1, res], ignore_index=True, sort=False)
                     df2 = pd.concat([df2, res], ignore_index=True, sort=False)
                 i += 1
-                pbar.update(1)
-            pbar.close()
+                # pbar.update(1)
+            # pbar.close()
             sheet = f"noise_{sensor_noise:.2f}"
             df1.to_excel(writer, sheet_name=sheet)
             df1 = None
