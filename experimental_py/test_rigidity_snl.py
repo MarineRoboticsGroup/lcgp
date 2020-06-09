@@ -81,7 +81,7 @@ num_repeats = 1000
 
 # Note: absolute matrix is normalized by edge lengths
 
-pool = multiprocessing.Pool(processes=4)
+pool = multiprocessing.Pool(processes=12)
 for use_spring_solver in [False]:
     for noise_mode in ["relative", "absolute"]:
         for normalize_mat_edges in [True, False]:
@@ -96,7 +96,6 @@ for use_spring_solver in [False]:
                 filename = "sdponly_"+noise_mode+f"noise_{num_repeats:d}rep_"+matrix_type+"matrix"
 
             print("\n\n\nFilename:",filename)
-            # RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, filename, use_spring_solver, normalize_mat_edges)
             pool.apply_async(RunExperiments, args = (num_robot_list, sensor_noise_list, noise_mode, num_repeats, filename, use_spring_solver, normalize_mat_edges))
 pool.close()
 pool.join()
