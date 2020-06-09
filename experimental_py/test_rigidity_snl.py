@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd
 import multiprocessing
 
+import matplotlib
+matplotlib.use('Agg') 
+
 def GetGraphSNLError(graph, sensor_noise, noise_mode, use_spring_solver):
     config = np.array(graph.getNodeLocationList())
     init_guess = config.T[:, :-3]
