@@ -1,6 +1,5 @@
 import swarm
 import math_utils
-# import plot
 
 from tqdm import tqdm
 import numpy as np
