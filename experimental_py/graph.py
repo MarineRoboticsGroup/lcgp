@@ -4,7 +4,6 @@ sys.path.insert(1, './snl')
 import numpy as np
 from numpy import linalg as la
 from scipy.linalg import null_space, toeplitz
-import matplotlib.pyplot as plt
 
 import math_utils
 import environment

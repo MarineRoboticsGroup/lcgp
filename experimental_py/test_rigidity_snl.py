@@ -1,14 +1,11 @@
 import swarm
 import math_utils
-import plot
+# import plot
 
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import multiprocessing
-
-import matplotlib
-matplotlib.use('Agg') 
 
 def GetGraphSNLError(graph, sensor_noise, noise_mode, use_spring_solver):
     config = np.array(graph.getNodeLocationList())
