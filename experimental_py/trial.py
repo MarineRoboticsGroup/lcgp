@@ -1,6 +1,5 @@
 import sys
-sys.path.insert(1, '/home/alan/range_only_robotics/experimental_py/planners')
-# sys.path.insert(1, '/home/alan/range_only_robotics/experimental_py/snl')
+sys.path.insert(1, './planners')
 import matplotlib.pyplot as plt
 import numpy as np
 import copy

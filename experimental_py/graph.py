@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(1, '/home/alan/range_only_robotics/experimental_py/snl')
+sys.path.insert(1, './snl')
 
 import numpy as np
 from numpy import linalg as la
