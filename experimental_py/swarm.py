@@ -5,10 +5,13 @@ import graph
 import math_utils
 
 class Swarm:
-    def __init__(self, sensingRadius, normalize_edge_len):
+    def __init__(self, sensingRadius, noise_model, noise_stddev):
         self.sensingRadius = sensingRadius
-        self.normalize_edge_len = normalize_edge_len
-        self.robot_graph = graph.Graph(self.normalize_edge_len)
+
+        assert(noise_model == 'add' or noise_model == 'lognorm')
+        self.noise_model = noise_model
+        self.noise_stddev = noise_stddev
+        self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
 
     ####### Swarm Utils #######
     def initializeSwarm(self, bounds, formation='square', nRobots=None, minEigval=0.75):
@@ -32,7 +35,7 @@ class Swarm:
 
         # self.reorderRobotsBasedOnConnectivity()
         self.updateSwarm()
-        self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
+        self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
 
     def initializeSwarmFromLocationListTuples(self, locList):
         self.robot_graph.removeAllNodes()
@@ -41,7 +44,7 @@ class Swarm:
             self.robot_graph.addNode(loc[0], loc[1])
         self.updateSwarm()
         if self.robot_graph.getNumEdges() > 0:
-            self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
+            self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
 
     def initializeSwarmFromLocationList(self, locList):
         assert(len(locList)%2 == 0)
@@ -52,7 +55,7 @@ class Swarm:
             self.robot_graph.addNode(locList[2*i], locList[2*i+1])
 
         self.updateSwarm()
-        self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
+        self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
 
     def reorderRobotsBasedOnConnectivity(self):
         raise NotImplementedError
@@ -60,7 +63,7 @@ class Swarm:
     def updateSwarm(self):
         self.robot_graph.updateEdgesByRadius(self.sensingRadius)
         if self.robot_graph.getNumEdges() > 0:
-            self.stiffnessMatrix = self.robot_graph.getStiffnessMatrix()
+            self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
 
     ####### Accessors #######
     def getSensingRadius(self):
@@ -82,25 +85,25 @@ class Swarm:
         return posList
 
     def getNthEigval(self, n):
-        eigvals = math_utils.getListOfAllEigvals(self.stiffnessMatrix)
+        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
         eigvals.sort()
         return eigvals[n-1]
     def getNthEigpair(self, n):
-        eigpair = math_utils.getNthEigpair(self.stiffnessMatrix, n)
+        eigpair = math_utils.getNthEigpair(self.fisher_info_matrix, n)
         return eigpair
 
     ####### Computation #######
     def getGradientOfNthEigenval(self, n):
-        nthEigenpair = math_utils.getEigpairLeastFirst(self.stiffnessMatrix, n-1)
+        nthEigenpair = math_utils.getEigpairLeastFirst(self.fisher_info_matrix, n-1)
         if not (nthEigenpair[0] > 0):
             return False
 
-        gradient = math_utils.getGradientOfMatrixForEigenpair(self.stiffnessMatrix, nthEigenpair, self.robot_graph)
+        gradient = math_utils.getGradientOfMatrixForEigenpair(self.fisher_info_matrix, nthEigenpair, self.robot_graph)
         return gradient
 
     ####### Checks #######
     def testRigidityFromLocList(self, locList):
-        testGraph = graph.Graph(self.normalize_edge_len)
+        testGraph = graph.Graph(self.noise_model, self.std_dev)
         testGraph.initializeFromLocationList(locList, self.sensingRadius)
         eigval = testGraph.getNthEigval(4)
         return (self.minEigval <= eigval)
@@ -115,14 +118,14 @@ class Swarm:
 
     ####### Display Utils #######
     def printStiffnessMatrix(self):
-        math_utils.matprintBlock(self.stiffnessMatrix)
+        math_utils.matprintBlock(self.fisher_info_matrix)
     def printAllEigvals(self):
-        eigvals = math_utils.getListOfAllEigvals(self.stiffnessMatrix)
+        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals)
 
     def printNthEigval(self, n):
-        eigvals = math_utils.getListOfAllEigvals(self.stiffnessMatrix)
+        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals[n-1])
     def showSwarm(self):

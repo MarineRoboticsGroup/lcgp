@@ -107,9 +107,21 @@ def sortEigs(vals, vecs):
     srtVec = a[:,:-1]
     return(srtVal, srtVec)
 
-def buildStiffnessMatrix(edges, nodes, normalize_edge_len=False):
+def buildStiffnessMatrix(edges, nodes, noise_model, noise_stddev):
+    """
+    Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
+    """
     numNodes = len(nodes)
     A = None
+    K = np.zeros((numNodes*2, numNodes*2))
+    alpha = None
+    if noise_model == 'add':
+        alpha = float(1)
+    elif noise_model == 'lognorm':
+        alpha = float(2)
+    else:
+        raise NotImplementedError
+
     for cnt, e in enumerate(edges):
         i, j = e
         if i == j:
@@ -121,43 +133,43 @@ def buildStiffnessMatrix(edges, nodes, normalize_edge_len=False):
         delXij = xi-xj
         delYij = yi-yj
         dist = np.sqrt(delXij**2 + delYij**2)
-        row = np.zeros(numNodes*2)
-        row[2*i] = delXij
-        row[2*i+1] = delYij
-        row[2*j] = -delXij
-        row[2*j+1] = -delYij
 
-        # Note: default normalize_lengths is False
-        if normalize_edge_len:
-            row = row/(dist)
+        #### If want to form matrix as A.T @ A
+        # row = np.zeros(numNodes*2)
+        # row[2*i] = delXij
+        # row[2*i+1] = delYij
+        # row[2*j] = -delXij
+        # row[2*j+1] = -delYij
+        # row = row/((noise_stddev)*(dist**alpha))
+        # if A is None:
+        #     A = row
+        # else:
+        #     A = np.vstack([A, row])
 
-        if A is None:
-            A = row
-        else:
-            A = np.vstack([A, row])
+        Kii = np.array([[delXij**2,         delXij*delYij   ],
+                        [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
+        Kij = -Kii
+        # Kii
+        K[2*i:2*i+2, 2*i:2*i+2] += Kii
+        # Kjj
+        K[2*j:2*j+2, 2*j:2*j+2] += Kii
+        # Kij
+        K[2*i:2*i+2, 2*j:2*j+2] = Kij
+        # Kji
+        K[2*j:2*j+2, 2*i:2*i+2] = Kij
 
-    #     Kii = np.array([[delXij**2,         delXij*delYij   ],
-    #                     [delXij*delYij,     delYij**2       ]])
-    #     Kij = -Kii
-    #     # Kii
-    #     K[2*i:2*i+2, 2*i:2*i+2] += Kii
-    #     # Kjj
-    #     K[2*j:2*j+2, 2*j:2*j+2] += Kii
-    #     # Kij
-    #     K[2*i:2*i+2, 2*j:2*j+2] = Kij
-    #     # Kji
-    #     K[2*j:2*j+2, 2*i:2*i+2] = Kij
+    #### Testing different ways of building matrix
     # test = (A.T @ A)-K
     # print("TESTING")
     # matprintBlock(test)
     # print()
     # print()
     # matprintBlock(K)
+    # print()
+    # print()
+    # matprintBlock(A.T @ A)
 
-    # if len(edges) > 2:
-    #     A = A[:, 4:]
-
-    return (A.T @ A)
+    return (K)
 
 def groundNodesInMatrix(A, n, nodes):
     l = list(nodes)

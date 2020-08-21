@@ -8,19 +8,22 @@ from scipy.linalg import null_space, toeplitz
 import math_utils
 import environment
 import kdtree
-from snl_sdp import SolveSNLWithSDP
+from snl import SolveSNLWithSDP
 
 class Graph:
-    def __init__(self, normalize_edge_len):
+    def __init__(self, noise_model:str, noise_stddev:float):
         self.edges = []
         self.edgeDistances = []
         self.nodes = []
         self.nNodes = 0
         self.nEdges = 0
-        self.normalize_edge_len = normalize_edge_len
-        self.stiffnessMatrix = None
 
-    def PerformSNL(self, noise_stddev, noise_mode="absolute", init_guess=None, use_spring_solver=True):
+        assert(noise_model == 'add' or noise_model == 'lognorm')
+        self.noise_model = noise_model
+        self.noise_stddev = noise_stddev
+        self.fisher_info_matrix = None
+
+    def PerformSNL(self, init_guess, solver:str=None):
         num_anchors = 3
         num_nodes = self.getNumNodes() - num_anchors
         anchor_ids = [v+num_nodes for v in range(num_anchors)]
@@ -32,12 +35,14 @@ class Graph:
         for edge in self.getGraphEdgeList():
             i, j = edge
             dist = self.getEdgeDistScal(edge)
-            if noise_mode == "absolute":
-                noise = np.random.normal(0, noise_stddev)
+            if self.noise_model == "add":
+                noise = np.random.normal(0, self.noise_stddev)
                 noisy_dist = dist+noise
-            elif noise_mode == "relative":
-                noise = np.random.normal(1, noise_stddev)
+            elif self.noise_model == "lognorm":
+                noise = np.random.normal(1, self.noise_stddev)
                 noisy_dist = dist*noise
+            else:
+                raise NotImplementedError
 
             if i in anchor_ids and j in anchor_ids:
                 continue
@@ -142,7 +147,7 @@ class Graph:
     def getStiffnessMatrix(self, ):
         n = self.nNodes
         K = np.zeros((2*n, 2*n))
-        return math_utils.buildStiffnessMatrix(self.edges, self.nodes, self.normalize_edge_len)
+        return math_utils.buildStiffnessMatrix(self.edges, self.nodes, self.noise_model, self.noise_stddev)
 
     def getNodeLocationList(self, ):
         locs = []

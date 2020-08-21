@@ -1,3 +1,4 @@
+from typing import List, Dict
 import cvxpy as cp
 import numpy as np
 import scipy
@@ -38,7 +39,7 @@ def DistanceMatrixToDict(dist_matrix):
                 dist_dict[edge] = dist
     return dist_dict
 
-def SolveSNLWithSDP(num_nodes, node_node_dists, node_anchor_dists, anchor_locs, anchor_ids, init_guess=None, use_spring_solver=True):
+def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict, anchor_locs:Dict, anchor_ids:List[int], init_guess=None, solver:str):
     """
     Takes general inputs of sensor network localization problem
     and returns solved for locations. Note that right now it is

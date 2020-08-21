@@ -1,56 +1,57 @@
 import swarm
 import math_utils
 
+from typing import List, Tuple
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import multiprocessing
 
-def GetGraphSNLError(graph, sensor_noise, noise_mode, use_spring_solver):
+def GetGraphSNLError(graph, sensor_noise:float, noise_mode:str, solver:str):
     config = np.array(graph.getNodeLocationList())
     init_guess = config.T[:, :-3]
-    est_locs = graph.PerformSNL(sensor_noise, noise_mode, init_guess, use_spring_solver)
+    est_locs = graph.PerformSNL(init_guess, solver)
     errors = math_utils.CalculateLocalizationError(config, est_locs)
     return errors
 
-def GetGraphFromLocs(loc_list, normalize_edge_len):
-    robots = swarm.Swarm(6, normalize_edge_len)
+def GetGraphFromLocs(loc_list:List[float], noise_model:str, noise_stddev:float):
+    robots = swarm.Swarm(6, noise_model, noise_stddev)
     robots.initializeSwarmFromLocationListTuples(loc_list)
     robots.updateSwarm()
     return robots.getRobotGraph()
 
-def SingleTrial(num_robots, sensor_noise, noise_mode, bounds, use_spring_solver, normalize_edge_len):
+def SingleTrial(num_robots:int, noise_model:str, noise_stddev:float, bounds:Tuple, solver:str):
     xlb, xub, ylb, yub = bounds
     loc_list = [math_utils.genRandomLocation(xlb, xub, ylb, yub) for i in range(num_robots)]
-    graph = GetGraphFromLocs(loc_list, normalize_edge_len)
+    graph = GetGraphFromLocs(loc_list, noise_model, noise_stddev)
 
     min_eigval = graph.getNthEigval(4)
     if min_eigval == 0:
         return None
 
-    errors = GetGraphSNLError(graph, sensor_noise, noise_mode, use_spring_solver)
+    errors = GetGraphSNLError(graph, noise_stddev, noise_model, use_spring_solver)
     if errors is None:
         return None
     worst_error = max(errors)
     avg_error = sum(errors)/float(len(errors))
 
-    d = {'Min Eigval': min_eigval, 'Max Error': worst_error, 'Mean Error': avg_error, '# Robots': num_robots, 'Noise Mode': noise_mode, 'Noise Level (std dev)': sensor_noise}
+    d = {'Min Eigval': min_eigval, 'Max Error': worst_error, 'Mean Error': avg_error, '# Robots': num_robots, 'Noise Model': noise_model, 'Noise Level (std dev)': noise_stddev}
     res = pd.DataFrame(data=d, index=[0])
     return res
 
-def RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, filename, use_spring_solver, normalize_edge_len, bounds=(0,10,0,10)):
+def RunExperiments(num_robot_list:List[int], noise_model:List[str], sensor_noise_list:List[float], num_repeats:int, filename:str, solver:str, bounds:Tuple=(0,10,0,10)):
     df1 = None
     df2 = None
     for num_robot in num_robot_list:
         filepath = './snl_data/'+filename+f"_{num_robot:d}robots"".xlsx"
         writer = pd.ExcelWriter(filepath, engine='xlsxwriter')
         print("\nOn robot %d."%(num_robot), num_robot_list)
-        for sensor_noise in sensor_noise_list:
-            print("Sensor Noise:", sensor_noise, sensor_noise_list)
+        for noise_stddev in sensor_noise_list:
+            print("Sensor Noise:", noise_stddev, sensor_noise_list)
             pbar = tqdm(total=num_repeats)
             i = 0
             while i < num_repeats:
-                res = SingleTrial(num_robot, sensor_noise, noise_mode, bounds, use_spring_solver, normalize_edge_len)
+                res = SingleTrial(num_robot, noise_model, noise_stddev, bounds, solver)
                 if res is None:
                     continue
                 if df1 is None:
@@ -63,7 +64,7 @@ def RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, f
                 i += 1
                 pbar.update(1)
             pbar.close()
-            sheet = f"noise_{sensor_noise:.2f}"
+            sheet = f"noise_{noise_stddev:.2f}"
             df1.to_excel(writer, sheet_name=sheet)
             df1 = None
         df2.to_excel(writer, sheet_name="raw_data")
@@ -71,31 +72,29 @@ def RunExperiments(num_robot_list, sensor_noise_list, noise_mode, num_repeats, f
         writer.save()
 
 
+if __name__ == '__main__':
+    """
+    This file is intended to run as a script primarily to create data and plots which compare the
+    rigidity eigenvalue to the error in sensor network localization
+    """
+    solver = "sdp_with_spring"
+    num_robot_list = [6, 10, 14]
+    sensor_noise_list = np.linspace(.1, .5, num=5)
+    noise_model = "add"
+    num_repeats = 1000
 
-use_spring_solver = True
-num_robot_list = [6, 10, 14]
-sensor_noise_list = np.linspace(0, 1, num=6)
-noise_mode = "relative"
-normalize_mat_edges = True
-num_repeats = 1000
+    # Note: absolute matrix is normalized by edge lengths
 
-# Note: absolute matrix is normalized by edge lengths
-
-pool = multiprocessing.Pool(processes=12)
-for use_spring_solver in [False]:
-    for noise_mode in ["relative", "absolute"]:
-        for normalize_mat_edges in [True, False]:
-            if normalize_mat_edges:
-                matrix_type = "absolute"
-            else:
-                matrix_type = "relative"
-
+    pool = multiprocessing.Pool(processes=12)
+    for use_spring_solver in [True, False]:
+        for noise_model in ["add", "lognorm"]:
             if use_spring_solver:
-                filename = "localsolve_"+noise_mode+f"noise_{num_repeats:d}rep_"+matrix_type+"matrix"
+                filename = "localsolve_"+noise_model+f"noise_{num_repeats:d}rep"
             else:
-                filename = "sdponly_"+noise_mode+f"noise_{num_repeats:d}rep_"+matrix_type+"matrix"
+                filename = "sdponly_"+noise_model+f"noise_{num_repeats:d}rep"
 
             print("\n\n\nFilename:",filename)
-            pool.apply_async(RunExperiments, args = (num_robot_list, sensor_noise_list, noise_mode, num_repeats, filename, use_spring_solver, normalize_mat_edges))
-pool.close()
-pool.join()
+            RunExperiments(num_robot_list, noise_model, sensor_noise_list, num_repeats, filename, solver)
+    #         pool.apply_async(RunExperiments, args = (num_robot_list, noise_model, sensor_noise_list, num_repeats, filename, use_spring_solver))
+    # pool.close()
+    # pool.join()
