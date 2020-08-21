@@ -68,7 +68,7 @@ def testTrajectory(robots, env, trajs, goals, plan_name,
             graph = robots.getRobotGraph()
             minEigval = robots.getNthEigval(4)
             minEigvals.append(minEigval)
-            est_locs = graph.PerformSNL(noise_stddev=sensor_noise)
+            est_locs = graph.PerformSNL()
             errors = math_utils.CalculateLocalizationError(np.array(config), est_locs)
             mean_error = sum(errors)/len(errors)
 
@@ -342,7 +342,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     env = environment.Environment(envBounds, numSquaresWide=nSquaresWide, numSquaresTall=nSquaresTall, setting=setting, nObst=nObst)
 
     # Initialize Robots
-    robots = swarm.Swarm(sensingRadius, normalize_edge_len)
+    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
     if swarmFormation=='random':
         robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
         while not checkFeasibility(robots, env, goals):
@@ -403,7 +403,7 @@ if __name__ == '__main__':
     swarmForm = 'test8'
     # swarmForm = 'random'
     nRobots = 8
-    normalize_edge_len = False
+    noise_model = 'add'
     sensingRadius = 6.5
     minEigval= 0.75
     noise_stddev = 0.25
@@ -416,8 +416,7 @@ if __name__ == '__main__':
     numObstacles = 20
 
     experimentInfo = (exp, useTime, useRelative, showAnimation, profile)
-    swarmInfo = (nRobots, swarmForm, sensingRadius, minEigval, noise_stddev)
-    swarmInfo = (nRobots, swarmForm, sensingRadius, normalize_edge_len, minEigval, noise_stddev)
+    swarmInfo = (nRobots, swarmForm, sensingRadius, noise_model, minEigval, noise_stddev)
     envInfo = (setting, envSize, numObstacles)
 
     main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo)

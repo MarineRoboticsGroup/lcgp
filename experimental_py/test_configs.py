@@ -14,9 +14,9 @@ def tellme(s):
     print(s)
     plt.title(s, fontsize=16)
     plt.draw()
-def ClickPlaceNodes(normalize_edge_len):
+def ClickPlaceNodes(noise_model, noise_stddev):
     sensingRadius = 0.5
-    robots = swarm.Swarm(sensingRadius, normalize_edge_len)
+    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
     envBounds = (0, 1, 0, 1)
     env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1, setting='empty', nObst=0)
 
@@ -42,9 +42,9 @@ def ClickPlaceNodes(normalize_edge_len):
             print(eigval)
             plot.plotNthEigenvector(robots,nEig)
 
-def PrintEigenvalOfLocs(loc_list, normalize_edge_len):
+def PrintEigenvalOfLocs(loc_list, noise_model, noise_stddev):
     sensingRadius = 100
-    robots = swarm.Swarm(sensingRadius, normalize_edge_len)
+    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
     min_x = min(loc_list[:,0]) - 1
     max_x = max(loc_list[:,0]) + 1
     min_y = min(loc_list[:,1]) - 1

@@ -124,7 +124,7 @@ def plotNthEigenvector(robots, n):
     eigpair = robots.getNthEigpair(n)
     eigval, eigvect = eigpair
     robots.printAllEigvals()
-    K = robots.stiffnessMatrix
+    K = robots.fisher_info_matrix
     # print(np.matmul(K, eigvect) - eigval*eigvect)
     # robots.printStiffnessMatrix()
     # print("Eigval", eigval)
