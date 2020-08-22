@@ -33,7 +33,7 @@ class PriorityPrm():
         # swarm
         self.robots = robots
         self.sensingRadius = self.robots.get_sensing_radius()
-        self.startLocs = self.robots.get_position_list_tuples()
+        self.start_loc_list = self.robots.get_position_list_tuples()
         self.numRobots = robots.get_num_robots()
         self.startConfig = self.robots.startConfig
         # environment
@@ -62,7 +62,7 @@ class PriorityPrm():
         goalId = self.roadmap.getGoalIndex(cur_robot_id)
         print("StartID", startId, self.roadmap.getLocation(startId))
         print("GoalID", goalId, self.roadmap.getLocation(goalId))
-        startNode = self.Node(self.startLocs[cur_robot_id], cost=0.0, pind=-1, timestep=0, index=startId, useTime=useTime)
+        startNode = self.Node(self.start_loc_list[cur_robot_id], cost=0.0, pind=-1, timestep=0, index=startId, useTime=useTime)
         goalNode = self.Node(self.goalLocs[cur_robot_id], cost=0.0, pind=-1, timestep=-1, index=goalId, useTime=useTime)
         openSet, closedSet = dict(), dict()
         openSet[self.getNodeKey(startNode, useTime)] = startNode
@@ -309,7 +309,7 @@ class PriorityPrm():
         def __init__(self, robots, env, goalLocs, sampling_type, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
             self.robots = robots
             self.env = env
-            self.startLocs = self.robots.get_position_list_tuples()
+            self.start_loc_list = self.robots.get_position_list_tuples()
             self.goalLocs = goalLocs
             self.sampling_type = sampling_type
             self.N_SAMPLE = N_SAMPLE
@@ -345,7 +345,7 @@ class PriorityPrm():
                 # If not within obstacle
                 if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
-            for loc in self.startLocs:
+            for loc in self.start_loc_list:
                     sampleLocs.append(list(loc))
             for loc in self.goalLocs:
                     sampleLocs.append(list(loc))
@@ -366,7 +366,7 @@ class PriorityPrm():
             if len(sampleLocs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
                 raise NotImplementedError
-            for loc in self.startLocs:
+            for loc in self.start_loc_list:
                     sampleLocs.append(list(loc))
             for loc in self.goalLocs:
                     sampleLocs.append(list(loc))

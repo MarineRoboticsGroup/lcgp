@@ -112,8 +112,8 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
 
 def is_feasible_planning_problem(swarm, env, goals):
     feasible = True
-    startEigval = swarm.get_nth_eigval(4)
-    startLocs = swarm.getPositionList()
+    start_eigval = swarm.get_nth_eigval(4)
+    start_loc_list = swarm.get_position_list()
     graph = swarm.get_robot_graph()
 
     plot.plot(graph, env, goals, animation=False)
@@ -132,23 +132,23 @@ def is_feasible_planning_problem(swarm, env, goals):
     swarm.move_swarm(goalLoc, is_relative_move=False)
     swarm.update_swarm()
     graph = swarm.get_robot_graph()
-    goalEigval = swarm.get_nth_eigval(4)
+    goal_eigval = swarm.get_nth_eigval(4)
 
     # plot.plot(graph, env, goals)
 
-    swarm.move_swarm(startLocs, is_relative_move=False)
+    swarm.move_swarm(start_loc_list, is_relative_move=False)
     swarm.update_swarm()
-    if (startEigval < swarm.min_eigval):
+    if (start_eigval < swarm.min_eigval):
         print("\nStarting Config Insufficiently Rigid")
-        print("Start Eigenvalue:", startEigval)
+        print("Start Eigenvalue:", start_eigval)
         print()
         graph = swarm.get_robot_graph()
         plot.plot_nth_eigvec(swarm, 4)
         plot.plot(graph, env, goals)
         feasible = False
-    if (goalEigval < swarm.min_eigval):
+    if (goal_eigval < swarm.min_eigval):
         print("\nGoal Config Insufficiently Rigid")
-        print("Goal Eigenvalue:", goalEigval)
+        print("Goal Eigenvalue:", goal_eigval)
         print()
         swarm.move_swarm(goalLoc, is_relative_move=False)
         swarm.update_swarm()
@@ -198,7 +198,7 @@ def convert_absolute_traj_to_relative(locLists):
             relMoves[robotNum].append((delta_x, delta_y))
     return relMoves
 
-def make_sensitivity_plots_from_random_motions(robots, environment):
+def make_sensitivity_plots_random_motions(robots, environment):
     """
     Makes sensitivity plots random motions.
 

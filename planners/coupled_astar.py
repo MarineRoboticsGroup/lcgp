@@ -16,7 +16,7 @@ class CoupledAstar():
         self.robots = robots
         self.env = env
         self.goalLocs = goals
-        self.startLocs = self.robots.get_position_list_tuples()
+        self.start_loc_list = self.robots.get_position_list_tuples()
         self.min_eigval = min_eigval
 
         self.numRobots = robots.get_num_robots()
@@ -190,7 +190,7 @@ class CoupledAstar():
         def __init__(self, robots, env, goalLocs, sampling_type, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
             self.robots = robots
             self.env = env
-            self.startLocs = self.robots.get_position_list_tuples()
+            self.start_loc_list = self.robots.get_position_list_tuples()
             self.goalLocs = goalLocs
             self.sampling_type = sampling_type
             self.N_SAMPLE = N_SAMPLE
@@ -226,7 +226,7 @@ class CoupledAstar():
                 # If not within obstacle
                 if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
-            for loc in self.startLocs:
+            for loc in self.start_loc_list:
                     sampleLocs.append(list(loc))
             for loc in self.goalLocs:
                     sampleLocs.append(list(loc))
@@ -247,7 +247,7 @@ class CoupledAstar():
             if len(sampleLocs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
                 raise NotImplementedError
-            for loc in self.startLocs:
+            for loc in self.start_loc_list:
                     sampleLocs.append(list(loc))
             for loc in self.goalLocs:
                     sampleLocs.append(list(loc))

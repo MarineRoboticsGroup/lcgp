@@ -43,8 +43,8 @@ class RRT:
 
         """
         self.nRobots = robot_graph.get_num_nodes()
-        startLocs = robot_graph.get_node_loc_list()
-        self.start = [self.RRTNode(loc[0], loc[1]) for loc in startLocs]
+        start_loc_list = robot_graph.get_node_loc_list()
+        self.start = [self.RRTNode(loc[0], loc[1]) for loc in start_loc_list]
         self.end = [self.RRTNode(loc[0], loc[1]) for loc in goal_locs]
         self.bounds = bounds
         self.max_move_dist = max_move_dist

@@ -78,7 +78,7 @@ class Swarm:
     def get_position_list_tuples(self):
         return self.robot_graph.get_node_loc_list()
 
-    def getPositionList(self):
+    def get_position_list(self):
         posList = []
         for loc in self.robot_graph.get_node_loc_list():
             posList += list(loc)

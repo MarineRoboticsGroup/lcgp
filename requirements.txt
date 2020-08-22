@@ -37,6 +37,7 @@ lazy-object-proxy==1.4.3
 matplotlib==3.3.1
 mccabe==0.6.1
 message-filters==1.14.7
+Mosek==9.2.18
 numpoly==1.0.6
 numpy==1.19.1
 osqp==0.6.1
