@@ -4,7 +4,7 @@ import math_utils
 import kdtree
 
 class Environment:
-    def __init__(self, bounds, numSquaresWide, numSquaresTall, setting, num_obstacles):
+    def __init__(self, bounds, setting, num_obstacles):
         self.setting = setting
         self.obstacles = []
         self.bounds = bounds # xlb, xub, ylb, yub
@@ -225,7 +225,7 @@ class Environment:
             self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     ###### Check Status ############
-    def isFreeSpace(self, coords):
+    def is_free_space(self, coords):
         if self.get_num_obstacles() == 0:
             return True
         if (not self.is_inside_bounds(coords)):
@@ -235,9 +235,9 @@ class Environment:
             return False  # collision
         return True
 
-    def isFreeSpaceLocListTuples(self, locList):
+    def is_free_space_loc_list_tuples(self, locList):
         for loc in locList:
-            if not self.isFreeSpace(loc):
+            if not self.is_free_space(loc):
                 return False
         return True
 

@@ -12,14 +12,14 @@ import graph
 import kdtree
 
 class CoupledAstar():
-    def __init__(self, robots, env, goals, minEigval=0.75):
+    def __init__(self, robots, env, goals, min_eigval=0.75):
         self.robots = robots
         self.env = env
         self.goalLocs = goals
         self.startLocs = self.robots.get_position_list_tuples()
-        self.minEigval = minEigval
+        self.min_eigval = min_eigval
 
-        self.numRobots = robots.getNumRobots()
+        self.numRobots = robots.get_num_robots()
 
         roadmap_sampling = "uniform"
         self.N_SAMPLE = 200
@@ -113,7 +113,7 @@ class CoupledAstar():
         return self.calcFinalPath(ngoal, closed_set)
 
     def calcFinalPath(self, ngoal, closed_set):
-        locPath = [[] for i in range(self.robots.getNumRobots())]
+        locPath = [[] for i in range(self.robots.get_num_robots())]
 
         locs = ngoal.getIndexList()
         for i, loc in enumerate(locs):
@@ -161,9 +161,9 @@ class CoupledAstar():
         # check geometry
         coordList = [self.roadmap.getLocation(loc_ind) for loc_ind in locList]
         g = graph.Graph()
-        g.initialize_from_location_list(coordList, self.robots.getSensingRadius())
+        g.initialize_from_location_list(coordList, self.robots.get_sensing_radius())
         eigval = g.get_nth_eigval(4)
-        # if eigval < self.minEigval:
+        # if eigval < self.min_eigval:
         #     print("\nInvalid Configuration\n")
         #     return False
 
@@ -196,7 +196,7 @@ class CoupledAstar():
             self.N_SAMPLE = N_SAMPLE
             self.N_KNN = N_KNN
             self.MAX_EDGE_LEN = MAX_EDGE_LEN
-            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.getNumRobots())
+            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.get_num_robots())
             self.initSampleLocsAndRoadmap()
 
         def initSampleLocsAndRoadmap(self): 
@@ -224,7 +224,7 @@ class CoupledAstar():
             while len(sampleLocs) < self.N_SAMPLE:
                 newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
                 # If not within obstacle
-                if self.env.isFreeSpace(newLoc):
+                if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
             for loc in self.startLocs:
                     sampleLocs.append(list(loc))
@@ -242,7 +242,7 @@ class CoupledAstar():
                 newLoc = samples[:, i]
                 i += 1
                 # If not within obstacle
-                if self.env.isFreeSpace(newLoc):
+                if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
             if len(sampleLocs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
@@ -293,16 +293,16 @@ class CoupledAstar():
             index = self.N_SAMPLE + cur_robot_id
             return index
         def getGoalIndex(self, cur_robot_id):
-            index = self.N_SAMPLE + self.robots.getNumRobots() + cur_robot_id
+            index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
         def getStartIndexList(self):
             indexList = []
-            for i in range(self.robots.getNumRobots()):
+            for i in range(self.robots.get_num_robots()):
                 indexList.append(self.getStartIndex(i))
             return indexList
         def getGoalIndexList(self):
             indexList = []
-            for i in range(self.robots.getNumRobots()):
+            for i in range(self.robots.get_num_robots()):
                 indexList.append(self.getGoalIndex(i))
             return indexList
         ###### Conversions #######

@@ -23,7 +23,7 @@ class Graph:
         self.noise_stddev = noise_stddev
         self.fisher_info_matrix = None
 
-    def perform_snl(self, init_guess, solver:str=None):
+    def perform_snl(self, init_guess=None, solver:str=None):
         num_anchors = 3
         num_nodes = self.get_num_nodes() - num_anchors
         anchor_ids = [v+num_nodes for v in range(num_anchors)]

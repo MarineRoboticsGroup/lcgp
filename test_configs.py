@@ -34,10 +34,10 @@ def ClickPlaceNodes(noise_model, noise_stddev):
             if plt.waitforbuttonpress():
                     break
         even = not even
-        robots.initializeSwarmFromLocationListTuples(pts)
-        graph = robots.getRobotGraph()
+        robots.initialize_swarm_from_loc_list_of_tuples(pts)
+        graph = robots.get_robot_graph()
         plot.plot_no_grid_no_goalsNoBlock(graph, env)
-        if robots.getNumRobots() >= 3:
+        if robots.get_num_robots() >= 3:
             eigval = robots.get_nth_eigval(nEig)
             print(eigval)
             plot.plot_nth_eigvec(robots,nEig)
@@ -51,9 +51,9 @@ def PrintEigenvalOfLocs(loc_list, noise_model, noise_stddev):
     max_y = max(loc_list[:,1]) + 1
     envBounds = (min_x, max_x, min_y, max_y)
     env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1, setting='empty', nObst=0)
-    robots.initializeSwarmFromLocationListTuples(loc_list)
-    graph = robots.getRobotGraph()
-    if robots.getNumRobots() >= 3:
+    robots.initialize_swarm_from_loc_list_of_tuples(loc_list)
+    graph = robots.get_robot_graph()
+    if robots.get_num_robots() >= 3:
         eigval = robots.get_nth_eigval(nEig)
         print(eigval)
     else:

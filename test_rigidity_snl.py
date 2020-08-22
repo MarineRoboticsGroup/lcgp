@@ -16,9 +16,9 @@ def GetGraphSNLError(graph, sensor_noise:float, noise_mode:str, solver:str):
 
 def GetGraphFromLocs(loc_list:List[float], noise_model:str, noise_stddev:float):
     robots = swarm.Swarm(6, noise_model, noise_stddev)
-    robots.initializeSwarmFromLocationListTuples(loc_list)
-    robots.updateSwarm()
-    return robots.getRobotGraph()
+    robots.initialize_swarm_from_loc_list_of_tuples(loc_list)
+    robots.update_swarm()
+    return robots.get_robot_graph()
 
 def SingleTrial(num_robots:int, noise_model:str, noise_stddev:float, bounds:Tuple, solver:str):
     xlb, xub, ylb, yub = bounds

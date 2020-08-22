@@ -32,9 +32,9 @@ class PriorityPrm():
         self.MAX_EDGE_LEN = 2
         # swarm
         self.robots = robots
-        self.sensingRadius = self.robots.getSensingRadius()
+        self.sensingRadius = self.robots.get_sensing_radius()
         self.startLocs = self.robots.get_position_list_tuples()
-        self.numRobots = robots.getNumRobots()
+        self.numRobots = robots.get_num_robots()
         self.startConfig = self.robots.startConfig
         # environment
         self.env = env
@@ -128,8 +128,8 @@ class PriorityPrm():
 
     def performPlanning(self, useTime):
         print("Beginning Planning\n")
-        self.trajs = [[] for x in range(self.robots.getNumRobots())]
-        self.coordTrajs = [[] for x in range(self.robots.getNumRobots())]
+        self.trajs = [[] for x in range(self.robots.get_num_robots())]
+        self.coordTrajs = [[] for x in range(self.robots.get_num_robots())]
         cur_robot_id = 0
         while cur_robot_id < self.numRobots:
             print("Planning for robot", cur_robot_id)
@@ -315,7 +315,7 @@ class PriorityPrm():
             self.N_SAMPLE = N_SAMPLE
             self.N_KNN = N_KNN
             self.MAX_EDGE_LEN = MAX_EDGE_LEN
-            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.getNumRobots())
+            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.get_num_robots())
             self.initSampleLocsAndRoadmap()
 
         def initSampleLocsAndRoadmap(self):
@@ -343,7 +343,7 @@ class PriorityPrm():
             while len(sampleLocs) < self.N_SAMPLE:
                 newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
                 # If not within obstacle
-                if self.env.isFreeSpace(newLoc):
+                if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
             for loc in self.startLocs:
                     sampleLocs.append(list(loc))
@@ -361,7 +361,7 @@ class PriorityPrm():
                 newLoc = samples[:, i]
                 i += 1
                 # If not within obstacle
-                if self.env.isFreeSpace(newLoc):
+                if self.env.is_free_space(newLoc):
                         sampleLocs.append(list(newLoc))
             if len(sampleLocs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
@@ -412,7 +412,7 @@ class PriorityPrm():
             index = self.N_SAMPLE + cur_robot_id
             return index
         def getGoalIndex(self, cur_robot_id):
-            index = self.N_SAMPLE + self.robots.getNumRobots() + cur_robot_id
+            index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
         ###### Conversions #######
         def convertTrajectoriesToCoords(self, trajs):
@@ -461,20 +461,20 @@ class PriorityPrm():
             self.robots = robots
             self.env = env
             self.roadmap = roadmap
-            self.numRobots = robots.getNumRobots()
+            self.numRobots = robots.get_num_robots()
             # Global Sets
-            self.connected_states = [[set()] for x in range(robots.getNumRobots())]    # list of list of sets of tuples
-            self.rigid_states = [[set()] for x in range(robots.getNumRobots())]        # list of list of sets of tuples
+            self.connected_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
+            self.rigid_states = [[set()] for x in range(robots.get_num_robots())]        # list of list of sets of tuples
             # Individual Sets
-            self.conflictStates = [[set()] for x in range(robots.getNumRobots())]     # list of list of sets of tuples
-            self.reachable_states = [[set()] for x in range(robots.getNumRobots())]    # list of list of sets of tuples
-            self.valid_states = [[set()] for x in range(robots.getNumRobots())]    # list of list of sets of tuples
+            self.conflictStates = [[set()] for x in range(robots.get_num_robots())]     # list of list of sets of tuples
+            self.reachable_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
+            self.valid_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
             self.initReachableAndValidStates()
 
         def initReachableAndValidStates(self):
             reachSets = [[set([self.roadmap.getStartIndex(robotId)])] for robotId in range(self.numRobots)]
             valid_set = [[set([self.roadmap.getStartIndex(robotId)])] for robotId in range(self.numRobots)]
-            for cur_robot_id in range(self.robots.getNumRobots()):
+            for cur_robot_id in range(self.robots.get_num_robots()):
                 startId = self.roadmap.getStartIndex(cur_robot_id)
 
                 openSet = set()
@@ -572,7 +572,7 @@ class PriorityPrm():
                 loc_id = self.getLocIdAtTime(trajs, robotId, curTimestep)
                 loc = self.roadmap.getLocation(loc_id)
                 locList.append(loc)
-            isRigid = self.robots.testRigidityFromLocList(locList)
+            isRigid = self.robots.test_rigidity_from_loc_list(locList)
             return isRigid
         def robotHasOptions(self, cur_robot_id, timestep):
             options = self.reachable_states[cur_robot_id][timestep] - self.conflictStates[cur_robot_id][timestep]

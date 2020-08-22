@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(1, './planners')
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
@@ -14,12 +12,12 @@ import environment
 import plot
 
 # planners
-import decoupled_rrt
-import coupled_astar
-import prioritized_prm
+from planners import decoupled_rrt
+from planners import coupled_astar
+from planners import prioritized_prm
 
-def testTrajectory(robots, env, trajs, goals, plan_name,
-                   delayAnimationStart=False, relativeTraj=False, sensor_noise=0.5):
+def test_trajectory(robots, env, trajs, goals, plan_name,
+                   delay_animation=False, relativeTraj=False, sensor_noise=0.5):
     """
     Takes a generic input trajectory of absolute states
     and moves the swarm through the trajectory
@@ -32,138 +30,135 @@ def testTrajectory(robots, env, trajs, goals, plan_name,
     :type       trajs:                list of lists of tuples of doubles
     :param      goals:                The goals
     :type       goals:                List of tuples
-    :param      delayAnimationStart:  Whether to delay the animation beginning
-    :type       delayAnimationStart:  boolean
+    :param      delay_animation:  Whether to delay the animation beginning
+    :type       delay_animation:  boolean
     """
 
-    firstImage = delayAnimationStart
-    totalTime = 0
-    nonrigTime = 0
-    if trajs is None:
-        print("Cannot find path")
-    else:
-        trajIndex = [-1 for traj in trajs]
-        finalTrajIndex = [len(traj)-1 for traj in trajs]
-        move = []
-        config = []
-        minEigvals = []
-        mean_errors = []
+    total_time = 0
+    nonrigid_time = 0
+    assert trajs is not None
 
-        while not (trajIndex == finalTrajIndex):
-            totalTime += 1
-            move.clear()
-            config.clear()
-            for robotIndex in range(robots.getNumRobots()):
-                # Increment trajectory for unfinished paths
-                if trajIndex[robotIndex] != finalTrajIndex[robotIndex]:
-                    trajIndex[robotIndex] += 1
-                # Get next step on paths
-                newLoc = trajs[robotIndex][trajIndex[robotIndex]]
-                config.append(newLoc)
-                move += list(newLoc)
+    with open('recent_traj.txt', 'w') as filehandle:
+        for traj in trajs:
+            filehandle.write('%s\n' % traj)
 
-            robots.moveSwarm(move, moveRelative=relativeTraj)
-            robots.updateSwarm()
+    traj_indices = [-1 for traj in trajs]
+    final_traj_indices = [len(traj)-1 for traj in trajs]
+    move = []
+    config = []
+    min_eigvals = []
+    mean_error_list = []
 
-            graph = robots.getRobotGraph()
-            minEigval = robots.get_nth_eigval(4)
-            minEigvals.append(minEigval)
-            est_locs = graph.perform_snl()
-            errors = math_utils.calc_localization_error(np.array(config), est_locs)
-            mean_error = sum(errors)/len(errors)
+    while not (traj_indices == final_traj_indices):
+        total_time += 1
+        move.clear()
+        config.clear()
+        for robotIndex in range(robots.get_num_robots()):
+            # Increment trajectory for unfinished paths
+            if traj_indices[robotIndex] != final_traj_indices[robotIndex]:
+                traj_indices[robotIndex] += 1
+            # Get next step on paths
+            newLoc = trajs[robotIndex][traj_indices[robotIndex]]
+            config.append(newLoc)
+            move += list(newLoc)
 
-            mean_errors.append(mean_errors)
+        robots.move_swarm(move, is_relative_move=relativeTraj)
+        robots.update_swarm()
 
-            if minEigval == 0:
-                print("Flexible Loc Est")
-                print(est_locs)
-                print()
-                print("Gnd Truth Locs")
-                print(np.array(config))
-                print()
+        graph = robots.get_robot_graph()
+        min_eigval = robots.get_nth_eigval(4)
+        min_eigvals.append(min_eigval)
+        est_locs = graph.perform_snl()
+        error_list = math_utils.calc_localization_error(np.array(config), est_locs)
+        mean_error = sum(error_list)/len(error_list)
+        mean_error_list.append(mean_error)
 
-            # plot.animate_no_grid(graph, env, goals)
-            if minEigval < robots.minEigval:
-                nonrigTime += 1
-                print(minEigval, " < ", robots.minEigval)
-                # plot.plot_nth_eigvec(robots, 4)
-                # plt.pause (5)
-            if firstImage:
-                plt.pause(10)
-                firstImage = False
+        if min_eigval == 0:
+            print("Flexible Loc Est")
+            print(est_locs)
+            print()
+            print("Gnd Truth Locs")
+            print(np.array(config))
+            print()
 
-        worst_error = max(mean_errors)
-        avg_error = sum(mean_errors)/float(len(mean_errors))
-        print("Avg Localization Error:", avg_error)
-        print("Max Localizaation Error:", worst_error)
+        if min_eigval < robots.min_eigval:
+            nonrigid_time += 1
+            print(min_eigval, " < ", robots.min_eigval)
+            # plot.plot_nth_eigvec(robots, 4)
+            # plt.pause (5)
+        if delay_animation and total_time == 1:
+            plt.pause(10)
 
-        plt.close()
+    worst_error = max(mean_error_list)
+    avg_error = sum(mean_error_list)/float(len(mean_error_list))
+    print("Avg Localization Error:", avg_error)
+    print("Max Localization Error:", worst_error)
 
-        plt.plot(minEigvals)
-        plt.plot(loc_error)
-        plt.hlines([robots.minEigval], 0, len(minEigvals))
-        # plt.title("Minimum Eigenvalue over Time")
-        plt.ylabel("Eigenvalue")
-        plt.xlabel("time")
-        plt.legend(["Eigvals", "Error"])
-        plt.show()
-        plt.savefig('plan_%s_noise_%f_avg_%f_max_%f.png'%(plan_name, sensor_noise, avg_error, worst_error))
+    plt.close()
 
-        with open('recent_traj.txt', 'w') as filehandle:
-            for traj in trajs:
-                filehandle.write('%s\n' % traj)
+    plt.plot(min_eigvals)
+    # plt.plot(loc_error)
+    plt.hlines([robots.min_eigval], 0, len(min_eigvals))
+    # plt.title("Minimum Eigenvalue over Time")
+    plt.ylabel("Eigenvalue")
+    plt.xlabel("time")
+    plt.legend(["Eigvals", "Error"])
+    plt.show()
+    plt.savefig('plan_%s_noise_%f_avg_%f_max_%f.png'%(plan_name, sensor_noise, avg_error, worst_error))
 
-        print("Total Time:", totalTime)
-        print("Bad Time:", nonrigTime)
 
-def checkFeasibility(swarm, env, goals): # pragma: no cover
+    print("Total Time:", total_time)
+    print("Bad Time:", nonrigid_time)
+
+def is_feasible_planning_problem(swarm, env, goals):
     feasible = True
     startEigval = swarm.get_nth_eigval(4)
     startLocs = swarm.getPositionList()
-    graph = swarm.getRobotGraph()
-    plot.plot_no_grid(graph, env, goals)
+    graph = swarm.get_robot_graph()
 
-    if not (env.isFreeSpaceLocListTuples(swarm.get_position_list_tuples())):
+    plot.plot(graph, env, goals, animation=False)
+
+    if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
         print()
         feasible = False
-    if not (env.isFreeSpaceLocListTuples(goals)):
+    if not (env.is_free_space_loc_list_tuples(goals)):
         print("\nGoals Config Inside Obstacles")
         print()
         feasible = False
     goalLoc = []
     for goal in goals:
         goalLoc += list(goal)
-    swarm.moveSwarm(goalLoc, moveRelative=False)
-    swarm.updateSwarm()
-    graph = swarm.getRobotGraph()
+    swarm.move_swarm(goalLoc, is_relative_move=False)
+    swarm.update_swarm()
+    graph = swarm.get_robot_graph()
     goalEigval = swarm.get_nth_eigval(4)
 
-    # plot.plot_no_grid(graph, env, goals)
+    # plot.plot(graph, env, goals)
 
-    swarm.moveSwarm(startLocs, moveRelative=False)
-    swarm.updateSwarm()
-    if (startEigval < swarm.minEigval):
+    swarm.move_swarm(startLocs, is_relative_move=False)
+    swarm.update_swarm()
+    if (startEigval < swarm.min_eigval):
         print("\nStarting Config Insufficiently Rigid")
         print("Start Eigenvalue:", startEigval)
         print()
-        graph = swarm.getRobotGraph()
+        graph = swarm.get_robot_graph()
         plot.plot_nth_eigvec(swarm, 4)
-        plot.plot_no_grid(graph, env, goals)
+        plot.plot(graph, env, goals)
         feasible = False
-    if (goalEigval < swarm.minEigval):
+    if (goalEigval < swarm.min_eigval):
         print("\nGoal Config Insufficiently Rigid")
         print("Goal Eigenvalue:", goalEigval)
         print()
-        swarm.moveSwarm(goalLoc, moveRelative=False)
-        swarm.updateSwarm()
-        graph = swarm.getRobotGraph()
+        swarm.move_swarm(goalLoc, is_relative_move=False)
+        swarm.update_swarm()
+        graph = swarm.get_robot_graph()
         plot.plot_nth_eigvec(swarm, 4)
-        plot.plot_no_grid(graph, env, goals)
+        plot.plot(graph, env, goals)
         feasible = False
     return feasible
 
-def readTrajFromFile(filename ):
+def read_traj_from_file(filename ):
     trajs = []
 
     # open file and read the content in a list
@@ -179,9 +174,9 @@ def readTrajFromFile(filename ):
             while(startInd != -1):
                 sect = line[startInd+1:endInd]
                 commaInd = sect.find(',')
-                xcoord = float(sect[:commaInd])
-                ycoord = float(sect[commaInd+1:])
-                coords = (xcoord, ycoord)
+                x_coord = float(sect[:commaInd])
+                y_coord = float(sect[commaInd+1:])
+                coords = (x_coord, y_coord)
                 traj.append(coords)
 
                 line = line[endInd+1:]
@@ -191,19 +186,19 @@ def readTrajFromFile(filename ):
             trajs.append(traj)
     return trajs
 
-def convertAbsoluteTrajToRelativeTraj(locLists):
+def convert_absolute_traj_to_relative(locLists):
     relMoves = [[(0,0)] for i in locLists]
 
     for robotNum in range(len(locLists)):
         for i in range(len(locLists[robotNum])-1):
-            xold, yold = locLists[robotNum][i]
-            xnew, ynew = locLists[robotNum][i+1]
-            deltax = xnew-xold
-            deltay = ynew-yold
-            relMoves[robotNum].append((deltax, deltay))
+            x_old, y_old = locLists[robotNum][i]
+            x_new, y_new = locLists[robotNum][i+1]
+            delta_x = x_new-x_old
+            delta_y = y_new-y_old
+            relMoves[robotNum].append((delta_x, delta_y))
     return relMoves
 
-def makeSensitivityPlotsRandomMotions(robots, environment):
+def make_sensitivity_plots_from_random_motions(robots, environment):
     """
     Makes sensitivity plots random motions.
 
@@ -215,7 +210,7 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
     vectorLength = 0.1
 
     for vectorLength in [0.15, 0.25, 0.5]:
-        robots.initializeSwarm()
+        robots.initialize_swarm()
 
         predChanges = []
         actChanges = []
@@ -225,12 +220,12 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
         actChangesCrit = []
         predRatiosCrit = []
 
-        for i in range(500):
+        for _ in range(500):
 
             origEigval = robots.get_nth_eigval(1)
-            grad = robots.getGradientOfNthEigenval(1)
+            grad = robots.get_gradient_of_nth_eigval(1)
             if grad is False:
-                # robots.showSwarm()
+                # robots.show_swarm()
                 break
             else:
                 dirVector = math_utils.generate_random_vec(len(grad), vectorLength)
@@ -241,8 +236,8 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
                         predChange = np.dot(grad, dirVector)
 
 
-                robots.moveSwarm(dirVector)
-                robots.updateSwarm()
+                robots.move_swarm(dirVector)
+                robots.update_swarm()
                 newEigval = robots.get_nth_eigval(4)
                 actChange = newEigval - origEigval
 
@@ -283,9 +278,9 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
             plt.savefig(absname)
             plt.close()
 
-def getDecoupledRrtPath(robots, environment, goals):
+def get_decoupled_rrt_path(robots, environment, goals):
     obstacleList = environment.get_obstacle_list()
-    graph = robots.getRobotGraph()
+    graph = robots.get_robot_graph()
 
     rrt_planner = decoupled_rrt.RRT(robot_graph=graph,
               goal_locs=goals,
@@ -296,17 +291,17 @@ def getDecoupledRrtPath(robots, environment, goals):
     path = rrt_planner.planning()
     return path
 
-def getCoupledAstarPath(robots, environment, goals):
+def get_coupled_astar_path(robots, environment, goals):
     a_star = coupled_astar.CoupledAstar(robots=robots, env=environment, goals=goals)
     traj = a_star.planning()
     return traj
 
-def getPriorityPrmPath(robots, environment, goals, useTime):
+def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(robots=robots, env=environment, goals=goals)
     traj = priority_prm.planning(useTime=useTime)
     return traj
 
-def initGoals(robots):
+def init_goals(robots):
     goals = [(loc[0]+23, loc[1]+24) for loc in robots.get_position_list_tuples()]
 
 
@@ -329,45 +324,44 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     np.random.seed(seed)
 
     expName, useTime, useRelative, showAnimation, profile = experimentInfo
-    nRobots, swarmFormation, sensingRadius, normalize_edge_len, minEigval, noise_stddev = swarmInfo
-    setting, bounds, nObst = envInfo
+    nRobots, swarmFormation, sensingRadius, noise_model, min_eigval, noise_stddev = swarmInfo
+    setting, bounds, n_obstacles = envInfo
 
     envBounds = (0, bounds[0], 0, bounds[1])
-    nSquaresWide=bounds[0]
-    nSquaresTall=bounds[1]
-    nObst = nObst
 
 
     # Initialize Environment
-    env = environment.Environment(envBounds, numSquaresWide=nSquaresWide, numSquaresTall=nSquaresTall, setting=setting, nObst=nObst)
+    env = environment.Environment(envBounds, setting=setting, num_obstacles=n_obstacles)
 
     # Initialize Robots
     robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
     if swarmFormation=='random':
-        robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
-        while not checkFeasibility(robots, env, goals):
-            robots.initializeSwarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, minEigval=minEigval)
+        robots.initialize_swarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
+        goals = init_goals(robots)
+        while not is_feasible_planning_problem(robots, env, goals):
+            robots.initialize_swarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
     else:
-        robots.initializeSwarm(bounds=bounds, formation=swarmFormation, minEigval=minEigval)
+        robots.initialize_swarm(bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
 
-    goals = initGoals(robots)
+    goals = init_goals(robots)
 
-    assert(checkFeasibility(robots, env, goals))
-    assert(nRobots == robots.getNumRobots())
+    assert(is_feasible_planning_problem(robots, env, goals))
+    assert(nRobots == robots.get_num_robots())
 
     # Perform Planning
     startPlanning = time.time()
     if profile:
+        #pylint: disable=no-member
         flamegraph.start_profile_thread(fd=open("./perf.log", "w"))
 
     if expName == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
-        trajs = getDecoupledRrtPath(robots, env, goals)
+        trajs = get_decoupled_rrt_path(robots, env, goals)
     elif expName == 'coupled_astar':
-        trajs = getCoupledAstarPath(robots, env, goals)
+        trajs = get_coupled_astar_path(robots, env, goals)
     elif expName == 'priority_prm':
-        trajs = getPriorityPrmPath(robots, env, goals, useTime=useTime)
+        trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == 'read_file':
-        trajs = readTrajFromFile('recent_traj.txt')
+        trajs = read_traj_from_file('recent_traj.txt')
     else:
         raise AssertionError
 
@@ -377,11 +371,11 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
 
     if useRelative:
         print("Converting trajectory from absolute to relative")
-        trajs = convertAbsoluteTrajToRelativeTraj(trajs)
+        trajs = convert_absolute_traj_to_relative(trajs)
 
     if showAnimation:
         print("Showing trajectory animation")
-        testTrajectory(robots, env, trajs, goals,expName, relativeTraj=useRelative, sensor_noise=noise_stddev)
+        test_trajectory(robots, env, trajs, goals,expName, relativeTraj=useRelative, sensor_noise=noise_stddev)
 
 
 if __name__ == '__main__':
@@ -405,7 +399,7 @@ if __name__ == '__main__':
     nRobots = 8
     noise_model = 'add'
     sensingRadius = 6.5
-    minEigval= 0.75
+    min_eigval= 0.75
     noise_stddev = 0.25
 
     # setting = 'random'
@@ -416,7 +410,7 @@ if __name__ == '__main__':
     numObstacles = 20
 
     experimentInfo = (exp, useTime, useRelative, showAnimation, profile)
-    swarmInfo = (nRobots, swarmForm, sensingRadius, noise_model, minEigval, noise_stddev)
+    swarmInfo = (nRobots, swarmForm, sensingRadius, noise_model, min_eigval, noise_stddev)
     envInfo = (setting, envSize, numObstacles)
 
     main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo)

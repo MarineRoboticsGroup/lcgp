@@ -146,15 +146,15 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Di
 
     if init_guess is not None:
         X.value = init_guess
-
-    sol = problem.solve(solver=cp.SCS, warm_start=True)
+    sol = problem.solve(solver=cp.MOSEK, warm_start=True)
+    # sol = problem.solve(solver=cp.SCS, warm_start=True)
 
     if X.value is None:
         return np.zeros((num_nodes, 2))
 
     locs = X.value.T
 
-    if use_spring_solver:
+    if solver == "sdp_with_spring":
         est_locs = np.array(locs)
         locs = spring_solver(est_locs, anchor_locs, node_node_dists, node_anchor_dists)
 

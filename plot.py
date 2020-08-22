@@ -9,15 +9,15 @@ colors = ['b','g','r','c','m','y']
 
 
 ####### Single Frame Calls #######
-def plot(graph, env, goals, animation=None, clear_plot=True, show_goals=True, show_graph_edges=True):
+def plot(graph, env, goals, animation=None, clear_last=True, show_goals=True, show_graph_edges=True):
     assert(animation is not None)
 
-    if clear_plot:
+    if clear_last:
         clear_plot()
     if show_goals:
         plot_goals(goals)
 
-    plot_graph(show_graph_edges)
+    plot_graph(graph, show_graph_edges)
 
     plot_obstacles(env)
     plot_goals(goals)
@@ -54,11 +54,13 @@ def plot_trajectories(trajs, robots, env, goals, animation=True):
     plt.close()
 
 ####### Atomic Calls #######
-def plot_graph(graph):
+def plot_graph(graph, show_graph_edges):
     node_locs = graph.get_node_loc_list()
     for i, node_loc in enumerate(node_locs):
         plt.scatter(node_loc[0], node_loc[1], color=colors[i%6])
-    plot_edges(graph)
+    
+    if show_graph_edges:
+        plot_edges(graph)
 
 def plot_goals(goals):
     for i, goalLoc in enumerate(goals):
@@ -77,10 +79,10 @@ def plot_edges(graph):
 def plot_nth_eigvec(robots, n):
     eigpair = robots.get_nth_eigpair(n)
     _, eigvect = eigpair
-    robots.printAllEigvals()
+    robots.print_all_eigvalss()
     # K = robots.fisher_info_matrix
     # print(np.matmul(K, eigvect) - eigval*eigvect)
-    # robots.printStiffnessMatrix()
+    # robots.print_fisher_matrix()
     # print("Eigval", eigval)
     loc_list = robots.get_position_list_tuples()
     dir_vecs = np.array([[eigvect[2*i], eigvect[2*i+1]] for i in range(int(len(eigvect)/2))])

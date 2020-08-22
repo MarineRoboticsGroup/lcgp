@@ -14,10 +14,10 @@ class Swarm:
         self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
 
     ####### Swarm Utils #######
-    def initializeSwarm(self, bounds, formation='square', nRobots=None, minEigval=0.75):
+    def initialize_swarm(self, bounds, formation='square', nRobots=None, min_eigval=0.75):
         # intialize formation and edges
         self.startConfig = formation
-        self.minEigval = minEigval
+        self.min_eigval = min_eigval
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
@@ -33,20 +33,20 @@ class Swarm:
             print("The given formation is not valid\n")
             raise NotImplementedError
 
-        # self.reorderRobotsBasedOnConnectivity()
-        self.updateSwarm()
+        # self.reorder_robots()
+        self.update_swarm()
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    def initializeSwarmFromLocationListTuples(self, locList):
+    def initialize_swarm_from_loc_list_of_tuples(self, locList):
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
         for loc in locList:
             self.robot_graph.add_node(loc[0], loc[1])
-        self.updateSwarm()
+        self.update_swarm()
         if self.robot_graph.get_num_edges() > 0:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    def initializeSwarmFromLocationList(self, locList):
+    def initialize_swarm_from_loc_list(self, locList):
         assert(len(locList)%2 == 0)
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
@@ -54,25 +54,25 @@ class Swarm:
         for i in range(int(len(locList)/2)):
             self.robot_graph.add_node(locList[2*i], locList[2*i+1])
 
-        self.updateSwarm()
+        self.update_swarm()
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    def reorderRobotsBasedOnConnectivity(self):
+    def reorder_robots(self):
         raise NotImplementedError
 
-    def updateSwarm(self):
+    def update_swarm(self):
         self.robot_graph.update_edges_by_radius(self.sensingRadius)
         if self.robot_graph.get_num_edges() > 0:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     ####### Accessors #######
-    def getSensingRadius(self):
+    def get_sensing_radius(self):
         return self.sensingRadius
 
-    def getRobotGraph(self):
+    def get_robot_graph(self):
         return self.robot_graph
 
-    def getNumRobots(self):
+    def get_num_robots(self):
         return self.robot_graph.get_num_nodes()
 
     def get_position_list_tuples(self):
@@ -93,7 +93,7 @@ class Swarm:
         return eigpair
 
     ####### Computation #######
-    def getGradientOfNthEigenval(self, n):
+    def get_gradient_nth_eigval(self, n):
         nthEigenpair = math_utils.getEigpairLeastFirst(self.fisher_info_matrix, n-1)
         if not (nthEigenpair[0] > 0):
             return False
@@ -102,31 +102,33 @@ class Swarm:
         return gradient
 
     ####### Checks #######
-    def testRigidityFromLocList(self, locList):
+    def test_rigidity_from_loc_list(self, locList):
         testGraph = graph.Graph(self.noise_model, self.std_dev)
         testGraph.initialize_from_location_list(locList, self.sensingRadius)
         eigval = testGraph.get_nth_eigval(4)
-        return (self.minEigval <= eigval)
+        return (self.min_eigval <= eigval)
 
-    def isRigidFormation(self):
+    def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
         return (not (eigval == 0))
 
     ####### Control #######
-    def moveSwarm(self, vector, moveRelative=True):
+    def move_swarm(self, vector, moveRelative=True):
         self.robot_graph.move_to(vector, relativeMovement=moveRelative)
 
     ####### Display Utils #######
-    def printStiffnessMatrix(self):
+    def print_fisher_matrix(self):
         math_utils.matprint_block(self.fisher_info_matrix)
-    def printAllEigvals(self):
+
+    def print_all_eigvals(self):
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals)
 
-    def printNthEigval(self, n):
+    def print_nth_eigvals(self, n):
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals[n-1])
-    def showSwarm(self):
+
+    def show_swarm(self):
         self.robot_graph.displayGraphWithEdges()
