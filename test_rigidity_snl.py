@@ -8,10 +8,10 @@ import pandas as pd
 import multiprocessing
 
 def GetGraphSNLError(graph, sensor_noise:float, noise_mode:str, solver:str):
-    config = np.array(graph.getNodeLocationList())
+    config = np.array(graph.get_node_loc_list())
     init_guess = config.T[:, :-3]
-    est_locs = graph.PerformSNL(init_guess, solver)
-    errors = math_utils.CalculateLocalizationError(config, est_locs)
+    est_locs = graph.perform_snl(init_guess, solver)
+    errors = math_utils.calc_localization_error(config, est_locs)
     return errors
 
 def GetGraphFromLocs(loc_list:List[float], noise_model:str, noise_stddev:float):
@@ -22,10 +22,10 @@ def GetGraphFromLocs(loc_list:List[float], noise_model:str, noise_stddev:float):
 
 def SingleTrial(num_robots:int, noise_model:str, noise_stddev:float, bounds:Tuple, solver:str):
     xlb, xub, ylb, yub = bounds
-    loc_list = [math_utils.genRandomLocation(xlb, xub, ylb, yub) for i in range(num_robots)]
+    loc_list = [math_utils.generate_random_loc(xlb, xub, ylb, yub) for i in range(num_robots)]
     graph = GetGraphFromLocs(loc_list, noise_model, noise_stddev)
 
-    min_eigval = graph.getNthEigval(4)
+    min_eigval = graph.get_nth_eigval(4)
     if min_eigval == 0:
         return None
 

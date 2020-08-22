@@ -33,13 +33,13 @@ class PriorityPrm():
         # swarm
         self.robots = robots
         self.sensingRadius = self.robots.getSensingRadius()
-        self.startLocs = self.robots.getPositionListTuples()
+        self.startLocs = self.robots.get_position_list_tuples()
         self.numRobots = robots.getNumRobots()
         self.startConfig = self.robots.startConfig
         # environment
         self.env = env
-        self.obstacles = env.getObstacleList()
-        self.bounds = env.getBounds()
+        self.obstacles = env.get_obstacle_list()
+        self.bounds = env.get_bounds()
         self.goalLocs = goals
         # Planning Constraints
         self.trajs = None
@@ -142,7 +142,7 @@ class PriorityPrm():
                 self.trajs[cur_robot_id] = traj
                 self.coordTrajs[cur_robot_id] = self.roadmap.convertTrajectoryToCoords(traj)
                 self.constraintSets.updateGlobalSetsFromRobotTraj(self.trajs, cur_robot_id)
-                # plot.showTrajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
+                # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
 
                 # Planning Success Condition
                 if cur_robot_id == self.numRobots-1:
@@ -269,15 +269,15 @@ class PriorityPrm():
     def plotFailedSearch(self, closedSet):
         nodes = closedSet.values()
         print("Plotting the Failed Search!!")
-        plot.clearPlot()
+        plot.clear_plot()
         plt.close()
         for node in nodes:
             if node.pind == -1:
                 continue
             path = [self.roadmap.getLocation(node.index), self.roadmap.getLocation(node.pind)]
             plt.plot(*zip(*path), color='b')
-        plot.plotObstacles(self.env)
-        plot.plotGoals(self.goalLocs)
+        plot.plot_obstacles(self.env)
+        plot.plot_goals(self.goalLocs)
         plot.showPlot()
         plt.close()
 
@@ -309,7 +309,7 @@ class PriorityPrm():
         def __init__(self, robots, env, goalLocs, sampling_type, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
             self.robots = robots
             self.env = env
-            self.startLocs = self.robots.getPositionListTuples()
+            self.startLocs = self.robots.get_position_list_tuples()
             self.goalLocs = goalLocs
             self.sampling_type = sampling_type
             self.N_SAMPLE = N_SAMPLE
@@ -341,7 +341,7 @@ class PriorityPrm():
             xlb, xub, ylb, yub = self.env.bounds
             sampleLocs = []
             while len(sampleLocs) < self.N_SAMPLE:
-                newLoc = math_utils.genRandomLocation(xlb, xub, ylb, yub)
+                newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
                 # If not within obstacle
                 if self.env.isFreeSpace(newLoc):
                         sampleLocs.append(list(newLoc))
@@ -386,7 +386,7 @@ class PriorityPrm():
                 edge_id = []
                 for ii in range(1, len(inds)):
                     connectingLoc = self.sampleLocs[inds[ii]]
-                    if self.isValidPath(curLoc, connectingLoc):
+                    if self.is_valid_path(curLoc, connectingLoc):
                         edge_id.append(inds[ii])
                         if len(edge_id) >= self.N_KNN:
                             break
@@ -431,14 +431,14 @@ class PriorityPrm():
             return coords
 
         ###### Utils #######
-        def isValidPath(self, curLoc, connectingLoc):
+        def is_valid_path(self, curLoc, connectingLoc):
             dx = curLoc[0] - connectingLoc[0]
             dy = curLoc[1] - connectingLoc[1]
             dist = math.hypot(dx, dy)
             # node too far away
             if dist >= self.MAX_EDGE_LEN:
                     return False
-            return self.env.isValidPath(curLoc, connectingLoc)
+            return self.env.is_valid_path(curLoc, connectingLoc)
 
         def readRoadmap(self,):
             if not path.exists(self.roadmapFilename):
@@ -708,13 +708,13 @@ class PriorityPrm():
 
         ###### Plotting #######
         def animateConnectedStates(self, cur_robot_id, coordTrajs, goalLocs):
-            # plot.showTrajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
+            # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
             print("Plotting Connected States")
             trajLens = [len(x) for x in self.connected_states]
             maxTimestep = max(trajLens)
             plt.close()
             for timestep in range(maxTimestep):
-                plot.clearPlot()
+                plot.clear_plot()
                 plt.title("Connected States: Robot %d timestep %d"%(cur_robot_id, timestep))
                 self.plotConnectedStates(cur_robot_id+1, timestep)
                 for i, traj in enumerate(coordTrajs):
@@ -725,9 +725,9 @@ class PriorityPrm():
                     plt.scatter(loc[0], loc[1], color=colors[i%6])
                     plt.plot(*zip(*traj), color=colors[i%6])
 
-                plot.plotObstacles(self.env)
-                plot.setXlim(self.env.getBounds()[0], self.env.getBounds()[1])
-                plot.setYlim(self.env.getBounds()[2], self.env.getBounds()[3])
+                plot.plot_obstacles(self.env)
+                plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
+                plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
                 plot.showPlotAnimation()
                 # if timestep == 0:
                 #     plt.pause(10)
@@ -740,7 +740,7 @@ class PriorityPrm():
             plt.close()
             # plt.pause(5)
             for timestep in range(maxTimestep):
-                plot.clearPlot()
+                plot.clear_plot()
                 plt.title("Rigid States: Robot %d timestep %d"%(cur_robot_id, timestep))
                 self.plotRigidStates(cur_robot_id+1, timestep)
                 for i, traj in enumerate(coordTrajs):
@@ -751,9 +751,9 @@ class PriorityPrm():
                     plt.scatter(loc[0], loc[1], color=colors[i%6])
                     plt.plot(*zip(*traj), color=colors[i%6])
 
-                plot.plotObstacles(self.env)
-                plot.setXlim(self.env.getBounds()[0], self.env.getBounds()[1])
-                plot.setYlim(self.env.getBounds()[2], self.env.getBounds()[3])
+                plot.plot_obstacles(self.env)
+                plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
+                plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
                 plot.showPlotAnimation()
                 # if timestep == 0:
                 #     plt.pause(10)
@@ -764,7 +764,7 @@ class PriorityPrm():
             maxTimestep = len(self.reachable_states[cur_robot_id])
             plt.close()
             for timestep in range(maxTimestep):
-                plot.clearPlot()
+                plot.clear_plot()
                 plt.title("Reachable States: Robot %d timestep %d"%(cur_robot_id, timestep))
                 self.plotConnectedStates(cur_robot_id, timestep)
                 self.plotRigidStates(cur_robot_id, timestep)
@@ -781,7 +781,7 @@ class PriorityPrm():
             plt.close()
             trajLen = [len(traj) for traj in trajs]
             for timestep in range(maxTimestep):
-                plot.clearPlot()
+                plot.clear_plot()
                 plt.title("Valid States: Robot %d timestep %d"%(cur_robot_id, timestep))
                 self.plotConnectedStates(cur_robot_id, timestep)
                 self.plotRigidStates(cur_robot_id, timestep)
@@ -844,7 +844,7 @@ class PriorityPrm():
             plt.scatter(xLocs, yLocs)
 
         def plotEnv(self):
-            plot.plotObstacles(self.env)
-            plot.setXlim(self.env.getBounds()[0], self.env.getBounds()[1])
-            plot.setYlim(self.env.getBounds()[2], self.env.getBounds()[3])
+            plot.plot_obstacles(self.env)
+            plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
+            plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
 

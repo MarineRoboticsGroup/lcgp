@@ -5,30 +5,30 @@ import scipy
 
 import matplotlib.pyplot as plt
 
-def GetExclusionVector(n, index):
+def get_exclusion_vector(n, index):
     vec = np.zeros(n)
     vec[index] = 1
     return vec
 
-def DistBetweenLocs(loc1, loc2):
+def get_dist_between_locs(loc1, loc2):
     deltax = loc1[0]-loc2[0]
     deltay = loc1[1]-loc2[1]
     dist = np.sqrt(deltax**2 + deltay**2)
     return dist
 
-def NodeLocsToDistanceMatrix(node_locs):
+def node_locs_to_dist_matrix(node_locs):
     n = len(node_locs)
     mat = np.zeros((n,n))
     for i in range(n):
         for j in range(i+1,n):
             loc_i = node_locs[i]
             loc_j = node_locs[j]
-            d = DistBetweenLocs(loc_i, loc_j)
+            d = get_dist_between_locs(loc_i, loc_j)
             mat[i][j] = d
             mat[j][i] = d
     return mat
 
-def DistanceMatrixToDict(dist_matrix):
+def dist_matrix_to_dict(dist_matrix):
     dist_dict = dict()
     n = len(dist_matrix)
     for i in range(n):
@@ -39,7 +39,7 @@ def DistanceMatrixToDict(dist_matrix):
                 dist_dict[edge] = dist
     return dist_dict
 
-def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict, anchor_locs:Dict, anchor_ids:List[int], init_guess=None, solver:str):
+def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict, anchor_locs:Dict, anchor_ids:List[int], init_guess=None, solver:str=None):
     """
     Takes general inputs of sensor network localization problem
     and returns solved for locations. Note that right now it is
@@ -98,7 +98,7 @@ def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict,
 
         # Constraint 3
         vec = np.zeros(num_nodes+2)
-        vec[2:] = GetExclusionVector(num_nodes, i) - GetExclusionVector(num_nodes, j)
+        vec[2:] = get_exclusion_vector(num_nodes, i) - get_exclusion_vector(num_nodes, j)
         constraints += [vec.T @ Z @ vec == v_ji[edge]]
 
         # Constraint 5
@@ -136,7 +136,7 @@ def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict,
         # Constraint 4
         vec = np.zeros(num_nodes+2)
         vec[0:2] = anchor_locs[k]
-        vec[2:] = -GetExclusionVector(num_nodes, j)
+        vec[2:] = -get_exclusion_vector(num_nodes, j)
         constraints += [vec.T @ Z @ vec == v_jk[edge]]
         # Constraint 6
         constraints += [D_jk[edge] >> 0]
@@ -156,7 +156,7 @@ def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict,
 
     if use_spring_solver:
         est_locs = np.array(locs)
-        locs = SpringSolver(est_locs, anchor_locs, node_node_dists, node_anchor_dists)
+        locs = spring_solver(est_locs, anchor_locs, node_node_dists, node_anchor_dists)
 
     anchor_loc_list = np.array([])
     keys = list(anchor_locs.keys())
@@ -166,8 +166,7 @@ def SolveSNLWithSDP(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict,
 
     return locs
 
-
-def SpringSolver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dists):
+def spring_solver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dists):
     num_nodes = len(estimated_locs)
     n = len(estimated_locs) + len(anchor_locs)
     spring_model_params = (5*n, 0.2, 0.05, False)

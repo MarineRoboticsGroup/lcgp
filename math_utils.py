@@ -5,23 +5,18 @@ import graph
 eps = 1e-8
 
 ####### Testing Utils #######
-def assertIsEigpair(K, eigval, eigvect):
-    testVec = K @ eigvect
-    np.testing.assert_array_almost_equal(eigval * eigvect, testVec)
+def assert_is_eigpair(K, eigpair):
+    eigval, eigvec = eigpair
+    testVec = K @ eigvec
+    np.testing.assert_array_almost_equal(eigval * eigvec, testVec)
     return True
 
-def assertIsEigpair(K, eigpair):
-    eigval, eigvect = eigpair
-    testVec = K @ eigvect
-    np.testing.assert_array_almost_equal(eigval * eigvect, testVec)
-    return True
-
-def isSquareMatrix(mat):
-    nrow, ncol = mat.shape
-    return (nrow is ncol)
+def is_square_matrix(mat):
+    num_rows, num_cols = mat.shape
+    return (num_rows is num_cols)
 
 ####### Printing Utils #######
-def matprintBlock(mat, fmt="g"):
+def matprint_block(mat, fmt="g"):
     col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
     for j, x in enumerate(mat):
         if j%2 == 0:
@@ -42,24 +37,24 @@ def matprint(mat, fmt="g"):
         print("")
 
 ####### Matrix Utils #######
-def getListOfAllEigvals(mat):
-    assert(isSquareMatrix(mat))
+def get_list_all_eigvals(mat):
+    assert(is_square_matrix(mat))
 
-    val, vect = la.eig(mat)
+    val, _ = la.eig(mat)
     val[np.abs(val) < eps] = 0
     val = np.real(val)
     return val
 
-def getNthEigpair(mat, n):
-    assert(isSquareMatrix(mat))
+def get_nth_eigpair(mat, n):
+    assert(is_square_matrix(mat))
     index = n-1
 
-    eigvals, eigvects = la.eig(mat)
+    eigvals, eigvecs = la.eig(mat)
     eigvals[np.abs(eigvals) < eps] = 0
-    eigvects = np.real(eigvects)
+    eigvecs = np.real(eigvecs)
 
-    # join eigenvects and vals for sorting
-    a = np.vstack([eigvects, eigvals])
+    # join eigenvectors and eigenvalues for sorting
+    a = np.vstack([eigvecs, eigvals])
 
     # take transpose to properly align
     a = a.T
@@ -67,32 +62,32 @@ def getNthEigpair(mat, n):
     # sort array based on eigenvalues
     # least eigenvalue first
     ind=np.argsort(a[:,-1])
-    sortedEigenpairs=a[ind]
-    sortedEigenvals = sortedEigenpairs[:,-1:]
-    sortedEigenvects = sortedEigenpairs[:,:-1]
+    sorted_eigpairs=a[ind]
+    sorted_eigvals = sorted_eigpairs[:,-1:]
+    sorted_eigvecs = sorted_eigpairs[:,:-1]
 
-    indexEigVal = sortedEigenvals[index][0]
-    indexEigVect = sortedEigenvects[index,:]
-    eigpair = (indexEigVal, indexEigVect)
-    assertIsEigpair(mat, eigpair)
-    # return desired eigenpair
+    desired_eigval = sorted_eigvals[index][0]
+    desired_eigvec = sorted_eigvecs[index,:]
+    eigpair = (desired_eigval, desired_eigvec)
+    assert_is_eigpair(mat, eigpair)
+    # return desired eigpair
     return eigpair
 
-def sortEigs(vals, vecs):
+def sort_eigpairs(eigvals, eigvecs):
     """
-    Sorts eigenvals and eigenvecs from least to greatest eigenval and returns
+    Sorts eigenvalues and eigenvectors from least to greatest eigenvalue and returns
     sorted arrays
 
-    :param      vals:  Array of eigenvals
-    :type       vals:  np.array()
-    :param      vecs:  Array of eigenvecs
-    :type       vecs:  np.array()
+    :param      eigvals:  Array of eigvals
+    :type       eigvals:  np.array()
+    :param      eigvecs:  Array of eigvecs
+    :type       eigvecs:  np.array()
 
-    :returns:   (sorted eigenvals, sorted eigenvects)
+    :returns:   (sorted eigenvalues, sorted eigenvectors)
     :rtype:     (np.array(), np.array())
     """
-    # join eigenvects and vals for sorting
-    a = np.vstack([vecs, vals])
+    # join eigenvectors and eigenvalues for sorting
+    a = np.vstack([eigvecs, eigvals])
 
     # take transpose to properly align
     a = a.T
@@ -107,13 +102,13 @@ def sortEigs(vals, vecs):
     srtVec = a[:,:-1]
     return(srtVal, srtVec)
 
-def buildStiffnessMatrix(edges, nodes, noise_model, noise_stddev):
+def build_fisher_matrix(edges, nodes, noise_model, noise_stddev):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
-    numNodes = len(nodes)
-    A = None
-    K = np.zeros((numNodes*2, numNodes*2))
+    num_nodes = len(nodes)
+    # A = None
+    K = np.zeros((num_nodes*2, num_nodes*2))
     alpha = None
     if noise_model == 'add':
         alpha = float(1)
@@ -122,20 +117,20 @@ def buildStiffnessMatrix(edges, nodes, noise_model, noise_stddev):
     else:
         raise NotImplementedError
 
-    for cnt, e in enumerate(edges):
+    for _, e in enumerate(edges):
         i, j = e
         if i == j:
             continue
-        nodei = nodes[i]
-        nodej = nodes[j]
-        xi, yi = nodei.getXYLocation()
-        xj, yj = nodej.getXYLocation()
+        node_i = nodes[i]
+        node_j = nodes[j]
+        xi, yi = node_i.get_loc_tuple()
+        xj, yj = node_j.get_loc_tuple()
         delXij = xi-xj
         delYij = yi-yj
         dist = np.sqrt(delXij**2 + delYij**2)
 
         #### If want to form matrix as A.T @ A
-        # row = np.zeros(numNodes*2)
+        # row = np.zeros(num_nodes*2)
         # row[2*i] = delXij
         # row[2*i+1] = delYij
         # row[2*j] = -delXij
@@ -161,17 +156,17 @@ def buildStiffnessMatrix(edges, nodes, noise_model, noise_stddev):
     #### Testing different ways of building matrix
     # test = (A.T @ A)-K
     # print("TESTING")
-    # matprintBlock(test)
+    # matprint_block(test)
     # print()
     # print()
-    # matprintBlock(K)
+    # matprint_block(K)
     # print()
     # print()
-    # matprintBlock(A.T @ A)
+    # matprint_block(A.T @ A)
 
     return (K)
 
-def groundNodesInMatrix(A, n, nodes):
+def ground_nodes_in_matrix(A, n, nodes):
     l = list(nodes)
     l.sort()
     for i in nodes:
@@ -180,39 +175,40 @@ def groundNodesInMatrix(A, n, nodes):
     return B
 
 ####### Matrix Calculus #######
-def getGradientOfMatrixForEigenpair(K, eigpair, graph):
+def get_gradient_of_eigpair(K, eigpair, graph):
     """
-    Returns the gradient of the eigenval corresponding to the eigvec and matrix
+    Returns the gradient of the eigenvalue corresponding to the eigvec and matrix
     K
 
     :param      K:               Given matrix
     :type       K:               np.array(2n, 2n)
     :param      eigvec:          The eigenvector
     :type       eigvec:          np.array(2n)
-    :param      eigval:          corresponding eigenval
+    :param      eigval:          corresponding eigenvalue
     :type       eigval:          float
 
-    :returns:   Gradient of eigenval as function of inputs
+    :returns:   Gradient of eigenvalue as function of inputs
     :rtype:     np.array(2n)
 
-    :raises     AssertionError:  Require that given vals are an eigenpair
+    :raises     AssertionError:  Require that given values are an eigenpair
     """
 
-    assertIsEigpair(K, eigpair)
-    assert(isSquareMatrix(K))
+    assert_is_eigpair(K, eigpair)
+    assert(is_square_matrix(K))
 
+    #pylint: disable=unused-variable
     eigval, eigvec = eigpair
-    nrow, ncol = K.shape
-    grad = np.zeros(nrow)
+    num_rows, num_cols = K.shape
+    grad = np.zeros(num_rows)
 
-    for index in range(nrow):
-        A = dKdVar(K, index, graph)
-        grad[index] = quadraticMultiplication(eigvec, A)
+    for index in range(num_rows):
+        A = get_partial_deriv_of_matrix(K, index, graph)
+        grad[index] = get_quadratic_multiplication(eigvec, A)
 
     grad = grad/la.norm(grad,2)
     return grad
 
-def dKdVar(K, index, graph):
+def get_partial_deriv_of_matrix(K, index, graph):
     """
     Takes partial derivative of K w.r.t. input (v) and returns partial deriv of
     matrix
@@ -222,7 +218,6 @@ def dKdVar(K, index, graph):
     :param      i:    index of input variable (eg (i = 0, v=x0) or (i=1, v=y0))
     :type       i:    int
     """
-    size = K.shape
     v = ''
 
     i = (int)(np.floor(index/2))
@@ -232,11 +227,11 @@ def dKdVar(K, index, graph):
         v = 'y'
 
     A = np.zeros_like(K)
-    xi, yi = graph.getNodePositionTuple(i)
+    xi, yi = graph.get_node_loc_tuple(i)
 
-    node_i_connections = graph.getNodeConnectionList(i)
+    node_i_connections = graph.get_node_connection_list(i)
     for j in node_i_connections:
-        xj, yj = graph.getNodePositionTuple(j)
+        xj, yj = graph.get_node_loc_tuple(j)
 
         dKii_di = np.zeros((2,2))
         dKjj_di = np.zeros((2,2))
@@ -272,7 +267,7 @@ def dKdVar(K, index, graph):
     return A
 
 ####### Lin. Alg. Utils #######
-def quadraticMultiplication(vec, mat):
+def get_quadratic_multiplication(vec, mat):
     """
     returns x.T @ A @ x
 
@@ -286,37 +281,35 @@ def quadraticMultiplication(vec, mat):
 
     :raises     AssertionError:  x and A must be arrays of described shape
     """
-    quadMult =  vec.T @ mat @ vec
-    return np.real(quadMult)
+    quad_result =  vec.T @ mat @ vec
+    return np.real(quad_result)
 
 ####### Random Generator Utils #######
-def genRandomVector(nDim, length):
+def generate_random_vec(nDim, length):
     vec = np.random.uniform(low=-2, high=2, size=nDim)
     vec = vec/np.linalg.norm(vec,2)
     vec *= length
     return vec
 
-def genRandomTuple(lb=0, ub=10, size=2):
+def generate_random_tuple(lb=0, ub=10, size=2):
     vec = np.random.uniform(low=lb, high=ub, size=size)
     t = tuple(vec)
     return t
 
-def genRandomLocation(xlb, xub, ylb, yub):
-    xval = np.random.uniform(low=xlb, high=xub)
-    yval = np.random.uniform(low=ylb, high=yub)
-    return (xval, yval)
+def generate_random_loc(xlb, xub, ylb, yub):
+    x_val = np.random.uniform(low=xlb, high=xub)
+    y_val = np.random.uniform(low=ylb, high=yub)
+    return (x_val, y_val)
 
-def CalculateLocalizationError(gnd_truth, est_locs):
+def calc_localization_error(gnd_truth, est_locs):
     if not (gnd_truth.shape == est_locs.shape):
         print("Ground Truth Locs", gnd_truth)
         print("Estimated Locs", est_locs)
-        return None
-        # assert(gnd_truth.shape == est_locs.shape)
-    n_rows, n_cols = gnd_truth.shape
-
+        assert(gnd_truth.shape == est_locs.shape)
+    num_rows = gnd_truth.shape[0]
     errors = []
     diff = gnd_truth - est_locs
-    for row in range(n_rows):
+    for row in range(num_rows):
         errors.append(la.norm(diff[row]))
     return errors
 

@@ -32,10 +32,17 @@ ehthumbs.db
 *.lot
 main.pdf
 
+# virtual environment
+#############
+range_only_env/
+range_only_env/*
 
 # VSCode #
 #############
+.history/
+.vscode/
 .history/*
+.vscode/*
 
 # spacemacs #
 #############

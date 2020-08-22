@@ -18,52 +18,52 @@ class Swarm:
         # intialize formation and edges
         self.startConfig = formation
         self.minEigval = minEigval
-        self.robot_graph.removeAllNodes()
-        self.robot_graph.removeAllEdges()
+        self.robot_graph.remove_all_nodes()
+        self.robot_graph.remove_all_edges()
 
         if formation.lower() == 'square':
-            self.robot_graph.initializeSquare()
+            self.robot_graph.init_square_formation()
         elif formation.lower() == 'test6':
-            self.robot_graph.initializeTest6()
+            self.robot_graph.init_test6_formation()
         elif formation.lower() == 'test8':
-            self.robot_graph.initializeTest8()
+            self.robot_graph.init_test8_formation()
         elif formation.lower() == 'random':
-            self.robot_graph.initializeRandomConfig(nRobots, bounds)
+            self.robot_graph.init_random_formation(nRobots, bounds)
         else:
             print("The given formation is not valid\n")
             raise NotImplementedError
 
         # self.reorderRobotsBasedOnConnectivity()
         self.updateSwarm()
-        self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
+        self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initializeSwarmFromLocationListTuples(self, locList):
-        self.robot_graph.removeAllNodes()
-        self.robot_graph.removeAllEdges()
+        self.robot_graph.remove_all_nodes()
+        self.robot_graph.remove_all_edges()
         for loc in locList:
-            self.robot_graph.addNode(loc[0], loc[1])
+            self.robot_graph.add_node(loc[0], loc[1])
         self.updateSwarm()
-        if self.robot_graph.getNumEdges() > 0:
-            self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
+        if self.robot_graph.get_num_edges() > 0:
+            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initializeSwarmFromLocationList(self, locList):
         assert(len(locList)%2 == 0)
-        self.robot_graph.removeAllNodes()
-        self.robot_graph.removeAllEdges()
+        self.robot_graph.remove_all_nodes()
+        self.robot_graph.remove_all_edges()
 
         for i in range(int(len(locList)/2)):
-            self.robot_graph.addNode(locList[2*i], locList[2*i+1])
+            self.robot_graph.add_node(locList[2*i], locList[2*i+1])
 
         self.updateSwarm()
-        self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
+        self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def reorderRobotsBasedOnConnectivity(self):
         raise NotImplementedError
 
     def updateSwarm(self):
-        self.robot_graph.updateEdgesByRadius(self.sensingRadius)
-        if self.robot_graph.getNumEdges() > 0:
-            self.fisher_info_matrix = self.robot_graph.getStiffnessMatrix()
+        self.robot_graph.update_edges_by_radius(self.sensingRadius)
+        if self.robot_graph.get_num_edges() > 0:
+            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     ####### Accessors #######
     def getSensingRadius(self):
@@ -73,23 +73,23 @@ class Swarm:
         return self.robot_graph
 
     def getNumRobots(self):
-        return self.robot_graph.getNumNodes()
+        return self.robot_graph.get_num_nodes()
 
-    def getPositionListTuples(self):
-        return self.robot_graph.getNodeLocationList()
+    def get_position_list_tuples(self):
+        return self.robot_graph.get_node_loc_list()
 
     def getPositionList(self):
         posList = []
-        for loc in self.robot_graph.getNodeLocationList():
+        for loc in self.robot_graph.get_node_loc_list():
             posList += list(loc)
         return posList
 
-    def getNthEigval(self, n):
-        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
+    def get_nth_eigval(self, n):
+        eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         return eigvals[n-1]
-    def getNthEigpair(self, n):
-        eigpair = math_utils.getNthEigpair(self.fisher_info_matrix, n)
+    def get_nth_eigpair(self, n):
+        eigpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         return eigpair
 
     ####### Computation #######
@@ -98,34 +98,34 @@ class Swarm:
         if not (nthEigenpair[0] > 0):
             return False
 
-        gradient = math_utils.getGradientOfMatrixForEigenpair(self.fisher_info_matrix, nthEigenpair, self.robot_graph)
+        gradient = math_utils.get_gradient_of_eigpair(self.fisher_info_matrix, nthEigenpair, self.robot_graph)
         return gradient
 
     ####### Checks #######
     def testRigidityFromLocList(self, locList):
         testGraph = graph.Graph(self.noise_model, self.std_dev)
-        testGraph.initializeFromLocationList(locList, self.sensingRadius)
-        eigval = testGraph.getNthEigval(4)
+        testGraph.initialize_from_location_list(locList, self.sensingRadius)
+        eigval = testGraph.get_nth_eigval(4)
         return (self.minEigval <= eigval)
 
     def isRigidFormation(self):
-        eigval = self.getNthEigval(4)
+        eigval = self.get_nth_eigval(4)
         return (not (eigval == 0))
 
     ####### Control #######
     def moveSwarm(self, vector, moveRelative=True):
-        self.robot_graph.moveTowardsVec(vector, relativeMovement=moveRelative)
+        self.robot_graph.move_to(vector, relativeMovement=moveRelative)
 
     ####### Display Utils #######
     def printStiffnessMatrix(self):
-        math_utils.matprintBlock(self.fisher_info_matrix)
+        math_utils.matprint_block(self.fisher_info_matrix)
     def printAllEigvals(self):
-        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
+        eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals)
 
     def printNthEigval(self, n):
-        eigvals = math_utils.getListOfAllEigvals(self.fisher_info_matrix)
+        eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         print(eigvals[n-1])
     def showSwarm(self):

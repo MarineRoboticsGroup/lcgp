@@ -36,11 +36,11 @@ def ClickPlaceNodes(noise_model, noise_stddev):
         even = not even
         robots.initializeSwarmFromLocationListTuples(pts)
         graph = robots.getRobotGraph()
-        plot.plotNoGridNoGoalsNoBlock(graph, env)
+        plot.plot_no_grid_no_goalsNoBlock(graph, env)
         if robots.getNumRobots() >= 3:
-            eigval = robots.getNthEigval(nEig)
+            eigval = robots.get_nth_eigval(nEig)
             print(eigval)
-            plot.plotNthEigenvector(robots,nEig)
+            plot.plot_nth_eigvec(robots,nEig)
 
 def PrintEigenvalOfLocs(loc_list, noise_model, noise_stddev):
     sensingRadius = 100
@@ -54,12 +54,12 @@ def PrintEigenvalOfLocs(loc_list, noise_model, noise_stddev):
     robots.initializeSwarmFromLocationListTuples(loc_list)
     graph = robots.getRobotGraph()
     if robots.getNumRobots() >= 3:
-        eigval = robots.getNthEigval(nEig)
+        eigval = robots.get_nth_eigval(nEig)
         print(eigval)
     else:
         print("Needs more nodes")
-    # plot.plotNoGridNoGoalsNoBlock(graph, env)
-    # plot.plotNthEigenvector(robots,nEig)
+    # plot.plot_no_grid_no_goalsNoBlock(graph, env)
+    # plot.plot_nth_eigvec(robots,nEig)
     # plt.show(block=True)
     return eigval
 

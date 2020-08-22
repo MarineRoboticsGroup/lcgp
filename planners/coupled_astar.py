@@ -16,7 +16,7 @@ class CoupledAstar():
         self.robots = robots
         self.env = env
         self.goalLocs = goals
-        self.startLocs = self.robots.getPositionListTuples()
+        self.startLocs = self.robots.get_position_list_tuples()
         self.minEigval = minEigval
 
         self.numRobots = robots.getNumRobots()
@@ -161,8 +161,8 @@ class CoupledAstar():
         # check geometry
         coordList = [self.roadmap.getLocation(loc_ind) for loc_ind in locList]
         g = graph.Graph()
-        g.initializeFromLocationList(coordList, self.robots.getSensingRadius())
-        eigval = g.getNthEigval(4)
+        g.initialize_from_location_list(coordList, self.robots.getSensingRadius())
+        eigval = g.get_nth_eigval(4)
         # if eigval < self.minEigval:
         #     print("\nInvalid Configuration\n")
         #     return False
@@ -190,7 +190,7 @@ class CoupledAstar():
         def __init__(self, robots, env, goalLocs, sampling_type, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
             self.robots = robots
             self.env = env
-            self.startLocs = self.robots.getPositionListTuples()
+            self.startLocs = self.robots.get_position_list_tuples()
             self.goalLocs = goalLocs
             self.sampling_type = sampling_type
             self.N_SAMPLE = N_SAMPLE
@@ -222,7 +222,7 @@ class CoupledAstar():
             xlb, xub, ylb, yub = self.env.bounds
             sampleLocs = []
             while len(sampleLocs) < self.N_SAMPLE:
-                newLoc = math_utils.genRandomLocation(xlb, xub, ylb, yub)
+                newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
                 # If not within obstacle
                 if self.env.isFreeSpace(newLoc):
                         sampleLocs.append(list(newLoc))
@@ -267,7 +267,7 @@ class CoupledAstar():
                 edge_id = []
                 for ii in range(1, len(inds)):
                     connectingLoc = self.sampleLocs[inds[ii]]
-                    if self.isValidPath(curLoc, connectingLoc):
+                    if self.is_valid_path(curLoc, connectingLoc):
                         edge_id.append(inds[ii])
                         if len(edge_id) >= self.N_KNN:
                             break
@@ -322,14 +322,14 @@ class CoupledAstar():
             return coords
 
         ###### Utils #######
-        def isValidPath(self, curLoc, connectingLoc):
+        def is_valid_path(self, curLoc, connectingLoc):
             dx = curLoc[0] - connectingLoc[0]
             dy = curLoc[1] - connectingLoc[1]
             dist = math.hypot(dx, dy)
             # node too far away
             if dist >= self.MAX_EDGE_LEN:
                     return False
-            return self.env.isValidPath(curLoc, connectingLoc)
+            return self.env.is_valid_path(curLoc, connectingLoc)
 
         def readRoadmap(self,):
             if not path.exists(self.roadmapFilename):

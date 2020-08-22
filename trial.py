@@ -66,10 +66,10 @@ def testTrajectory(robots, env, trajs, goals, plan_name,
             robots.updateSwarm()
 
             graph = robots.getRobotGraph()
-            minEigval = robots.getNthEigval(4)
+            minEigval = robots.get_nth_eigval(4)
             minEigvals.append(minEigval)
-            est_locs = graph.PerformSNL()
-            errors = math_utils.CalculateLocalizationError(np.array(config), est_locs)
+            est_locs = graph.perform_snl()
+            errors = math_utils.calc_localization_error(np.array(config), est_locs)
             mean_error = sum(errors)/len(errors)
 
             mean_errors.append(mean_errors)
@@ -82,11 +82,11 @@ def testTrajectory(robots, env, trajs, goals, plan_name,
                 print(np.array(config))
                 print()
 
-            # plot.animationNoGrid(graph, env, goals)
+            # plot.animate_no_grid(graph, env, goals)
             if minEigval < robots.minEigval:
                 nonrigTime += 1
                 print(minEigval, " < ", robots.minEigval)
-                # plot.plotNthEigenvector(robots, 4)
+                # plot.plot_nth_eigvec(robots, 4)
                 # plt.pause (5)
             if firstImage:
                 plt.pause(10)
@@ -118,12 +118,12 @@ def testTrajectory(robots, env, trajs, goals, plan_name,
 
 def checkFeasibility(swarm, env, goals): # pragma: no cover
     feasible = True
-    startEigval = swarm.getNthEigval(4)
+    startEigval = swarm.get_nth_eigval(4)
     startLocs = swarm.getPositionList()
     graph = swarm.getRobotGraph()
-    plot.plotNoGrid(graph, env, goals)
+    plot.plot_no_grid(graph, env, goals)
 
-    if not (env.isFreeSpaceLocListTuples(swarm.getPositionListTuples())):
+    if not (env.isFreeSpaceLocListTuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
         print()
         feasible = False
@@ -137,9 +137,9 @@ def checkFeasibility(swarm, env, goals): # pragma: no cover
     swarm.moveSwarm(goalLoc, moveRelative=False)
     swarm.updateSwarm()
     graph = swarm.getRobotGraph()
-    goalEigval = swarm.getNthEigval(4)
+    goalEigval = swarm.get_nth_eigval(4)
 
-    # plot.plotNoGrid(graph, env, goals)
+    # plot.plot_no_grid(graph, env, goals)
 
     swarm.moveSwarm(startLocs, moveRelative=False)
     swarm.updateSwarm()
@@ -148,8 +148,8 @@ def checkFeasibility(swarm, env, goals): # pragma: no cover
         print("Start Eigenvalue:", startEigval)
         print()
         graph = swarm.getRobotGraph()
-        plot.plotNthEigenvector(swarm, 4)
-        plot.plotNoGrid(graph, env, goals)
+        plot.plot_nth_eigvec(swarm, 4)
+        plot.plot_no_grid(graph, env, goals)
         feasible = False
     if (goalEigval < swarm.minEigval):
         print("\nGoal Config Insufficiently Rigid")
@@ -158,8 +158,8 @@ def checkFeasibility(swarm, env, goals): # pragma: no cover
         swarm.moveSwarm(goalLoc, moveRelative=False)
         swarm.updateSwarm()
         graph = swarm.getRobotGraph()
-        plot.plotNthEigenvector(swarm, 4)
-        plot.plotNoGrid(graph, env, goals)
+        plot.plot_nth_eigvec(swarm, 4)
+        plot.plot_no_grid(graph, env, goals)
         feasible = False
     return feasible
 
@@ -227,23 +227,23 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
 
         for i in range(500):
 
-            origEigval = robots.getNthEigval(1)
+            origEigval = robots.get_nth_eigval(1)
             grad = robots.getGradientOfNthEigenval(1)
             if grad is False:
                 # robots.showSwarm()
                 break
             else:
-                dirVector = math_utils.genRandomVector(len(grad), vectorLength)
+                dirVector = math_utils.generate_random_vec(len(grad), vectorLength)
                 predChange = np.dot(grad, dirVector)
                 if origEigval < 1:
                     while (predChange < vectorLength*.8):
-                        dirVector = math_utils.genRandomVector(len(grad), vectorLength)
+                        dirVector = math_utils.generate_random_vec(len(grad), vectorLength)
                         predChange = np.dot(grad, dirVector)
 
 
                 robots.moveSwarm(dirVector)
                 robots.updateSwarm()
-                newEigval = robots.getNthEigval(4)
+                newEigval = robots.get_nth_eigval(4)
                 actChange = newEigval - origEigval
 
                 predRatio = actChange/predChange
@@ -284,13 +284,13 @@ def makeSensitivityPlotsRandomMotions(robots, environment):
             plt.close()
 
 def getDecoupledRrtPath(robots, environment, goals):
-    obstacleList = environment.getObstacleList()
+    obstacleList = environment.get_obstacle_list()
     graph = robots.getRobotGraph()
 
     rrt_planner = decoupled_rrt.RRT(robot_graph=graph,
               goal_locs=goals,
               obstacle_list=obstacleList,
-              bounds=environment.getBounds())
+              bounds=environment.get_bounds())
     # robot_graph, goal_locs, obstacle_list, bounds,
     #              max_move_dist=3.0, goal_sample_rate=5, max_iter=500
     path = rrt_planner.planning()
@@ -307,7 +307,7 @@ def getPriorityPrmPath(robots, environment, goals, useTime):
     return traj
 
 def initGoals(robots):
-    goals = [(loc[0]+23, loc[1]+24) for loc in robots.getPositionListTuples()]
+    goals = [(loc[0]+23, loc[1]+24) for loc in robots.get_position_list_tuples()]
 
 
 

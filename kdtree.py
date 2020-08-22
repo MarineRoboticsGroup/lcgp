@@ -1,4 +1,5 @@
-import scipy.spatial
+#pylint: disable=no-name-in-module
+from scipy.spatial import cKDTree
 
 class KDTree:
     """
@@ -7,7 +8,7 @@ class KDTree:
 
     def __init__(self, data):
         # store kd-tree
-        self.tree = scipy.spatial.cKDTree(data)
+        self.tree = cKDTree(data)
 
     def search(self, inp, k=1):
         """
@@ -24,9 +25,9 @@ class KDTree:
             # print((inp.T))
             # print()
             for i in inp.T:
-                idist, iindex = self.tree.query(i, k=k)
-                index.append(iindex)
-                dist.append(idist)
+                i_dist, i_index = self.tree.query(i, k=k)
+                index.append(i_index)
+                dist.append(i_dist)
 
             return index, dist
 

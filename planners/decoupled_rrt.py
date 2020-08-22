@@ -42,8 +42,8 @@ class RRT:
         randArea:Random Sampling Area [min,max]
 
         """
-        self.nRobots = robot_graph.getNumNodes()
-        startLocs = robot_graph.getNodeLocationList()
+        self.nRobots = robot_graph.get_num_nodes()
+        startLocs = robot_graph.get_node_loc_list()
         self.start = [self.RRTNode(loc[0], loc[1]) for loc in startLocs]
         self.end = [self.RRTNode(loc[0], loc[1]) for loc in goal_locs]
         self.bounds = bounds
@@ -57,7 +57,7 @@ class RRT:
     def planning(self):
         print("Beginning Decoupled RRT Planner")
         for i, startPos in enumerate(self.start):
-            print("Starting Location:", startPos.getXYLocation(), "End Goal:", self.end[i].getXYLocation())
+            print("Starting Location:", startPos.get_loc_tuple(), "End Goal:", self.end[i].get_loc_tuple())
 
         self.node_list = [[startLoc] for startLoc in self.start]
         for i in range(self.max_iter):
@@ -81,17 +81,17 @@ class RRT:
         return None  # cannot find path
 
     def steer(self, from_node, to_node):
-        xFrom, yFrom = from_node.getXYLocation()
-        xTo, yTo = to_node.getXYLocation()
+        xFrom, yFrom = from_node.get_loc_tuple()
+        xTo, yTo = to_node.get_loc_tuple()
         
         newNode = self.RRTNode(xFrom, yFrom)
 
         if self.getDistanceBetweenNodes(newNode, to_node) < self.max_move_dist:
-            newNode.moveNodeAbsolute(xTo, yTo)
+            newNode.move_node_absolute(xTo, yTo)
         else:
             delta = np.array([xTo-xFrom, yTo-yFrom])
             delta = self.max_move_dist*(delta / la.norm(delta, 2))
-            newNode.moveNodeRelative(delta[0], delta[1])
+            newNode.move_node_relative(delta[0], delta[1])
 
         newNode.parent = from_node
         return newNode
@@ -106,14 +106,14 @@ class RRT:
         traj = collections.deque()     
         node = self.end[robotIndex]
         while node.parent is not None:
-            traj.appendleft(node.getXYLocation())
+            traj.appendleft(node.get_loc_tuple())
             node = node.parent
-        traj.appendleft(node.getXYLocation())
+        traj.appendleft(node.get_loc_tuple())
         return list(traj)
 
     def getDistanceToGoal(self, node, index):
-        x, y = node.getXYLocation()
-        xend, yend = self.end[index].getXYLocation()
+        x, y = node.get_loc_tuple()
+        xend, yend = self.end[index].get_loc_tuple()
         dx = x - xend
         dy = y - yend
         return math.hypot(dx, dy)
@@ -124,7 +124,7 @@ class RRT:
             rnd = self.RRTNode(np.random.uniform(xlb, xub),
                             np.random.uniform(ylb, yub))
         else:  # goal point sampling
-            x, y = self.end[index].getXYLocation()
+            x, y = self.end[index].get_loc_tuple()
             rnd = self.RRTNode(x, y)
         return rnd
 
@@ -148,16 +148,16 @@ class RRT:
         if node is None:
             return False
 
-        coords = node.getXYLocation()
+        coords = node.get_loc_tuple()
         for obs in self.obstacle_list:
-            if obs.isInside(coords):
+            if obs.is_inside(coords):
                 return False
 
         return True  # safe
 
     def getDistanceBetweenNodes(self, from_node, to_node):
-        xFrom, yFrom = from_node.getXYLocation()
-        xTo, yTo = to_node.getXYLocation()
+        xFrom, yFrom = from_node.get_loc_tuple()
+        xTo, yTo = to_node.get_loc_tuple()
 
         dx = xTo - xFrom
         dy = yTo - yFrom

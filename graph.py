@@ -140,14 +140,12 @@ class Graph:
         return self.nEdges
 
     def get_nth_eigval(self, n):
-        eigvals = math_utils.getListOfAllEigvals(self.get_fisher_matrix())
+        eigvals = math_utils.get_list_all_eigvals(self.get_fisher_matrix())
         eigvals.sort()
         return eigvals[n-1]
 
     def get_fisher_matrix(self, ):
-        n = self.nNodes
-        K = np.zeros((2*n, 2*n))
-        return math_utils.buildStiffnessMatrix(self.edges, self.nodes, self.noise_model, self.noise_stddev)
+        return math_utils.build_fisher_matrix(self.edges, self.nodes, self.noise_model, self.noise_stddev)
 
     def get_node_loc_list(self, ):
         locs = []
@@ -162,7 +160,7 @@ class Graph:
         return node.get_loc_tuple()
 
     def get_node_degree(self, nodeNum):
-        assert (node_exists(n))
+        assert (self.node_exists(nodeNum))
         node = self.nodes[nodeNum]
         return node.get_node_degree()
 
@@ -241,7 +239,6 @@ class Graph:
         self.add_node(6, 2)
 
     def init_random_formation(self, numRobots, bounds):
-        xbound, ybound = bounds
         xVal = np.random.uniform(low=1, high=10, size=numRobots)
         yVal = np.random.uniform(low=1, high=10, size=numRobots)
         for i in range(numRobots):
