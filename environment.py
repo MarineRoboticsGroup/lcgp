@@ -11,22 +11,22 @@ class Environment:
         self.obstacleKDTree = None
 
         if setting == 'random':
-            self.initializeRandomObstacles(numObstacles=nObst)
+            self.init_random_env(numObstacles=nObst)
         elif setting == 'curve_maze':
-            self.initializeCurvesObstacles()
+            self.init_curves_obstacles_env()
         elif setting == 'adversarial1':
-            self.initializeAdversarial1()
+            self.init_adversarial1_env()
         elif setting == 'adversarial2':
-            self.initializeAdversarial2()
+            self.init_adversarial2_env()
         elif not setting == 'empty':
             raise NotImplementedError
 
     ##### Modify and Initialize ############
-    def addObstacle(self, obs):
+    def add_obstacle(self, obs):
         self.obstacles.append(obs)
         return None
 
-    def initializeCurvesObstacles(self):
+    def init_curves_obstacles_env(self):
         xlb, xub, ylb, yub = self.bounds
 
         radius = .75
@@ -36,18 +36,18 @@ class Environment:
             cenLeft = (xlb, y)
             cenRight = (xub, y)
             obs = Obstacle(cenLeft, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenRight, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # make top and bottom walls
         for x in np.linspace(xlb, xub, increments):
             cenBot = (x, ylb)
             cenTop = (x, yub)
             obs = Obstacle(cenBot, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # left divider
         span = yub-ylb
@@ -56,18 +56,18 @@ class Environment:
         for y in np.linspace(ylb, ylb + dividerLen*span, increments):
             cen = (xCen, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # right divider
         xCen = xlb+2*(xub-xlb)/3
         for y in np.linspace(ylb+dividerLen*span, yub, increments):
             cen = (xCen, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
-        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
-    def initializeAdversarial1(self):
+    def init_adversarial1_env(self):
         xlb, xub, ylb, yub = self.bounds
         radius = .75
         increments = 65
@@ -76,18 +76,18 @@ class Environment:
             cenLeft = (xlb, y)
             cenRight = (xub, y)
             obs = Obstacle(cenLeft, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenRight, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # make top and bottom walls
         for x in np.linspace(xlb, xub, increments):
             cenBot = (x, ylb)
             cenTop = (x, yub)
             obs = Obstacle(cenBot, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # left divider
         span = yub-ylb
@@ -96,18 +96,18 @@ class Environment:
         for y in np.linspace(ylb, ylb + dividerLen*span, increments):
             cen = (xCen, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # right divider
         xCen = xlb+2*(xub-xlb)/3
         for y in np.linspace(yub-dividerLen*span, yub, increments):
             cen = (xCen, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
-        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
-    def initializeAdversarial2(self):
+    def init_adversarial2_env(self):
         xlb, xub, ylb, yub = self.bounds
         radius = .75
         increments = 65
@@ -116,18 +116,18 @@ class Environment:
             cenLeft = (xlb, y)
             cenRight = (xub, y)
             obs = Obstacle(cenLeft, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenRight, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # make top and bottom walls
         for x in np.linspace(xlb, xub, increments):
             cenBot = (x, ylb)
             cenTop = (x, yub)
             obs = Obstacle(cenBot, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # left divider
         span = yub-ylb
@@ -136,14 +136,14 @@ class Environment:
         for y in np.linspace(ylb, ylb + dividerLen*span, increments):
             cen = (xCenLeft, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # right divider
         xCenRight = xub-(xub-xlb)/4
         for y in np.linspace(yub-dividerLen*span, yub, increments):
             cen = (xCenRight, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # upper and lower dividers
         yCenUpper = yub-dividerLen*span
@@ -151,14 +151,14 @@ class Environment:
         for x in np.linspace(xCenLeft, xCenRight, 20):
             cen = (x, yCenUpper)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             cen = (x, yCenLower)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
-        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
-    def initializeAdversarialEasy(self):
+    def init_adversarial_easy_env(self):
         xlb, xub, ylb, yub = self.bounds
         radius = .75
         increments = 65
@@ -167,18 +167,18 @@ class Environment:
             cenLeft = (xlb, y)
             cenRight = (xub, y)
             obs = Obstacle(cenLeft, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenRight, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # make top and bottom walls
         for x in np.linspace(xlb, xub, increments):
             cenBot = (x, ylb)
             cenTop = (x, yub)
             obs = Obstacle(cenBot, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # left divider
         span = yub-ylb
@@ -187,14 +187,14 @@ class Environment:
         for y in np.linspace(ylb, ylb + dividerLen*span, increments):
             cen = (xCenLeft, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # right divider
         xCenRight = xlb+2*(xub-xlb)/3
         for y in np.linspace(yub-dividerLen*span, yub, increments):
             cen = (xCenRight, y)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         # upper and lower dividers
         yCenUpper = yub-dividerLen*span
@@ -202,14 +202,14 @@ class Environment:
         for x in np.linspace(xCenLeft, xCenRight, 20):
             cen = (x, yCenUpper)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
             cen = (x, yCenLower)
             obs = Obstacle(cen, radius)
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
-        self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
-    def initializeRandomObstacles(self, numObstacles=50):
+    def init_random_env(self, numObstacles=50):
         radius = 0.1
         for i in range(numObstacles):
             cnt = 0
@@ -217,22 +217,22 @@ class Environment:
             upp = max(self.bounds)
             radius = math_utils.genRandomTuple(lb=.5, ub=1, size=1)
             center = math_utils.genRandomTuple(lb=low, ub=upp, size=2)
-            while not self.isInsideBounds(center):
+            while not self.is_inside_bounds(center):
                 center = math_utils.genRandomTuple(lb=low, ub=upp, size=2)
             obs = Obstacle(center, radius[0])
-            self.addObstacle(obs)
+            self.add_obstacle(obs)
 
         if numObstacles > 0:
-            self.obstacleKDTree = kdtree.KDTree(self.getObstacleCentersList())
+            self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     ###### Check Status ############
     def isFreeSpace(self, coords):
-        if self.getNumObstacles() == 0:
+        if self.get_num_obstacles() == 0:
             return True
-        if (not self.isInsideBounds(coords)):
+        if (not self.is_inside_bounds(coords)):
             return False
         idxs, dist = self.obstacleKDTree.search(np.array(coords).reshape(2, 1))
-        if dist[0] <= self.obstacles[idxs[0]].getRadius():
+        if dist[0] <= self.obstacles[idxs[0]].get_radius():
             return False  # collision
         return True
 
@@ -242,12 +242,12 @@ class Environment:
                 return False
         return True
 
-    def isValidPath(self, startLoc, endLoc):
-        if self.getNumObstacles() == 0:
+    def is_valid_path(self, startLoc, endLoc):
+        if self.get_num_obstacles() == 0:
             return True
-        if (not self.isInsideBounds(startLoc)):
+        if (not self.is_inside_bounds(startLoc)):
             return False
-        if (not self.isInsideBounds(endLoc)):
+        if (not self.is_inside_bounds(endLoc)):
             return False
         sx, sy = startLoc
         gx, gy = endLoc
@@ -259,47 +259,47 @@ class Environment:
             dy = (i+1)/nsteps*move[1]
             loc = [sx+dx, sy+dy]
             idxs, dist = self.obstacleKDTree.search(np.array(loc).reshape(2, 1))
-            if dist[0] <= self.obstacles[idxs[0]].getRadius():
+            if dist[0] <= self.obstacles[idxs[0]].get_radius():
                 return False  # collision
 
         return True
 
-    def isInsideBounds(self, coords):
+    def is_inside_bounds(self, coords):
         x, y = coords
         xlb, xub, ylb, yub = self.bounds
         return ((xlb < x < xub) and (ylb < y < yub))
 
     ###### Accessors ############
-    def getObstacleList(self,):
+    def get_obstacle_list(self,):
         return self.obstacles
         return None
 
-    def getObstacleCentersList(self,):
+    def get_obstacle_centers_list(self,):
         centers = []
         for obs in  self.obstacles:
-            cen = list(obs.getCenter())
+            cen = list(obs.get_center())
             centers.append(cen)
         return centers
 
-    def getBounds(self,):
+    def get_bounds(self,):
         return self.bounds
 
-    def getNumObstacles(self):
+    def get_num_obstacles(self):
         return len(self.obstacles)
 class Obstacle:
     def __init__(self, center, radius):
         self.center = center
         self.radius = radius
 
-    def getCenter(self,):
+    def get_center(self,):
         return self.center
         return None
 
-    def getRadius(self,):
+    def get_radius(self,):
         return self.radius
         return None
 
-    def isInside(self, coords):
+    def is_inside(self, coords):
         xpos, ypos = coords
         xcenter, ycenter = self.center
         delta = np.array([xpos-xcenter, ypos-ycenter])
