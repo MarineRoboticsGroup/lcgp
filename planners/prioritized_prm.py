@@ -1,6 +1,6 @@
 """
 
-Probablistic Road Map (PRM) Planner
+Probabilistic Road Map (PRM) Planner
 
 author: Alan Papalia (@alanpapalia)
 
@@ -17,7 +17,9 @@ from os import path
 import string
 import time
 import copy
+from typing import List, Tuple, Set
 
+#pylint: disable=import-error
 import math_utils
 import plot
 import swarm
@@ -27,14 +29,13 @@ colors = ['b','g','r','c','m','y']
 class PriorityPrm():
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
-        self.N_SAMPLE = 1000
+        self.N_SAMPLE = 850
         self.N_KNN = 10
         self.MAX_EDGE_LEN = 2
         # swarm
         self.robots = robots
-        self.sensingRadius = self.robots.get_sensing_radius()
+        self.sensingRadius = robots.get_sensing_radius()
         self.start_loc_list = self.robots.get_position_list_tuples()
-        self.numRobots = robots.get_num_robots()
         self.startConfig = self.robots.startConfig
         # environment
         self.env = env
@@ -48,42 +49,42 @@ class PriorityPrm():
         # roadmap_sampling = "random"
         roadmap_sampling = "uniform"
         self.roadmap = self.Roadmap(self.robots, self.env, self.goalLocs, roadmap_sampling, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN)
-        # self.plotRoadmap()
+        # self.plot_roadmap()
         self.constraintSets = self.ConstraintSets(self.robots, self.env, self.roadmap)
 
     def planning(self, useTime=False):
-        if not self.performPlanning(useTime):
-            raise NotImplementedError
+        if not self.perform_planning(useTime):
+            assert False, "The planning failed"
         print("Full set of trajectories found!")
         return self.coordTrajs
 
-    def astarPlanning(self, cur_robot_id, useTime):
-        startId = self.roadmap.getStartIndex(cur_robot_id)
-        goalId = self.roadmap.getGoalIndex(cur_robot_id)
-        print("StartID", startId, self.roadmap.getLocation(startId))
-        print("GoalID", goalId, self.roadmap.getLocation(goalId))
-        startNode = self.Node(self.start_loc_list[cur_robot_id], cost=0.0, pind=-1, timestep=0, index=startId, useTime=useTime)
-        goalNode = self.Node(self.goalLocs[cur_robot_id], cost=0.0, pind=-1, timestep=-1, index=goalId, useTime=useTime)
+    def astar_planning(self, cur_robot_id, useTime):
+        start_id = self.roadmap.get_start_index(cur_robot_id)
+        goal_id = self.roadmap.getGoalIndex(cur_robot_id)
+        print("StartID", start_id, self.roadmap.get_loc(start_id))
+        print("GoalID", goal_id, self.roadmap.get_loc(goal_id))
+        startNode = self.Node(self.start_loc_list[cur_robot_id], cost=0.0, pind=-1, timestep=0, index=start_id, useTime=useTime)
+        goalNode = self.Node(self.goalLocs[cur_robot_id], cost=0.0, pind=-1, timestep=-1, index=goal_id, useTime=useTime)
         openSet, closedSet = dict(), dict()
-        openSet[self.getNodeKey(startNode, useTime)] = startNode
+        openSet[self.get_node_key(startNode, useTime)] = startNode
         success = False
 
         while True:
             # if out of options, return conflict information
             if not openSet:
-                self.plotFailedSearch(closedSet)
+                self.plot_failed_search(closedSet)
                 return ([], success)
 
             # find minimum cost in openSet
-            curKey = min(openSet, key=lambda o: openSet[o].cost + self.calcHeuristic(openSet[o], goalNode, useTime))
+            curKey = min(openSet, key=lambda o: openSet[o].cost + self.calc_heuristic(openSet[o], goalNode, useTime))
             curNode = openSet[curKey]
             # Remove the item from the open set
             del openSet[curKey]
             closedSet[curKey] = curNode
             # If node is valid continue to expand path
-            if self.nodeIsValid(curNode, cur_robot_id):
+            if self.node_is_valid(curNode, cur_robot_id):
                 # if goal location
-                if self.foundGoal(curNode, goalNode):
+                if self.found_goal(curNode, goalNode):
                     goalNode.pind = curNode.pind
                     goalNode.cost = curNode.cost
                     goalNode.timestep = curNode.timestep
@@ -91,18 +92,18 @@ class PriorityPrm():
                     break
                 # Add it to the closed set
                 closedSet[curKey] = curNode
-                curLoc = curNode.getLocation()
+                # curLoc = curNode.get_loc()
                 # expand search grid based on motion model
-                conns = self.roadmap.getConnections(curNode.index)
+                conns = self.roadmap.get_connections(curNode.index)
                 for i in range(len(conns)):
                     new_id = conns[i]
                     if new_id in closedSet:
                         continue
-                    newLoc = self.roadmap.getLocation(new_id)
-                    dist = self.calcDistanceBetweenLocations(curLoc, newLoc)
+                    newLoc = self.roadmap.get_loc(new_id)
+                    # dist = self.calc_dist_between_locations(curLoc, newLoc)
                     # newNode = self.Node(loc=newLoc, cost=curNode.cost + dist + 1, pind=curNode.index, timestep=curNode.timestep+1, index=new_id, useTime=useTime)
                     newNode = self.Node(loc=newLoc, cost=curNode.cost + 1, pind=curNode.index, timestep=curNode.timestep+1, index=new_id, useTime=useTime)
-                    newKey = self.getNodeKey(newNode, useTime)
+                    newKey = self.get_node_key(newNode, useTime)
                     # Otherwise if it is already in the open set
                     if newKey in openSet:
                         if openSet[newKey].cost > newNode.cost:
@@ -114,59 +115,59 @@ class PriorityPrm():
                     else:
                         openSet[newKey] = newNode
         # generate final course
-        pathIdxs = [self.roadmap.getGoalIndex(cur_robot_id)] # Add goal node
+        path_indices = [self.roadmap.getGoalIndex(cur_robot_id)] # Add goal node
         pkey = goalNode.pkey
         pind = goalNode.pind
         while pind != -1:
-            pathIdxs.append(pind)
+            path_indices.append(pind)
             node = closedSet[pkey]
             pkey = node.pkey
             pind = node.pind
-        pathIdxs.reverse()
+        path_indices.reverse()
         success = True
-        return (pathIdxs, success)
+        return (path_indices, success)
 
-    def performPlanning(self, useTime):
+    def perform_planning(self, useTime):
         print("Beginning Planning\n")
         self.trajs = [[] for x in range(self.robots.get_num_robots())]
         self.coordTrajs = [[] for x in range(self.robots.get_num_robots())]
         cur_robot_id = 0
-        while cur_robot_id < self.numRobots:
+        while cur_robot_id < self.robots.get_num_robots():
             print("Planning for robot", cur_robot_id)
             timeStart = time.time()
-            traj, success = self.astarPlanning(cur_robot_id, useTime)
+            traj, success_planning = self.astar_planning(cur_robot_id, useTime)
             timeEnd = time.time()
             print("Planning for robot %d completed in: %f (s)"%(cur_robot_id, timeEnd-timeStart))
             # Was able to make traj
-            if success:
+            if success_planning:
                 self.trajs[cur_robot_id] = traj
                 self.coordTrajs[cur_robot_id] = self.roadmap.convertTrajectoryToCoords(traj)
-                self.constraintSets.updateGlobalSetsFromRobotTraj(self.trajs, cur_robot_id)
+                self.constraintSets.update_global_sets_from_robot_traj(self.trajs, cur_robot_id)
                 # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
-
                 # Planning Success Condition
-                if cur_robot_id == self.numRobots-1:
+                if cur_robot_id == self.robots.get_num_robots()-1:
                     print("All Planning Successful")
                     print()
                     return True
-                hasConflict, conflictTime = self.constraintSets.propagateValidity(self.trajs, cur_robot_id+1)
+                # TODO update with construct_valid_sets function
+                hasConflict, conflictTime = self.constraintSets.construct_valid_sets(cur_robot_id+1, trajs)
                 if hasConflict:
                     print("Found conflict planning for robot%d at time %d "%(cur_robot_id, conflictTime))
-                    self.constraintSets.animateValidStates(self.coordTrajs, cur_robot_id+1)
+                    self.constraintSets.animate_valid_states(self.coordTrajs, cur_robot_id+1)
                     mintime = min(conflictTime, len(traj)-1)
                     # conflictLocId = traj[conflictTime]
                     conflictLocId = traj[mintime]
                     print("Conflict at", conflictLocId, "at time", conflictTime, "\n")
-                    self.constraintSets.undoGlobalSetsUpdates(cur_robot_id)
-                    self.constraintSets.addConflict(cur_robot_id, conflictTime, conflictLocId)
-                    self.resetTraj(cur_robot_id)
+                    self.constraintSets.undo_global_sets_updates(cur_robot_id)
+                    self.constraintSets.add_conflict(cur_robot_id, conflictTime, conflictLocId)
+                    self.reset_traj(cur_robot_id)
                 else:
-                    print("Planning succesful for robot %d \n"%cur_robot_id)
-                    # if cur_robot_id == 0:
-                    #     self.constraintSets.animateConnectedStates(cur_robot_id+1, self.coordTrajs, self.goalLocs)
-                    # else:
-                    #     self.constraintSets.animateRigidStates(cur_robot_id+1, self.coordTrajs, self.goalLocs)
-                    self.constraintSets.clearConflicts(cur_robot_id+1)
+                    print("Planning successful for robot %d \n"%cur_robot_id)
+                    if cur_robot_id == 0:
+                        self.constraintSets.animate_connected_states(cur_robot_id+1, self.coordTrajs, self.goalLocs)
+                    else:
+                        self.constraintSets.animate_rigid_states(cur_robot_id+1, self.coordTrajs, self.goalLocs)
+                    self.constraintSets.clear_conflicts(cur_robot_id+1)
                     cur_robot_id += 1
             else:
                 print("Planning Failed for robot %d. \nReverting to plan for robot %d\n"%(cur_robot_id, cur_robot_id-1))
@@ -176,56 +177,55 @@ class PriorityPrm():
                     return False
 
     ###### A* Helpers #######
-    def nodeIsValid(self, curNode, cur_robot_id):
+    def node_is_valid(self, curNode, cur_robot_id):
         assert(cur_robot_id >= 0)
         loc_id = curNode.index
         timestep = curNode.timestep
-        return self.stateIsValid(cur_robot_id, timestep, loc_id)
+        return self.state_is_valid(cur_robot_id, timestep, loc_id)
 
-    def stateIsValid(self, cur_robot_id, timestep, loc_id):
+    def state_is_valid(self, cur_robot_id, timestep, loc_id):
         assert(cur_robot_id >= 0)
-        isReachable = self.constraintSets.isReachableState(cur_robot_id, timestep, loc_id)
-        if not isReachable:
-            return False
-        conflictFree = not self.constraintSets.isConflictState(cur_robot_id, timestep, loc_id)
+        conflictFree = not self.constraintSets.is_conflict_state(cur_robot_id, timestep, loc_id)
         if not conflictFree:
             print("Has Conflict, denying robot %d, time: %d, loc: %d"%(cur_robot_id, timestep, loc_id))
             return False
-        isValidState = self.constraintSets.isValidState(cur_robot_id, timestep, loc_id)
-        if not isValidState:
+        is_valid_state = self.constraintSets.is_valid_state(cur_robot_id, timestep, loc_id)
+        if not is_valid_state:
             return False
-        if cur_robot_id == 1 :
-            loc0 = self.getLocAtTime(0, timestep)
-            loc1 = self.roadmap.getLocation(loc_id)
-            if self.calcDistanceBetweenLocations(loc0, loc1) < 1:
-                return False
+
+        #* Trying heuristic tricks to get configuration to spread out more
+        # if cur_robot_id == 1 :
+        #     loc0 = self.get_location_at_time(0, timestep)
+            # loc1 = self.roadmap.get_loc(loc_id)
+            # if self.calc_dist_between_locations(loc0, loc1) < 1:
+        #         return False
         # if cur_robot_id == 2:
-        #     loc0 = self.getLocAtTime(0, timestep)
-        #     loc1 = self.getLocAtTime(1, timestep)
-        #     loc2 = self.roadmap.getLocation(loc_id)
-        #     if self.calcDistanceBetweenLocations(loc0, loc2) < 2:
-        #         return False
-        #     if self.calcDistanceBetweenLocations(loc1, loc2) < 1:
-        #         return False
+            # loc0 = self.get_location_at_time(0, timestep)
+            # loc1 = self.get_location_at_time(1, timestep)
+            # loc2 = self.roadmap.get_loc(loc_id)
+            # if self.calc_dist_between_locations(loc0, loc2) < 2:
+            #     return False
+            # if self.calc_dist_between_locations(loc1, loc2) < 1:
+                # return False
         return True
 
-    def getNodeKey(self, node, useTime):
+    def get_node_key(self, node, useTime):
         if useTime:
             return (node.index, node.timestep)
         else:
             return node.index
 
-    def foundGoal(self, curNode, goalNode):
+    def found_goal(self, curNode, goalNode):
         return (curNode.index == goalNode.index)
 
-    def resetTraj(self, cur_robot_id):
+    def reset_traj(self, cur_robot_id):
         self.trajs[cur_robot_id].clear()
         self.coordTrajs[cur_robot_id].clear()
 
     ###### General Helpers #######
-    def calcHeuristic(self, curNode, goalNode, useTime):
-        curLoc = curNode.getLocation()
-        goalLoc = goalNode.getLocation()
+    def calc_heuristic(self, curNode, goalNode, useTime):
+        curLoc = curNode.get_loc()
+        goalLoc = goalNode.get_loc()
         nx, ny = curLoc
         gx, gy = goalLoc
         dx = gx-nx
@@ -235,23 +235,25 @@ class PriorityPrm():
         else:
             return math.hypot(dx, dy)
 
-    def calcDistanceBetweenLocations(self, loc1, loc2):
+    def calc_dist_between_locations(self, loc1, loc2):
         nx, ny = loc1
         gx, gy = loc2
         dx = gx-nx
         dy = gy-ny
         return math.hypot(dx, dy)
 
-    def getLocIdAtTime(self, cur_robot_id, timestep):
+    def get_location_id_at_time(self, cur_robot_id, timestep):
         maxTime = len(self.trajs[cur_robot_id])-1
         time = min(maxTime, timestep)
         return self.trajs[cur_robot_id][time]
-    def getLocAtTime(self, cur_robot_id, timestep):
+
+    def get_location_at_time(self, cur_robot_id, timestep):
         maxTime = len(self.trajs[cur_robot_id])-1
         time = min(maxTime, timestep)
-        return self.roadmap.getLocation(self.trajs[cur_robot_id][time])
+        return self.roadmap.get_loc(self.trajs[cur_robot_id][time])
+
     ###### Conversion/Plotting/IO #######
-    def plotRoadmap(self):
+    def plot_roadmap(self):
         print("Displaying Roadmap... May take time :)")
         edges = set()
         for i, _ in enumerate(self.roadmap.roadmap):
@@ -262,11 +264,17 @@ class PriorityPrm():
                     continue
                 else:
                     edges.add(edge)
-                    plt.plot([self.roadmap.sampleLocs[i][0], self.roadmap.sampleLocs[ind][0]],
-                             [self.roadmap.sampleLocs[i][1], self.roadmap.sampleLocs[ind][1]], "-k")
+                    plt.plot([self.roadmap.sample_locs[i][0], self.roadmap.sample_locs[ind][0]],
+                             [self.roadmap.sample_locs[i][1], self.roadmap.sample_locs[ind][1]], "-k")
+        plot.plot_obstacles(self.env)
+        plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
+        plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
+
+        plt.axis('off')
+        plt.tick_params(axis='both', left='off', top='off', right='off', bottom='off', labelleft='off', labeltop='off', labelright='off', labelbottom='off')
         plt.show(block=True)
 
-    def plotFailedSearch(self, closedSet):
+    def plot_failed_search(self, closedSet):
         nodes = closedSet.values()
         print("Plotting the Failed Search!!")
         plot.clear_plot()
@@ -274,11 +282,12 @@ class PriorityPrm():
         for node in nodes:
             if node.pind == -1:
                 continue
-            path = [self.roadmap.getLocation(node.index), self.roadmap.getLocation(node.pind)]
+            path = [self.roadmap.get_loc(node.index), self.roadmap.get_loc(node.pind)]
             plt.plot(*zip(*path), color='b')
         plot.plot_obstacles(self.env)
         plot.plot_goals(self.goalLocs)
-        plot.showPlot()
+        plt.show(block=True)
+        # plot.showPlot()
         plt.close()
 
     ###### Member Classes #######
@@ -299,7 +308,7 @@ class PriorityPrm():
         def __str__(self):
             return str(self.x) + "," + str(self.y) + "," + str(self.cost) + "," + str(self.pind)
 
-        def getLocation(self):
+        def get_loc(self):
             return self.loc
 
         def setTimestep(self, timestep):
@@ -315,62 +324,76 @@ class PriorityPrm():
             self.N_SAMPLE = N_SAMPLE
             self.N_KNN = N_KNN
             self.MAX_EDGE_LEN = MAX_EDGE_LEN
-            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.get_num_robots())
+            self.roadmap_filename = f"roadmap_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
+            self.sample_locs_filename = f"sample_locs_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
             self.initSampleLocsAndRoadmap()
 
         def initSampleLocsAndRoadmap(self):
             print("Building Roadmap")
-            if self.sampling_type == "random":
-                self.sampleLocs = np.array(self.generateSampleLocationsRandom())
-            elif self.sampling_type == "uniform":
-                self.sampleLocs = self.generateSampleLocationsUniform()
+
+            # try to read sample locs from file. If doesn't exist then generate
+            # new sample locs
+            sample_locs = self.read_sample_locs()
+            if sample_locs and len(sample_locs) > 0:
+                self.sample_locs = sample_locs
             else:
-                raise NotImplementedError
-            self.nodeKDTree = kdtree.KDTree(self.sampleLocs)
+                if self.sampling_type == "random":
+                    self.sample_locs = np.array(self.generateSampleLocationsRandom())
+                elif self.sampling_type == "uniform":
+                    self.sample_locs = self.generateSampleLocationsUniform()
+                else:
+                    raise NotImplementedError
+                self.write_sample_locs()
+            self.nodeKDTree = kdtree.KDTree(self.sample_locs)
+
+            # try to read roadmap from file. If doesn't exist then generate new
+            # roadmap
             roadmap = self.readRoadmap()
             if roadmap and (len(roadmap) > 0):
-                print("Read from existing roadmap file: %s\n"%self.roadmapFilename)
+                print("Read from existing roadmap file: %s\n"%self.roadmap_filename)
                 self.roadmap = roadmap
             else:
-                print("%s not found.\nGenerating Roadmap"%self.roadmapFilename)
+                print("%s not found.\nGenerating Roadmap"%self.roadmap_filename)
                 self.roadmap = self.generateRoadmap()
                 self.writeRoadmap()
                 print("New roadmap written to file\n")
 
         def generateSampleLocationsRandom(self, ):
             xlb, xub, ylb, yub = self.env.bounds
-            sampleLocs = []
-            while len(sampleLocs) < self.N_SAMPLE:
+            sample_locs = []
+            while len(sample_locs) < self.N_SAMPLE:
                 newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
-                # If not within obstacle
+                # If not within obstacle add location
                 if self.env.is_free_space(newLoc):
-                        sampleLocs.append(list(newLoc))
+                        sample_locs.append(list(newLoc))
+
+            # make sure start and goal locations added
             for loc in self.start_loc_list:
-                    sampleLocs.append(list(loc))
+                    sample_locs.append(list(loc))
             for loc in self.goalLocs:
-                    sampleLocs.append(list(loc))
-            return sampleLocs
+                    sample_locs.append(list(loc))
+            return sample_locs
 
         def generateSampleLocationsUniform(self, ):
             xlb, xub, ylb, yub = self.env.bounds
-            sampleLocs = []
-            distribution = chaospy.J(chaospy.Uniform(xlb, xub), chaospy.Uniform(ylb, yub))
+            sample_locs = []
+            distribution = chaospy.J(chaospy.Uniform(xlb+.1, xub-.1), chaospy.Uniform(ylb+.1, yub-.1))
             samples = distribution.sample(self.N_SAMPLE*10, rule="halton")
             i = 0
-            while len(sampleLocs) < self.N_SAMPLE and i < len(samples[0]):
+            while len(sample_locs) < self.N_SAMPLE and i < len(samples[0]):
                 newLoc = samples[:, i]
                 i += 1
                 # If not within obstacle
                 if self.env.is_free_space(newLoc):
-                        sampleLocs.append(list(newLoc))
-            if len(sampleLocs) < self.N_SAMPLE:
+                        sample_locs.append(list(newLoc))
+            if len(sample_locs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
                 raise NotImplementedError
             for loc in self.start_loc_list:
-                    sampleLocs.append(list(loc))
+                    sample_locs.append(list(loc))
             for loc in self.goalLocs:
-                    sampleLocs.append(list(loc))
-            return sampleLocs
+                    sample_locs.append(list(loc))
+            return sample_locs
 
         def generateRoadmap(self):
             """
@@ -378,14 +401,13 @@ class PriorityPrm():
             @return: list of list of edge ids ([[edges, from, 0], ...,[edges, from, N])
             """
             roadmap = []
-            nsample = len(self.sampleLocs)
-            for curLoc in self.sampleLocs:
-                index, dists = self.nodeKDTree.search(np.array(curLoc).reshape(2, 1), k=self.N_KNN)
+            for curLoc in self.sample_locs:
+                index, _ = self.nodeKDTree.search(np.array(curLoc).reshape(2, 1), k=self.N_KNN)
                 inds = index[0]
                 # print(inds)
                 edge_id = []
                 for ii in range(1, len(inds)):
-                    connectingLoc = self.sampleLocs[inds[ii]]
+                    connectingLoc = self.sample_locs[inds[ii]]
                     if self.is_valid_path(curLoc, connectingLoc):
                         edge_id.append(inds[ii])
                         if len(edge_id) >= self.N_KNN:
@@ -394,40 +416,48 @@ class PriorityPrm():
             return roadmap
 
         ###### Accessors #######
-        def getConnections(self, loc_id):
+        def get_connections(self, loc_id):
             return self.roadmap[loc_id]
 
-        def getLocation(self, loc_id):
-            return self.sampleLocs[loc_id]
+        def get_loc(self, loc_id):
+            return self.sample_locs[loc_id]
 
-        def getNeighborsWithinRadius(self, loc, radius):
-            neighborIndexs = self.nodeKDTree.search_in_distance(loc, radius)
-            return neighborIndexs
+        def get_distance_between_loc_ids(self, loc_id_1, loc_id_2):
+            loc_1 = self.get_loc(loc_id_1)
+            loc_2 = self.get_loc(loc_id_2)
+            dist = self.calc_dist_between_locations(loc_1, loc_2)
+            return dist
+
+        def get_neighbors_within_radius(self, loc, radius):
+            neighbor_indices = self.nodeKDTree.search_in_distance(loc, radius)
+            return neighbor_indices
 
         def getKNearestNeighbors(self, loc, k):
-            neighborIndxs, dists = self.nodeKDTree.search(loc, k)
-            return neighborIndxs, dists
+            neighbor_indices, dists = self.nodeKDTree.search(loc, k)
+            return neighbor_indices, dists
 
-        def getStartIndex(self, cur_robot_id):
+        def get_start_index(self, cur_robot_id):
             index = self.N_SAMPLE + cur_robot_id
             return index
+
         def getGoalIndex(self, cur_robot_id):
             index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
+
         ###### Conversions #######
         def convertTrajectoriesToCoords(self, trajs):
             newTrajs = []
             for traj in trajs:
                 newTraj = []
                 for index in traj:
-                        newTraj.append(self.sampleLocs[index])
+                        newTraj.append(self.sample_locs[index])
                         newTrajs.append(newTraj)
             return newTrajs
 
         def convertTrajectoryToCoords(self, traj):
             coords = []
             for index in traj:
-                coords.append(tuple(self.sampleLocs[index]))
+                coords.append(tuple(self.sample_locs[index]))
             return coords
 
         ###### Utils #######
@@ -441,273 +471,354 @@ class PriorityPrm():
             return self.env.is_valid_path(curLoc, connectingLoc)
 
         def readRoadmap(self,):
-            if not path.exists(self.roadmapFilename):
+            if not path.exists(self.roadmap_filename):
                 return False
-            rmap = []
-            with open(self.roadmapFilename, 'r') as filehandle:
+            roadmap = []
+            with open(self.roadmap_filename, 'r') as filehandle:
                 for line in filehandle:
                         roads = list(map(int, line.split()))
-                        rmap.append(roads)
-            return rmap
+                        roadmap.append(roads)
+            return roadmap
 
         def writeRoadmap(self):
-            with open(self.roadmapFilename, 'w') as filehandle:
+            with open(self.roadmap_filename, 'w') as filehandle:
                 for roads in self.roadmap:
-                        line = str(roads).translate(str.maketrans('', '', string.punctuation))
-                        filehandle.write('%s\n' % line)
+                    line = str(roads).translate(str.maketrans('', '', string.punctuation))
+                    filehandle.write('%s\n' % line)
+
+        def read_sample_locs(self,):
+            if not path.exists(self.sample_locs_filename):
+                return None
+            sample_locs = []
+            with open(self.sample_locs_filename, 'r') as filehandle:
+                for line in filehandle:
+                        loc = list(map(float, line.split()))
+                        sample_locs.append(loc)
+            return sample_locs
+
+        def write_sample_locs(self):
+            with open(self.sample_locs_filename, 'w') as filehandle:
+                for sample_loc in self.sample_locs:
+                    # line = str(sample_loc)[1:-1]
+                    line = str(sample_loc).translate(str.maketrans('', '', '[],'))
+                    filehandle.write('%s\n' % line)
 
     class ConstraintSets:
         def __init__(self, robots, env, roadmap):
             self.robots = robots
             self.env = env
             self.roadmap = roadmap
-            self.numRobots = robots.get_num_robots()
             # Global Sets
             self.connected_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
             self.rigid_states = [[set()] for x in range(robots.get_num_robots())]        # list of list of sets of tuples
             # Individual Sets
-            self.conflictStates = [[set()] for x in range(robots.get_num_robots())]     # list of list of sets of tuples
+            self.conflict_states = [[set()] for x in range(robots.get_num_robots())]     # list of list of sets of tuples
             self.reachable_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
             self.valid_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
-            self.initReachableAndValidStates()
 
-        def initReachableAndValidStates(self):
-            reachSets = [[set([self.roadmap.getStartIndex(robotId)])] for robotId in range(self.numRobots)]
-            valid_set = [[set([self.roadmap.getStartIndex(robotId)])] for robotId in range(self.numRobots)]
-            for cur_robot_id in range(self.robots.get_num_robots()):
-                startId = self.roadmap.getStartIndex(cur_robot_id)
+        def construct_valid_sets(self, update_robot_id:int, trajs:List[List[Set[int]]]) -> Tuple[bool, int]:
+            """sets the reachable states and valid states for the specified
+            robot. This requires having already updated the connected and rigid
+            states for the given robot
 
-                openSet = set()
-                connSet = set([startId])
+            This function will return the time a conflict is found at if there
+            is a conflict
 
-                # continue until robot is capable of reaching all locations
-                # Note: Assumes connected roadmap
-                while (connSet - openSet):
-                    openSet.clear()
-                    openSet.update(connSet)
-                    connSet.clear()
+            Args:
+                update_robot_id (int): the robot to construct the valid sets
+                    for
+                trajs (list[list[set[int]]]): [description]
 
-                    # for each node in current state add connected nodes
-                    for nodeId in openSet:
-                        conns = self.roadmap.getConnections(nodeId)
-                        connSet.update(conns)
-
-                    # clear current state, update feasibility
-                    reachSets[cur_robot_id].append(set())
-                    reachSets[cur_robot_id][-1].update(connSet)
-                    if cur_robot_id == 0:
-                        valid_set[cur_robot_id].append(set())
-                        valid_set[cur_robot_id][-1].update(connSet)
-
-            self.reachable_states = reachSets
-            self.valid_states = valid_set
-
-        def propagateValidity(self, trajs, update_robot_id):
+            Returns:
+                Tuple[bool, int]:
+                    bool: true if has conflict, false if not
+                    int: timestep of conflict, None if no conflict
             """
-            Should be called while checking trajectory of update_robot_id-1
-            Update valid locs of updateRobot
-            """
-            startId = self.roadmap.getStartIndex(update_robot_id)
-            goalId = self.roadmap.getGoalIndex(update_robot_id)
-            self.valid_states[update_robot_id] = [set([startId])]
+            # TODO make a testcase roadmap to check this
+            # TODO add test to require that rigid and connected states were already updated
+            assert(update_robot_id >= 0)
+            start_id = self.roadmap.get_start_index(update_robot_id)
+            goal_id = self.roadmap.get_goal_index(update_robot_id)
+            reachable_sets_ = [set(start_id)]
+            valid_sets_ = [set(start_id)]
             timestep = 0
-            curStep = set([startId])
-            curStep = self.getValidSubset(curStep, trajs, update_robot_id, timestep)
-            timestep += 1
-            nextStep = set(self.roadmap.getConnections(startId))
-            nextStep = self.getValidSubset(nextStep, trajs, update_robot_id, timestep)
-            # continue until robot is capable of reaching all locations
-            # Note: Assumes connected roadmap
-            cnt = 2
-            while (cnt and len(nextStep) > 0 and goalId not in curStep):
-                curStep = copy.deepcopy(nextStep)
-                for loc_id in curStep:
-                    nextStep.update(self.roadmap.getConnections(loc_id))
-                    nextStep.add(loc_id)
-                nextStep = self.getValidSubset(nextStep, trajs, update_robot_id, timestep)
-                for loc_id in nextStep:
-                    self.addValidState(update_robot_id, timestep, loc_id)
-                timestep += 1
-                if not nextStep - curStep:
-                    cnt -= 1
+            has_conflict = False
+            while goal_id not in valid_sets_[timestep]:
 
-            if goalId not in curStep:
-                hasConflict = True
-                failureTime = timestep
-            else:
-                hasConflict = False
-                failureTime = None
-            return hasConflict, failureTime
+                # if valid set is empty return conflict where the conflict is
+                # the time of the empty valid set
+                if not valid_sets_[timestep]:
+                    has_conflict = True
+                    return has_conflict, timestep
+
+                # extend the size of the reachable and valid sets
+                reachable_sets_.append(set())
+                valid_sets_.append(set())
+
+                # reachable(t+1) = [reachable(t) + neighbors of reachable(t) -
+                # conflicts(update_robot_id, t+1)] - occupied[t+1]
+                neighbors = self.get_all_neighbors_of_set(valid_sets_[timestep])
+                conflicts = self.get_conflict_states(update_robot_id, timestep+1)
+                occupied = self.get_occupied_states(trajs, update_robot_id, timestep+1)
+                reachable_sets_[timestep+1] = reachable_sets_[timestep].union(neighbors).difference(conflicts).difference(occupied)
+
+                if update_robot_id == 0:
+                    valid_sets_[timestep+1] = reachable_sets_[timestep+1].deepcopy()
+                elif update_robot_id == 1:
+                    connected_states = self.get_connected_states_at_time(update_robot_id, timestep+1)
+                    valid_sets_[timestep+1] = connected_states.union(reachable_sets_[timestep+1])
+                else:
+                    rigid_states = self.get_rigid_states_at_time(update_robot_id, timestep+1)
+                    valid_sets_[timestep+1] = connected_states.union(reachable_sets_[timestep+1])
+
+                timestep += 1
+
+            self.reachable_states[update_robot_id] = reachable_sets_
+            self.valid_states[update_robot_id] = valid_sets_
+
+            # if successful return None as conflict
+            return has_conflict, None
+
+        def get_all_neighbors_of_set(self, loc_set:Set[int]):
+            """return set of all direct neighbors
+
+            Args:
+                loc_set (set[int]): set of roadmap location indices
+
+            Returns:
+                set[int]: all direct neighbors to all locations in loc_set
+            """
+            neighbors = set()
+            for loc in loc_set:
+                neighbors.update(self.roadmap.get_connections(loc))
+            return neighbors
 
         ###### Updates & Undos #######
-        def undoGlobalSetsUpdates(self, cur_robot_id):
+        def undo_global_sets_updates(self, cur_robot_id):
             self.connected_states[cur_robot_id].clear()
             self.rigid_states[cur_robot_id].clear()
 
-        def updateGlobalSetsFromRobotTraj(self, trajs, cur_robot_id):
+        def update_global_sets_from_robot_traj(self, trajs, cur_robot_id):
             assert(trajs[cur_robot_id])
-            for timestep, loc_id in enumerate(trajs[cur_robot_id]):
-                    self.updateGlobalSetsFromState(trajs, cur_robot_id, timestep, loc_id)
 
-        def updateGlobalSetsFromState(self, trajs, cur_robot_id, curTimestep, loc_id):
-            loc = self.roadmap.getLocation(loc_id)
-            neighbors = self.roadmap.getNeighborsWithinRadius(loc, self.robots.sensingRadius)
-            for nodeId in neighbors:
-                if self.isOccupiedState(trajs, cur_robot_id+1, curTimestep, nodeId):
-                    continue
-                elif self.isConnectedState(cur_robot_id, curTimestep, nodeId) and cur_robot_id > 0:
-                    if self.isRigidState(cur_robot_id, curTimestep, nodeId):
-                        continue
-                    elif self.stateWouldBeRigid(trajs, cur_robot_id, curTimestep, nodeId):
-                        self.addRigidState(cur_robot_id, curTimestep, nodeId)
-                else:
-                    self.addConnectedState(cur_robot_id, curTimestep, nodeId)
+            update_robot_id = cur_robot_id+1
+            # copy over all current connected states because we know that won't
+            # change. Do not copy over rigid though because that is nonmonotonic
+            # property
+            self.connected_states[update_robot_id] = self.connected_states[cur_robot_id].deepcopy()
+
+            # add new states based on newest trajectory
+            for timestep, loc_id in enumerate(trajs[cur_robot_id]):
+                    self.update_connected_sets_from_state(trajs, update_robot_id, timestep, loc_id)
+            self.update_rigid_sets()
+
+        # TODO test this function
+        def update_connected_sets_from_state(self, trajs, update_robot_id, cur_timestep, loc_id):
+            loc = self.roadmap.get_loc(loc_id)
+            neighbors = self.roadmap.get_neighbors_within_radius(loc, self.robots.sensingRadius)
+            self.connected_states[update_robot_id][cur_timestep].update(neighbors)
+
+        # TODO test this function
+        def update_rigid_sets(self, update_robot_id):
+            for timestep, connected_set in enumerate(self.connected_states[update_robot_id]):
+                for loc_id in connected_set:
+                    if self.state_would_be_rigid(trajs, update_robot_id, timestep, loc_id):
+                        self.add_rigid_state(update_robot_id, timestep, loc_id)
 
         ###### Check Status #######
-        def stateWouldBeRigid(self, trajs, cur_robot_id, curTimestep, nodeId):
-            if(cur_robot_id < 1):
+        # TODO review the use of this function
+        def state_would_be_rigid(self, trajs, cur_robot_id, cur_timestep, node_id):
+
+            # if not connected cannot be rigid
+            is_connected = self.is_connected_state(cur_robot_id, cur_timestep, node_id)
+            if (not is_connected):
                 return False
-            locList = [self.roadmap.getLocation(nodeId)]
-            for robotId in range(cur_robot_id+1):
-                loc_id = self.getLocIdAtTime(trajs, robotId, curTimestep)
-                loc = self.roadmap.getLocation(loc_id)
-                locList.append(loc)
-            isRigid = self.robots.test_rigidity_from_loc_list(locList)
-            return isRigid
-        def robotHasOptions(self, cur_robot_id, timestep):
-            options = self.reachable_states[cur_robot_id][timestep] - self.conflictStates[cur_robot_id][timestep]
+
+            num_neighbors = 0
+            loc_list = [self.roadmap.get_loc(node_id)]
+            # iterate over positions of all already planned trajectories
+            for robot_id in range(cur_robot_id):
+                # build list of x,y locations
+                loc_id = self.get_location_id_at_time(trajs, robot_id, cur_timestep)
+                loc = self.roadmap.get_loc(loc_id)
+                loc_list.append(loc)
+
+                # count how many robots are within sensing radius
+                dist_to_node_id = self.roadmap.get_distance_between_loc_ids(loc_id, node_id)
+                if dist_to_node_id < self.robots.get_sensing_radius():
+                    num_neighbors += 1
+
+            # must be within sensing radius of 2 robots to be rigid
+            if num_neighbors < 2:
+                return False
+
+            is_rigid = self.robots.test_rigidity_from_loc_list(loc_list)
+            # if is_rigid:
+            #     print(f"We have a rigid state for {len(loc_list)}")
+            return is_rigid
+
+        def robot_has_options(self, cur_robot_id, timestep):
+            options = self.reachable_states[cur_robot_id][timestep] - self.conflict_states[cur_robot_id][timestep]
             return (len(options) is not 0)
 
-        def isOccupiedState(self, trajs, cur_robot_id, timestep, loc_id):
-            for robotId in range(cur_robot_id):
-                if self.getLocIdAtTime(trajs, robotId, timestep) == loc_id:
+        def is_occupied_state(self, trajs, cur_robot_id, timestep, loc_id):
+            for robot_id in range(cur_robot_id):
+                if self.get_location_id_at_time(trajs, robot_id, timestep) == loc_id:
                     return True
             return False
 
-        def isConnectedState(self, cur_robot_id, timestep, loc_id):
-            connStates = self.getConnectedStatesAtTime(cur_robot_id, timestep)
+        def is_connected_state(self, cur_robot_id, timestep, loc_id):
+            connStates = self.get_connected_states_at_time(cur_robot_id, timestep)
             return loc_id in connStates
 
-        def isRigidState(self, cur_robot_id, timestep, loc_id):
-            rigidSet = self.getRigidStatesAtTime(cur_robot_id, timestep)
-            return (loc_id in rigidSet)
+        def is_rigid_state(self, cur_robot_id, timestep, loc_id):
+            rigid_set = self.get_rigid_states_at_time(cur_robot_id, timestep)
+            # print("is_rigid_state:", loc_id, rigid_set)
+            if rigid_set is None:
+                return False
+            return (loc_id in rigid_set)
 
-        def isValidState(self, cur_robot_id, timestep, loc_id):
-            valid_set = self.getValidStatesAtTime(cur_robot_id, timestep)
+        def is_valid_state(self, cur_robot_id, timestep, loc_id):
+            valid_set = self.get_valid_states_at_time(cur_robot_id, timestep)
             return (loc_id in valid_set)
 
-        def isReachableState(self, cur_robot_id, timestep, loc_id):
-            reachSet = self.getReachableStatesAtTime(cur_robot_id, timestep)
+        def is_reachable_state(self, cur_robot_id, timestep, loc_id):
+            reachSet = self.get_reachable_states_at_time(cur_robot_id, timestep)
             return (loc_id in reachSet)
 
-        def isConflictState(self, cur_robot_id, timestep, loc_id):
-            if timestep >= len(self.conflictStates[cur_robot_id]):
+        def is_conflict_state(self, cur_robot_id, timestep, loc_id):
+            if timestep >= len(self.conflict_states[cur_robot_id]):
                 return False
-            isConflict = (loc_id in self.conflictStates[cur_robot_id][timestep])
+            isConflict = (loc_id in self.conflict_states[cur_robot_id][timestep])
             # if isConflict:
             #     print("Conflict found at time %d and location %d"%(timestep, loc_id))
             return isConflict
 
         ###### Getters #######
         # This is where what is valid is determined
-        def getValidSubset(self, origSet, trajs, cur_robot_id, timestep):
+        def get_occupied_states(self, trajs, cur_robot_id, timestep):
+            occupied_states = set()
+            for robot_id in range(cur_robot_id):
+                cur_loc = trajs[cur_robot_id][timestep]
+                occupied_states.add(cur_loc)
+            return occupied_states
+
+        # TODO determine if this is still needed
+        def get_valid_subset(self, origSet, trajs, cur_robot_id, timestep):
             assert(cur_robot_id >= 0)
-            i = 0
             validSet = set()
             for loc_id in origSet:
-                if self.isOccupiedState(trajs, cur_robot_id, timestep, loc_id):
+                if self.is_occupied_state(trajs, cur_robot_id, timestep, loc_id):
                     continue
                 if cur_robot_id == 0:
                     validSet.add(loc_id)
-                # elif cur_robot_id == 1:
-                elif cur_robot_id <= 3 :
-                    if self.isConnectedState(cur_robot_id, timestep, loc_id):
+                elif cur_robot_id == 1:
+                    if self.is_connected_state(cur_robot_id, timestep, loc_id):
+                        validSet.add(loc_id)
+                elif cur_robot_id == 2 :
+                    if self.is_connected_state(cur_robot_id, timestep, loc_id):
                         validSet.add(loc_id)
                 else:
-                    if self.isRigidState(cur_robot_id, timestep, loc_id):
+                    if self.is_rigid_state(cur_robot_id, timestep, loc_id):
                         validSet.add(loc_id)
             return validSet
 
-        def getLocIdAtTime(self, trajs, cur_robot_id, timestep):
+        def get_location_id_at_time(self, trajs, cur_robot_id, timestep):
             maxTime = len(trajs[cur_robot_id])-1
             time = min(maxTime, timestep)
             return trajs[cur_robot_id][time]
-        def getLocAtTime(self, trajs, cur_robot_id, timestep):
+
+        def get_location_at_time(self, trajs, cur_robot_id, timestep):
             maxTime = len(trajs[cur_robot_id])-1
             time = min(maxTime, timestep)
-            return self.roadmap.getLocation(trajs[cur_robot_id][time])
-        def getConnectedStatesAtTime(self, cur_robot_id, timestep):
-            connStates = set()
-            for robotId in range(cur_robot_id):
-                maxTime = len(self.connected_states[robotId])-1
-                time = min(maxTime, timestep)
-                if(time >= 0):
-                    conn = self.connected_states[robotId][time]
-                    connStates.update(conn)
-            return connStates
-        def getRigidStatesAtTime(self, cur_robot_id, timestep):
-            rigStates = set()
-            for robotId in range(cur_robot_id):
-                maxTime = len(self.rigid_states[robotId])-1
-                time = min(maxTime, timestep)
-                if(time >= 0):
-                    rigStates.update(self.rigid_states[robotId][time])
-            return rigStates
+            return self.roadmap.get_loc(trajs[cur_robot_id][time])
 
-        def getReachableStatesAtTime(self, cur_robot_id, timestep):
+        def get_connected_states_at_time(self, cur_robot_id, timestep):
+            # find most recent time to avoid checking state past end of robot
+            # trajectory
+            maxTime = len(self.connected_states[cur_robot_id])-1
+            time = min(maxTime, timestep)
+            if(time >= 0):
+                conn_set = self.connected_states[cur_robot_id][time]
+                if conn_set is None:
+                    return set([])
+                else:
+                    return conn_set
+
+        def get_rigid_states_at_time(self, cur_robot_id, timestep):
+            # find most recent time to avoid checking state past end of robot
+            # trajectory
+            maxTime = len(self.rigid_states[cur_robot_id])-1
+            time = min(maxTime, timestep)
+            if(time >= 0):
+                rig_set = self.rigid_states[cur_robot_id][time]
+                if rig_set is None:
+                    return set([])
+                else:
+                    return rig_set
+
+        def get_reachable_states_at_time(self, cur_robot_id, timestep):
             maxTime = len(self.reachable_states[cur_robot_id])-1
             time = min(maxTime, timestep)
             return self.reachable_states[cur_robot_id][time]
-        def getValidStatesAtTime(self, cur_robot_id, timestep):
+
+        def get_valid_states_at_time(self, cur_robot_id, timestep):
             maxTime = len(self.valid_states[cur_robot_id])-1
             time = min(maxTime, timestep)
             return self.valid_states[cur_robot_id][time]
+
         ###### Add/Remove/Clear #######
-        def addConnectedState(self, cur_robot_id, timestep, loc_id):
+        # TODO make sure that connected states of all robot_id+1 is superset of robot_id
+        def add_connected_state(self, cur_robot_id, timestep, loc_id):
             while len(self.connected_states[cur_robot_id]) <= timestep:
                 self.connected_states[cur_robot_id].append(set())
             self.connected_states[cur_robot_id][timestep].add(loc_id)
 
-        def addRigidState(self, cur_robot_id, timestep, loc_id):
-            assert(self.isConnectedState(cur_robot_id, timestep, loc_id))
+        # TODO make sure that rigid states of all robot_id+1 is superset of robot_id
+        def add_rigid_state(self, cur_robot_id, timestep, loc_id):
+            assert(self.is_connected_state(cur_robot_id, timestep, loc_id))
             while len(self.rigid_states[cur_robot_id]) <= timestep:
                 self.rigid_states[cur_robot_id].append(set())
             self.rigid_states[cur_robot_id][timestep].add(loc_id)
 
-        def addReachableState(self, cur_robot_id, timestep, loc_id):
+        def add_reachable_state(self, cur_robot_id, timestep, loc_id):
+            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
             while(len(self.reachable_states[cur_robot_id]) <= timestep):
                 self.reachable_states[cur_robot_id].append(set())
             self.reachable_states[cur_robot_id][timestep].add(loc_id)
 
-        def addValidState(self, cur_robot_id, timestep, loc_id):
+        def add_valid_state(self, cur_robot_id, timestep, loc_id):
+            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
             while(len(self.valid_states[cur_robot_id]) <= timestep):
                 self.valid_states[cur_robot_id].append(set())
             self.valid_states[cur_robot_id][timestep].add(loc_id)
 
-        def addConflict(self, cur_robot_id, timestep, loc_id):
-            while len(self.conflictStates[cur_robot_id]) <= timestep:
-                self.conflictStates[cur_robot_id].append(set())
-            self.conflictStates[cur_robot_id][timestep].add(loc_id)
+        def add_conflict(self, cur_robot_id, timestep, loc_id):
+            while len(self.conflict_states[cur_robot_id]) <= timestep:
+                self.conflict_states[cur_robot_id].append(set())
+            self.conflict_states[cur_robot_id][timestep].add(loc_id)
 
-        def removeConnectedState(self, cur_robot_id, timestep, loc_id):
-            assert(self.isConnectedState(cur_robot_id, timestep, loc_id))
+        def remove_connected_state(self, cur_robot_id, timestep, loc_id):
+            assert(self.is_connected_state(cur_robot_id, timestep, loc_id))
             self.connected_states[cur_robot_id][timestep].remove(loc_id)
 
-        def removeRigidState(self, cur_robot_id, timestep, loc_id):
-            assert(self.isRigidState(cur_robot_id, timestep, loc_id))
+        def remove_rigid_state(self, cur_robot_id, timestep, loc_id):
+            assert(self.is_rigid_state(cur_robot_id, timestep, loc_id))
             self.rigid_states[cur_robot_id][timestep].remove(loc_id)
 
-        def clearConflicts(self, cur_robot_id):
-            self.conflictStates[cur_robot_id].clear()
+        def clear_conflicts(self, cur_robot_id):
+            self.conflict_states[cur_robot_id].clear()
 
-        def clearReachableStates(self, cur_robot_id):
+        def clear_reachable_states(self, cur_robot_id):
+            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
             self.reachable_states[cur_robot_id].clear()
 
-        def clearValidStates(self, cur_robot_id):
-            self.validStates[cur_robot_id].clear()
+        def clear_valid_states(self, cur_robot_id):
+            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
+            self.valid_states[cur_robot_id].clear()
 
         ###### Plotting #######
-        def animateConnectedStates(self, cur_robot_id, coordTrajs, goalLocs):
+        def animate_connected_states(self, cur_robot_id, coordTrajs, goalLocs):
             # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
             print("Plotting Connected States")
             trajLens = [len(x) for x in self.connected_states]
@@ -716,7 +827,7 @@ class PriorityPrm():
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Connected States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plotConnectedStates(cur_robot_id+1, timestep)
+                self.plot_connected_states(cur_robot_id+1, timestep)
                 for i, traj in enumerate(coordTrajs):
                     if traj == []:
                         continue
@@ -725,15 +836,12 @@ class PriorityPrm():
                     plt.scatter(loc[0], loc[1], color=colors[i%6])
                     plt.plot(*zip(*traj), color=colors[i%6])
 
-                plot.plot_obstacles(self.env)
-                plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
-                plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
-                plot.showPlotAnimation()
+                plot.plot(self.robots.get_robot_graph(), self.env, blocking=False, animation=True, clear_last=False, show_graph_edges=True)
                 # if timestep == 0:
                 #     plt.pause(10)
             plt.close()
 
-        def animateRigidStates(self, cur_robot_id, coordTrajs, goalLocs):
+        def animate_rigid_states(self, cur_robot_id, coordTrajs, goalLocs):
             print("Plotting Rigid States")
             trajLens = [len(x) for x in self.connected_states]
             maxTimestep = max(trajLens)
@@ -742,7 +850,7 @@ class PriorityPrm():
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Rigid States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plotRigidStates(cur_robot_id+1, timestep)
+                self.plot_rigid_states(cur_robot_id+1, timestep)
                 for i, traj in enumerate(coordTrajs):
                     if traj == []:
                         continue
@@ -751,99 +859,98 @@ class PriorityPrm():
                     plt.scatter(loc[0], loc[1], color=colors[i%6])
                     plt.plot(*zip(*traj), color=colors[i%6])
 
-                plot.plot_obstacles(self.env)
-                plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
-                plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])
-                plot.showPlotAnimation()
+                plot.plot(self.robots.get_robot_graph(), self.env, blocking=False, animation=True, clear_last=False, show_graph_edges=True)
                 # if timestep == 0:
                 #     plt.pause(10)
             plt.close()
 
-        def animateReachableStates(self, cur_robot_id):
+        def animate_reachable_states(self, cur_robot_id):
             print("Plotting Reachable States")
             maxTimestep = len(self.reachable_states[cur_robot_id])
             plt.close()
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Reachable States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plotConnectedStates(cur_robot_id, timestep)
-                self.plotRigidStates(cur_robot_id, timestep)
-                self.plotReachableStates(cur_robot_id, timestep)
+                self.plot_connected_states(cur_robot_id, timestep)
+                self.plot_rigid_states(cur_robot_id, timestep)
+                self.plot_reachable_states(cur_robot_id, timestep)
                 plt.legend(["Connected", "Rigid", "Reachable"])
-                self.plotEnv()
-                plot.showPlotAnimation()
+                self.plot_environment()
+                plt.show(block=False)
 
-        def animateValidStates(self, trajs, cur_robot_id):
+        def animate_valid_states(self, trajs, cur_robot_id):
             print("Plotting Valid States")
-            goalId = self.roadmap.getGoalIndex(cur_robot_id)
-            goalLoc = self.roadmap.getLocation(goalId)
+            goal_id = self.roadmap.getGoalIndex(cur_robot_id)
+            goalLoc = self.roadmap.get_loc(goal_id)
             maxTimestep = len(self.valid_states[cur_robot_id])
             plt.close()
-            trajLen = [len(traj) for traj in trajs]
+            # trajLen = [len(traj) for traj in trajs]
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Valid States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plotConnectedStates(cur_robot_id, timestep)
-                self.plotRigidStates(cur_robot_id, timestep)
-                self.plotValidStates(cur_robot_id, timestep)
+                self.plot_connected_states(cur_robot_id, timestep)
+                self.plot_rigid_states(cur_robot_id, timestep)
+                self.plot_valid_states(cur_robot_id, timestep)
                 plt.scatter(goalLoc[0], goalLoc[1], color='k')
                 # for i, traj in enumerate(trajs):
                 #     if traj == []:
                 #         continue
                 #     time = min(timestep, trajLen[i]-1)
                 #     loc = traj[time]
-                #     # loc = self.roadmap.getLocation(traj[time])
+                #     # loc = self.roadmap.get_loc(traj[time])
                 #     plt.scatter(loc[0], loc[1], color=colors[i%6])
                 #     plt.plot(*zip(*traj), color=colors[i%6])
                 plt.legend(["Connected", "Rigid", "Valid", "GOAL"])
-                self.plotEnv()
-                plot.showPlotAnimation()
+                self.plot_environment()
+                plt.show(block=False)
+                plt.pause(0.1)
 
-        def plotConnectedStates(self, cur_robot_id, timestep):
-            loc_ids = self.getConnectedStatesAtTime(cur_robot_id, timestep)
+        def plot_connected_states(self, cur_robot_id, timestep):
+            loc_ids = self.get_connected_states_at_time(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
-                pts.append(self.roadmap.getLocation(loc_id))
+                pts.append(self.roadmap.get_loc(loc_id))
             xLocs = [x[0] for x in pts]
             yLocs = [x[1] for x in pts]
             plt.scatter(xLocs, yLocs, color='g')
 
-        def plotRigidStates(self, cur_robot_id, timestep):
-            loc_ids = self.getRigidStatesAtTime(cur_robot_id, timestep)
+        def plot_rigid_states(self, cur_robot_id, timestep):
+            loc_ids = self.get_rigid_states_at_time(cur_robot_id, timestep)
+            print(f"Rigid States for {cur_robot_id} at time {timestep}")
             pts = []
             for loc_id in loc_ids:
-                pts.append(self.roadmap.getLocation(loc_id))
+                pts.append(self.roadmap.get_loc(loc_id))
             xLocs = [x[0] for x in pts]
             yLocs = [x[1] for x in pts]
             plt.scatter(xLocs, yLocs, color='y')
 
-        def plotReachableStates(self, cur_robot_id, timestep):
-            loc_ids = self.getReachableStatesAtTime(cur_robot_id, timestep)
+        def plot_reachable_states(self, cur_robot_id, timestep):
+            loc_ids = self.get_reachable_states_at_time(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
-                pts.append(self.roadmap.getLocation(loc_id))
+                pts.append(self.roadmap.get_loc(loc_id))
             xLocs = [x[0] for x in pts]
             yLocs = [x[1] for x in pts]
             plt.scatter(xLocs, yLocs, color='b')
 
-        def plotValidStates(self, cur_robot_id, timestep):
-            loc_ids = self.getValidStatesAtTime(cur_robot_id, timestep)
+        def plot_valid_states(self, cur_robot_id, timestep):
+            loc_ids = self.get_valid_states_at_time(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
-                pts.append(self.roadmap.getLocation(loc_id))
+                pts.append(self.roadmap.get_loc(loc_id))
             xLocs = [x[0] for x in pts]
             yLocs = [x[1] for x in pts]
             plt.scatter(xLocs, yLocs, color='c')
 
-        def plotLocIdList(self, loc_ids):
+        def plot_location_id_list(self, loc_ids):
             pts = []
             for loc_id in loc_ids:
-                pts.append(self.roadmap.getLocation(loc_id))
+                pts.append(self.roadmap.get_loc(loc_id))
             xLocs = [x[0] for x in pts]
             yLocs = [x[1] for x in pts]
             plt.scatter(xLocs, yLocs)
 
-        def plotEnv(self):
+        def plot_environment(self):
             plot.plot_obstacles(self.env)
             plot.set_x_lim(self.env.get_bounds()[0], self.env.get_bounds()[1])
             plot.set_y_lim(self.env.get_bounds()[2], self.env.get_bounds()[3])

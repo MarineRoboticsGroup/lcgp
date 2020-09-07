@@ -235,8 +235,8 @@ class Environment:
             return False  # collision
         return True
 
-    def is_free_space_loc_list_tuples(self, locList):
-        for loc in locList:
+    def is_free_space_loc_list_tuples(self, loc_list):
+        for loc in loc_list:
             if not self.is_free_space(loc):
                 return False
         return True

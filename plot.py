@@ -4,13 +4,27 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 from numpy import linalg as la
+from typing import List, Tuple
 
 colors = ['b','g','r','c','m','y']
 
 
 ####### Single Frame Calls #######
-def plot(graph, env, goals, animation=None, clear_last=True, show_goals=True, show_graph_edges=True):
-    assert(animation is not None)
+def plot(graph, env, blocking:bool, animation:bool, goals:List[Tuple]=None, clear_last:bool=True, show_goals:bool=False, show_graph_edges:bool=True):
+    """performs all plotting functionality
+
+    Args:
+        graph (Graph): [description]
+        env (Environment): [description]
+        blocking (bool): whether the call is meant to be blocking (must be True for animation)
+        animation (bool): whether the call is meant to be for an animation
+        goals (List[Tuple], optional): [description]. Defaults to None.
+        clear_last (bool, optional): [description]. Defaults to True.
+        show_goals (bool, optional): [description]. Defaults to False.
+        show_graph_edges (bool, optional): [description]. Defaults to True.
+    """
+    if animation:
+        assert(not blocking)
 
     if clear_last:
         clear_plot()
@@ -20,17 +34,20 @@ def plot(graph, env, goals, animation=None, clear_last=True, show_goals=True, sh
     plot_graph(graph, show_graph_edges)
 
     plot_obstacles(env)
-    plot_goals(goals)
     set_x_lim(env.get_bounds()[0], env.get_bounds()[1])
     set_y_lim(env.get_bounds()[2], env.get_bounds()[3])
 
-    if animation:
-        plt.pause(0.1)
-        plt.show(block=False)
-    else:
-        plt.show(block=True)
 
-def plot_trajectories(trajs, robots, env, goals, animation=True):
+    plt.axis('off')
+    plt.tick_params(axis='both', left='off', top='off', right='off', bottom='off', labelleft='off', labeltop='off', labelright='off', labelbottom='off')
+    if blocking:
+        plt.show(block=True)
+    else:
+        if animation:
+            plt.pause(0.1)
+        plt.show(block=False)
+
+def plot_trajectories(trajs, robots, env, goals):
     trajLen = [len(traj) for traj in trajs]
     maxLen = max(trajLen)
     for timestep in range(maxLen):
@@ -43,7 +60,7 @@ def plot_trajectories(trajs, robots, env, goals, animation=True):
             plt.plot(*zip(*traj), color=colors[i%6])
         plot_obstacles(env)
         plot_goals(goals)
-        if animation:
+        if True:
             plt.pause(0.1)
             plt.show(block=False)
         else:
@@ -76,14 +93,9 @@ def plot_edges(graph):
         ys = [nodeYLocs[e[0]], nodeYLocs[e[1]]]
         plt.plot(xs, ys, color='k')
 
-def plot_nth_eigvec(robots, n):
+def plot_nth_eigvec(robots, n:int):
     eigpair = robots.get_nth_eigpair(n)
     _, eigvect = eigpair
-    robots.print_all_eigvalss()
-    # K = robots.fisher_info_matrix
-    # print(np.matmul(K, eigvect) - eigval*eigvect)
-    # robots.print_fisher_matrix()
-    # print("Eigval", eigval)
     loc_list = robots.get_position_list_tuples()
     dir_vecs = np.array([[eigvect[2*i], eigvect[2*i+1]] for i in range(int(len(eigvect)/2))])
     dir_vecs = np.real(dir_vecs)

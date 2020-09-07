@@ -84,8 +84,8 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
         if min_eigval < robots.min_eigval:
             nonrigid_time += 1
             print(min_eigval, " < ", robots.min_eigval)
-            # plot.plot_nth_eigvec(robots, 4)
-            # plt.pause (5)
+            plot.plot_nth_eigvec(robots, 4)
+            plt.pause (5)
         if delay_animation and total_time == 1:
             plt.pause(10)
 
@@ -116,7 +116,7 @@ def is_feasible_planning_problem(swarm, env, goals):
     start_loc_list = swarm.get_position_list()
     graph = swarm.get_robot_graph()
 
-    plot.plot(graph, env, goals, animation=False)
+    plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
 
     if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
@@ -144,7 +144,7 @@ def is_feasible_planning_problem(swarm, env, goals):
         print()
         graph = swarm.get_robot_graph()
         plot.plot_nth_eigvec(swarm, 4)
-        plot.plot(graph, env, goals)
+        plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
         feasible = False
     if (goal_eigval < swarm.min_eigval):
         print("\nGoal Config Insufficiently Rigid")
@@ -154,7 +154,7 @@ def is_feasible_planning_problem(swarm, env, goals):
         swarm.update_swarm()
         graph = swarm.get_robot_graph()
         plot.plot_nth_eigvec(swarm, 4)
-        plot.plot(graph, env, goals)
+        plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
         feasible = False
     return feasible
 
@@ -186,13 +186,13 @@ def read_traj_from_file(filename ):
             trajs.append(traj)
     return trajs
 
-def convert_absolute_traj_to_relative(locLists):
-    relMoves = [[(0,0)] for i in locLists]
+def convert_absolute_traj_to_relative(loc_lists):
+    relMoves = [[(0,0)] for i in loc_lists]
 
-    for robotNum in range(len(locLists)):
-        for i in range(len(locLists[robotNum])-1):
-            x_old, y_old = locLists[robotNum][i]
-            x_new, y_new = locLists[robotNum][i+1]
+    for robotNum in range(len(loc_lists)):
+        for i in range(len(loc_lists[robotNum])-1):
+            x_old, y_old = loc_lists[robotNum][i]
+            x_new, y_new = loc_lists[robotNum][i+1]
             delta_x = x_new-x_old
             delta_y = y_new-y_old
             relMoves[robotNum].append((delta_x, delta_y))
@@ -310,6 +310,7 @@ def init_goals(robots):
     loc2 = (31, 21)
     loc3 = (27.5, 21.5)
     loc4 = (32, 25)
+    # goals = [loc1, loc2, loc3, loc4]
     loc5 = (27, 26)
     loc6 = (29.5, 27)
     loc7 = (27.5, 30)
@@ -344,6 +345,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
         robots.initialize_swarm(bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
 
     goals = init_goals(robots)
+    print(f"Goals:{goals}")
 
     assert(is_feasible_planning_problem(robots, env, goals))
     assert(nRobots == robots.get_num_robots())
@@ -377,15 +379,14 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
         print("Showing trajectory animation")
         test_trajectory(robots, env, trajs, goals,expName, relativeTraj=useRelative, sensor_noise=noise_stddev)
 
-
 if __name__ == '__main__':
     """
     This instantiates and calls everything.
     Any parameters that need to be changed should be accessible from here
     """
     # exp = 'coupled_astar'
-    exp = 'decoupled_rrt'
-    # exp = 'priority_prm'
+    # exp = 'decoupled_rrt'
+    exp = 'priority_prm'
     # exp = 'read_file'
     useTime = True
     useRelative = False
@@ -399,7 +400,7 @@ if __name__ == '__main__':
     nRobots = 8
     noise_model = 'add'
     sensingRadius = 6.5
-    min_eigval= 0.75
+    min_eigval= 0.0
     noise_stddev = 0.25
 
     # setting = 'random'

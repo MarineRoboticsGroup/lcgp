@@ -9,6 +9,7 @@ import multiprocessing
 
 def GetGraphSNLError(graph, sensor_noise:float, noise_mode:str, solver:str):
     config = np.array(graph.get_node_loc_list())
+    #pylint: disable=unsubscriptable-object
     init_guess = config.T[:, :-3]
     est_locs = graph.perform_snl(init_guess, solver)
     errors = math_utils.calc_localization_error(config, est_locs)
@@ -48,7 +49,7 @@ def RunExperiments(num_robot_list:List[int], noise_model:List[str], sensor_noise
         print("\nOn robot %d."%(num_robot), num_robot_list)
         for noise_stddev in sensor_noise_list:
             print("Sensor Noise:", noise_stddev, sensor_noise_list)
-            pbar = tqdm(total=num_repeats)
+            progress_bar = tqdm(total=num_repeats)
             i = 0
             while i < num_repeats:
                 res = SingleTrial(num_robot, noise_model, noise_stddev, bounds, solver)
@@ -62,8 +63,8 @@ def RunExperiments(num_robot_list:List[int], noise_model:List[str], sensor_noise
                     df1 = pd.concat([df1, res], ignore_index=True, sort=False)
                     df2 = pd.concat([df2, res], ignore_index=True, sort=False)
                 i += 1
-                pbar.update(1)
-            pbar.close()
+                progress_bar.update(1)
+            progress_bar.close()
             sheet = f"noise_{noise_stddev:.2f}"
             df1.to_excel(writer, sheet_name=sheet)
             df1 = None
@@ -88,11 +89,7 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(processes=12)
     for use_spring_solver in [True, False]:
         for noise_model in ["add", "lognorm"]:
-            if use_spring_solver:
-                filename = "localsolve_"+noise_model+f"noise_{num_repeats:d}rep"
-            else:
-                filename = "sdponly_"+noise_model+f"noise_{num_repeats:d}rep"
-
+            filename = f"{solver}_{noise_model}_{num_repeats:d}rep"
             print("\n\n\nFilename:",filename)
             RunExperiments(num_robot_list, noise_model, sensor_noise_list, num_repeats, filename, solver)
     #         pool.apply_async(RunExperiments, args = (num_robot_list, noise_model, sensor_noise_list, num_repeats, filename, use_spring_solver))

@@ -238,21 +238,21 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(6, 2)
 
-    def init_random_formation(self, numRobots, bounds):
-        xVal = np.random.uniform(low=1, high=10, size=numRobots)
-        yVal = np.random.uniform(low=1, high=10, size=numRobots)
-        for i in range(numRobots):
+    def init_random_formation(self, num_robots, bounds):
+        xVal = np.random.uniform(low=1, high=10, size=num_robots)
+        yVal = np.random.uniform(low=1, high=10, size=num_robots)
+        for i in range(num_robots):
 
             self.add_node(xVal[i], yVal[i])
 
     ####### Controls #######
-    def move_to(self, vec, relativeMovement=True):
+    def move_to(self, vec, is_relative_move=True):
         assert(len(vec) == 2*len(self.nodes))
         for i, node in enumerate(self.nodes):
             newX = vec[2*i]
             newY = vec[2*i+1]
 
-            if relativeMovement:
+            if is_relative_move:
                 node.move_node_relative(newX, newY)
             else:
                 node.move_node_absolute(newX, newY)

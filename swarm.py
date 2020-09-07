@@ -15,7 +15,7 @@ class Swarm:
 
     ####### Swarm Utils #######
     def initialize_swarm(self, bounds, formation='square', nRobots=None, min_eigval=0.75):
-        # intialize formation and edges
+        # initialize formation and edges
         self.startConfig = formation
         self.min_eigval = min_eigval
         self.robot_graph.remove_all_nodes()
@@ -37,22 +37,22 @@ class Swarm:
         self.update_swarm()
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    def initialize_swarm_from_loc_list_of_tuples(self, locList):
+    def initialize_swarm_from_loc_list_of_tuples(self, loc_list):
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
-        for loc in locList:
+        for loc in loc_list:
             self.robot_graph.add_node(loc[0], loc[1])
         self.update_swarm()
         if self.robot_graph.get_num_edges() > 0:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    def initialize_swarm_from_loc_list(self, locList):
-        assert(len(locList)%2 == 0)
+    def initialize_swarm_from_loc_list(self, loc_list):
+        assert(len(loc_list)%2 == 0)
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
-        for i in range(int(len(locList)/2)):
-            self.robot_graph.add_node(locList[2*i], locList[2*i+1])
+        for i in range(int(len(loc_list)/2)):
+            self.robot_graph.add_node(loc_list[2*i], loc_list[2*i+1])
 
         self.update_swarm()
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
@@ -94,7 +94,7 @@ class Swarm:
 
     ####### Computation #######
     def get_gradient_nth_eigval(self, n):
-        nthEigenpair = math_utils.getEigpairLeastFirst(self.fisher_info_matrix, n-1)
+        nthEigenpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         if not (nthEigenpair[0] > 0):
             return False
 
@@ -102,9 +102,9 @@ class Swarm:
         return gradient
 
     ####### Checks #######
-    def test_rigidity_from_loc_list(self, locList):
-        testGraph = graph.Graph(self.noise_model, self.std_dev)
-        testGraph.initialize_from_location_list(locList, self.sensingRadius)
+    def test_rigidity_from_loc_list(self, loc_list):
+        testGraph = graph.Graph(self.noise_model, self.noise_stddev)
+        testGraph.initialize_from_location_list(loc_list, self.sensingRadius)
         eigval = testGraph.get_nth_eigval(4)
         return (self.min_eigval <= eigval)
 
@@ -113,8 +113,8 @@ class Swarm:
         return (not (eigval == 0))
 
     ####### Control #######
-    def move_swarm(self, vector, moveRelative=True):
-        self.robot_graph.move_to(vector, relativeMovement=moveRelative)
+    def move_swarm(self, vector, is_relative_move=True):
+        self.robot_graph.move_to(vector, is_relative_move=is_relative_move)
 
     ####### Display Utils #######
     def print_fisher_matrix(self):
@@ -131,4 +131,5 @@ class Swarm:
         print(eigvals[n-1])
 
     def show_swarm(self):
-        self.robot_graph.displayGraphWithEdges()
+        raise NotImplementedError
+        # self.robot_graph.displayGraphWithEdges()

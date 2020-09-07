@@ -7,18 +7,32 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import List, Tuple
+
 colors = ['b','g','r','c','m','y']
 nEig = 4
 
-def tellme(s):
-    print(s)
-    plt.title(s, fontsize=16)
+def tellme(phrase:str):
+    """quick callback to embed phrases in the interactive plots
+
+    Args:
+        phrase (str): phrase to embed in plot
+    """
+    plt.title(phrase, fontsize=16)
     plt.draw()
-def ClickPlaceNodes(noise_model, noise_stddev):
-    sensingRadius = 0.5
-    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
+
+def ClickPlaceNodes(sensing_radius:float=5, noise_model:str='add', noise_stddev:float=0.1):
+    """interactive plot to generatively build networks by clicking to add nodes
+    in locations
+
+    Args:
+        sensing_radius (float, optional): sensing radius of the swarm. Defaults to 5.
+        noise_model (str, optional): the noise model being used (add or lognorm). Defaults to 'add'.
+        noise_stddev (float, optional): standard deviation of the ranging sensor noise. Defaults to 0.1.
+    """
+    robots = swarm.Swarm(sensing_radius, noise_model, noise_stddev)
     envBounds = (0, 1, 0, 1)
-    env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1, setting='empty', nObst=0)
+    env = environment.Environment(envBounds, setting='empty', num_obstacles=0)
 
     tellme('Click where you would like to place a node')
     plt.waitforbuttonpress()
@@ -36,72 +50,89 @@ def ClickPlaceNodes(noise_model, noise_stddev):
         even = not even
         robots.initialize_swarm_from_loc_list_of_tuples(pts)
         graph = robots.get_robot_graph()
-        plot.plot_no_grid_no_goalsNoBlock(graph, env)
+        plot.plot(graph, env, blocking=True, animation=False)
         if robots.get_num_robots() >= 3:
             eigval = robots.get_nth_eigval(nEig)
-            print(eigval)
+            print(f"Eigval: {eigval}")
             plot.plot_nth_eigvec(robots,nEig)
 
-def PrintEigenvalOfLocs(loc_list, noise_model, noise_stddev):
-    sensingRadius = 100
-    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
-    min_x = min(loc_list[:,0]) - 1
-    max_x = max(loc_list[:,0]) + 1
-    min_y = min(loc_list[:,1]) - 1
-    max_y = max(loc_list[:,1]) + 1
-    envBounds = (min_x, max_x, min_y, max_y)
-    env = environment.Environment(envBounds, useGrid=False, numSquaresWide=1, numSquaresTall=1, setting='empty', nObst=0)
+def get_eigval_of_loc_list(loc_list:List[Tuple], sensing_radius:float=5, noise_model:str='add', noise_stddev:float=0.1):
+    """prints out the least nontrivial eigenvalue based on the graph constructed
+    from the location list
+
+    Args:
+        loc_list (List[Tuple]): [description]
+        sensing_radius (float, optional): sensing radius of the swarm. Defaults to 5.
+        noise_model (str, optional): the noise model being used (add or lognorm). Defaults to 'add'.
+        noise_stddev (float, optional): standard deviation of the ranging sensor noise. Defaults to 0.1.
+
+    Returns:
+        float: the least nontrivial eigenvalue
+    """
+    robots = swarm.Swarm(sensing_radius, noise_model, noise_stddev)
     robots.initialize_swarm_from_loc_list_of_tuples(loc_list)
-    graph = robots.get_robot_graph()
+    if robots.get_num_robots() >= 3:
+        eigval = robots.get_nth_eigval(nEig)
+    else:
+        print("Needs more nodes")
+    if False:
+        min_x = min(loc_list[:,0]) - 1
+        max_x = max(loc_list[:,0]) + 1
+        min_y = min(loc_list[:,1]) - 1
+        max_y = max(loc_list[:,1]) + 1
+        env_bounds = (min_x, max_x, min_y, max_y)
+        env = environment.Environment(env_bounds, setting='empty', num_obstacles=0)
+        plot.plot(robots.get_robot_graph(), env, blocking=True, animation=False)
+        plot.plot_nth_eigvec(robots,nEig)
+        plt.show(block=True)
+
+    return eigval
+
+def generate_rotation_matrix(theta_degrees:float):
+    """Generates a 2D rotation matrix 
+
+    Args:
+        theta_degrees (float): [the amount of the rotation, represented in degrees]
+
+    Returns:
+        [np.array]: [the rotation matrix representing the given rotation]
+    """
+    theta = (theta_degrees/180.) * np.pi
+    rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)],
+                            [np.sin(theta),  np.cos(theta)]])
+    return rotation_matrix
+
+def test_configuration_from_loc_list(loc_list:List[Tuple], sensing_radius:float=5, noise_model:str='add', noise_stddev:float=0.1):
+    robots = swarm.Swarm(sensing_radius, noise_model, noise_stddev)
+    robots.initialize_swarm_from_loc_list_of_tuples(loc_list)
     if robots.get_num_robots() >= 3:
         eigval = robots.get_nth_eigval(nEig)
         print(eigval)
-    else:
-        print("Needs more nodes")
-    # plot.plot_no_grid_no_goalsNoBlock(graph, env)
-    # plot.plot_nth_eigvec(robots,nEig)
-    # plt.show(block=True)
-    return eigval
 
-def rotMat(thetaDegrees):
-    angle = thetaDegrees
-    theta = (angle/180.) * np.pi
-    rotMatrix = np.array([[np.cos(theta), -np.sin(theta)],
-                            [np.sin(theta),  np.cos(theta)]])
-    return rotMatrix
-
-def testCircleSwitch():
-    loc_list = []
-    eigvals = []
-    theta = np.linspace(0, np.pi, num=100)
-    for i in theta:
-        delX = 2*np.cos(i)
-        delY = 2*np.sin(i)
-        locs1 = np.array([(3+delX, 3+delY), (3-delX, 3-delY), (1, 4)])
-        loc_list.append(locs1)
-        eigvals.append(PrintEigenvalOfLocs(locs1))
-
-    eigvals = np.array(eigvals)
-    loc_list = np.array(loc_list)
-    for i, _ in enumerate(theta):
-        plt.figure(1)
-        plt.clf()
-        plt.xlim(0, 5)
-        plt.ylim(0, 5)
-        for colnum, locs in enumerate(loc_list[i]):
-            plt.scatter(locs[0], locs[1], color=colors[colnum%6])
-        plt.pause(0.1)
-        plt.show(block=False)
-
-        plt.figure(2)
-        plt.clf()
-        plt.plot(eigvals[:i])
-        plt.pause(0.1)
-        plt.show(block=False)
-
+    x_vals = [loc[0] for loc in loc_list]
+    y_vals = [loc[1] for loc in loc_list]
+    min_x = min(x_vals) - 1
+    max_x = max(x_vals) + 1
+    min_y = min(y_vals) - 1
+    max_y = max(y_vals) + 1
+    env_bounds = (min_x, max_x, min_y, max_y)
+    env = environment.Environment(env_bounds, setting='empty', num_obstacles=0)
+    plot.plot(robots.get_robot_graph(), env, blocking=False, animation=False, show_graph_edges=False)
+    plot.plot_nth_eigvec(robots,nEig)
     plt.show(block=True)
 
 
 
-# testCircleSwitch()
-ClickPlaceNodes()
+if __name__ == '__main__':
+    """This is a script to test out different network configurations
+    for experimentation and validation of ideas
+    """
+    # ClickPlaceNodes()
+
+    test_loc_list = [(0, 0), (1, 0), (.5, .5)]
+    test_loc_list = [(0, 0), (1, 0), (1, 1)]
+    test_loc_list = [(0, 0), (1, 0), (1, 1), (.6, .6)]
+    test_configuration_from_loc_list(test_loc_list)
+
+
+

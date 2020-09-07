@@ -19,15 +19,15 @@ class CoupledAstar():
         self.start_loc_list = self.robots.get_position_list_tuples()
         self.min_eigval = min_eigval
 
-        self.numRobots = robots.get_num_robots()
+        self.num_robots = robots.get_num_robots()
 
         roadmap_sampling = "uniform"
         self.N_SAMPLE = 200
         self.N_KNN = 4
         self.MAX_EDGE_LEN = 8
         self.roadmap = self.Roadmap(self.robots, self.env, self.goalLocs, roadmap_sampling, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN)
-        self.plotRoadmap()
-        self.startIndexs = self.roadmap.getStartIndexList()
+        self.plot_roadmap()
+        self.startIndexs = self.roadmap.get_start_indexList()
         self.goalIndexs = self.roadmap.getGoalIndexList()
         print("Start Index:", self.startIndexs)
         print("Goal Index:", self.goalIndexs)
@@ -64,7 +64,7 @@ class CoupledAstar():
                 print("Open set is empty..")
                 break
 
-            c_id = min(open_set, key=lambda o: open_set[o].cost + self.calcHeuristic(open_set[o], ngoal))
+            c_id = min(open_set, key=lambda o: open_set[o].cost + self.calc_heuristic(open_set[o], ngoal))
             curNode = open_set[c_id]
 
             if self.isGoal(curNode):
@@ -81,16 +81,16 @@ class CoupledAstar():
 
             # expand_grid search grid based on motion model
             curLocs = curNode.getIndexList()
-            connLocs = [self.roadmap.getConnections(locId) for locId in curLocs]
-            nextSteps = [s for s in itertools.product(*connLocs)]
+            connLocs = [self.roadmap.get_connections(locId) for locId in curLocs]
+            next_valid_sets = [s for s in itertools.product(*connLocs)]
 
-            coordList = [self.roadmap.getLocation(loc_ind) for loc_ind in curLocs]
+            coordList = [self.roadmap.get_loc(loc_ind) for loc_ind in curLocs]
             print("Current Locs:", coordList)
             print("Iteration:", cnt)
             print("Cost:", curNode.cost)
             print()
 
-            for indexList in nextSteps:
+            for indexList in next_valid_sets:
                 # make new node
                 distFromCurNode = self.sumOfDistancesBetweenIndexLists(curLocs, indexList)
                 node = self.CoupledAstarNode(list(indexList), curNode.cost + distFromCurNode, c_id)
@@ -130,12 +130,12 @@ class CoupledAstar():
             path.reverse()
         return locPath
 
-    def calcHeuristic(self, curNode, goalNode):
+    def calc_heuristic(self, curNode, goalNode):
         curIndexList = curNode.getIndexList()
         goalIndexList = goalNode.getIndexList()
         return self.sumOfDistancesBetweenIndexLists(curIndexList, goalIndexList)
 
-    def plotRoadmap(self):
+    def plot_roadmap(self):
         print("Displaying Roadmap... May take time :)")
         edges = set()
         for i, _ in enumerate(self.roadmap.roadmap):
@@ -146,20 +146,20 @@ class CoupledAstar():
                     continue
                 else:
                     edges.add(edge)
-                    plt.plot([self.roadmap.sampleLocs[i][0], self.roadmap.sampleLocs[ind][0]],
-                             [self.roadmap.sampleLocs[i][1], self.roadmap.sampleLocs[ind][1]], "-k")
+                    plt.plot([self.roadmap.sample_locs[i][0], self.roadmap.sample_locs[ind][0]],
+                             [self.roadmap.sample_locs[i][1], self.roadmap.sample_locs[ind][1]], "-k")
         plt.show(block=True)
 
     def verify_node(self, node):
-        locList = node.getIndexList()
+        loc_list = node.getIndexList()
         # check if inside bounds
-        for i, loc in enumerate(locList):
+        for i, loc in enumerate(loc_list):
             # check for collisions
-            for otherloc in locList[i+1:]:
+            for otherloc in loc_list[i+1:]:
                 if loc == otherloc:
                     return False
         # check geometry
-        coordList = [self.roadmap.getLocation(loc_ind) for loc_ind in locList]
+        coordList = [self.roadmap.get_loc(loc_ind) for loc_ind in loc_list]
         g = graph.Graph()
         g.initialize_from_location_list(coordList, self.robots.get_sensing_radius())
         eigval = g.get_nth_eigval(4)
@@ -177,8 +177,8 @@ class CoupledAstar():
         return sum(dists)
 
     def distanceBetweenLocs(self, loc1, loc2):
-        x1, y1 = self.roadmap.getLocation(loc1)
-        x2, y2 = self.roadmap.getLocation(loc2)
+        x1, y1 = self.roadmap.get_loc(loc1)
+        x2, y2 = self.roadmap.get_loc(loc2)
         deltax = x1-x2
         deltay = y1-y2
         return math.hypot(deltax, deltay)
@@ -196,62 +196,62 @@ class CoupledAstar():
             self.N_SAMPLE = N_SAMPLE
             self.N_KNN = N_KNN
             self.MAX_EDGE_LEN = MAX_EDGE_LEN
-            self.roadmapFilename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.get_num_robots())
+            self.roadmap_filename = 'roadmap_%s_%s_%s_%dsamples_%dnn_%dlen_%drob.txt'%(self.env.setting, self.sampling_type, self.robots.startConfig, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN, self.robots.get_num_robots())
             self.initSampleLocsAndRoadmap()
 
         def initSampleLocsAndRoadmap(self): 
             print("Building Roadmap")
             if self.sampling_type == "random":
-                self.sampleLocs = np.array(self.generateSampleLocationsRandom())
+                self.sample_locs = np.array(self.generateSampleLocationsRandom())
             elif self.sampling_type == "uniform":
-                self.sampleLocs = self.generateSampleLocationsUniform()
+                self.sample_locs = self.generateSampleLocationsUniform()
             else:
                 raise NotImplementedError
-            self.nodeKDTree = kdtree.KDTree(self.sampleLocs)
+            self.nodeKDTree = kdtree.KDTree(self.sample_locs)
             roadmap = self.readRoadmap()
             if roadmap and (len(roadmap) > 0):
-                print("Read from existing roadmap file: %s\n"%self.roadmapFilename)
+                print("Read from existing roadmap file: %s\n"%self.roadmap_filename)
                 self.roadmap = roadmap
             else:
-                print("%s not found.\nGenerating Roadmap"%self.roadmapFilename)
+                print("%s not found.\nGenerating Roadmap"%self.roadmap_filename)
                 self.roadmap = self.generateRoadmap()
                 self.writeRoadmap()
                 print("New roadmap written to file\n")
 
         def generateSampleLocationsRandom(self, ):
             xlb, xub, ylb, yub = self.env.bounds
-            sampleLocs = []
-            while len(sampleLocs) < self.N_SAMPLE:
+            sample_locs = []
+            while len(sample_locs) < self.N_SAMPLE:
                 newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
                 # If not within obstacle
                 if self.env.is_free_space(newLoc):
-                        sampleLocs.append(list(newLoc))
+                        sample_locs.append(list(newLoc))
             for loc in self.start_loc_list:
-                    sampleLocs.append(list(loc))
+                    sample_locs.append(list(loc))
             for loc in self.goalLocs:
-                    sampleLocs.append(list(loc))
-            return sampleLocs
+                    sample_locs.append(list(loc))
+            return sample_locs
 
         def generateSampleLocationsUniform(self, ):
             xlb, xub, ylb, yub = self.env.bounds
-            sampleLocs = []
+            sample_locs = []
             distribution = chaospy.J(chaospy.Uniform(xlb, xub), chaospy.Uniform(ylb, yub))
             samples = distribution.sample(self.N_SAMPLE*10, rule="halton")
             i = 0
-            while len(sampleLocs) < self.N_SAMPLE and i < len(samples[0]):
+            while len(sample_locs) < self.N_SAMPLE and i < len(samples[0]):
                 newLoc = samples[:, i]
                 i += 1
                 # If not within obstacle
                 if self.env.is_free_space(newLoc):
-                        sampleLocs.append(list(newLoc))
-            if len(sampleLocs) < self.N_SAMPLE:
+                        sample_locs.append(list(newLoc))
+            if len(sample_locs) < self.N_SAMPLE:
                 print("Not able to fully build roadmap. Need more samples")
                 raise NotImplementedError
             for loc in self.start_loc_list:
-                    sampleLocs.append(list(loc))
+                    sample_locs.append(list(loc))
             for loc in self.goalLocs:
-                    sampleLocs.append(list(loc))
-            return sampleLocs
+                    sample_locs.append(list(loc))
+            return sample_locs
 
         def generateRoadmap(self):
             """
@@ -259,14 +259,14 @@ class CoupledAstar():
             @return: list of list of edge ids ([[edges, from, 0], ...,[edges, from, N])
             """
             roadmap = []
-            nsample = len(self.sampleLocs)
-            for curLoc in self.sampleLocs:
+            nsample = len(self.sample_locs)
+            for curLoc in self.sample_locs:
                 index, dists = self.nodeKDTree.search(np.array(curLoc).reshape(2, 1), k=self.N_KNN)
                 inds = index[0]
                 # print(inds)
                 edge_id = []
                 for ii in range(1, len(inds)):
-                    connectingLoc = self.sampleLocs[inds[ii]]
+                    connectingLoc = self.sample_locs[inds[ii]]
                     if self.is_valid_path(curLoc, connectingLoc):
                         edge_id.append(inds[ii])
                         if len(edge_id) >= self.N_KNN:
@@ -275,30 +275,30 @@ class CoupledAstar():
             return roadmap
 
         ###### Accessors #######
-        def getConnections(self, loc_id):
+        def get_connections(self, loc_id):
             return self.roadmap[loc_id]
 
-        def getLocation(self, loc_id):
-            return self.sampleLocs[loc_id]
+        def get_loc(self, loc_id):
+            return self.sample_locs[loc_id]
 
-        def getNeighborsWithinRadius(self, loc, radius):
-            neighborIndexs = self.nodeKDTree.search_in_distance(loc, radius)
-            return neighborIndexs
+        def get_neighbors_within_radius(self, loc, radius):
+            neighbor_indices = self.nodeKDTree.search_in_distance(loc, radius)
+            return neighbor_indices
 
         def getKNearestNeighbors(self, loc, k):
-            neighborIndxs, dists = self.nodeKDTree.search(loc, k)
-            return neighborIndxs, dists
+            neighbor_indices, dists = self.nodeKDTree.search(loc, k)
+            return neighbor_indices, dists
 
-        def getStartIndex(self, cur_robot_id):
+        def get_start_index(self, cur_robot_id):
             index = self.N_SAMPLE + cur_robot_id
             return index
         def getGoalIndex(self, cur_robot_id):
             index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
-        def getStartIndexList(self):
+        def get_start_indexList(self):
             indexList = []
             for i in range(self.robots.get_num_robots()):
-                indexList.append(self.getStartIndex(i))
+                indexList.append(self.get_start_index(i))
             return indexList
         def getGoalIndexList(self):
             indexList = []
@@ -311,14 +311,14 @@ class CoupledAstar():
             for traj in trajs:
                 newTraj = []
                 for index in traj:
-                        newTraj.append(self.sampleLocs[index])
+                        newTraj.append(self.sample_locs[index])
                         newTrajs.append(newTraj)
             return newTrajs
 
         def convertTrajectoryToCoords(self, traj):
             coords = []
             for index in traj:
-                coords.append(self.sampleLocs[index])
+                coords.append(self.sample_locs[index])
             return coords
 
         ###### Utils #######
@@ -332,17 +332,17 @@ class CoupledAstar():
             return self.env.is_valid_path(curLoc, connectingLoc)
 
         def readRoadmap(self,):
-            if not path.exists(self.roadmapFilename):
+            if not path.exists(self.roadmap_filename):
                 return False
-            rmap = []
-            with open(self.roadmapFilename, 'r') as filehandle:
+            roadmap = []
+            with open(self.roadmap_filename, 'r') as filehandle:
                 for line in filehandle:
                         roads = list(map(int, line.split()))
-                        rmap.append(roads)
-            return rmap
+                        roadmap.append(roads)
+            return roadmap
 
         def writeRoadmap(self):
-            with open(self.roadmapFilename, 'w') as filehandle:
+            with open(self.roadmap_filename, 'w') as filehandle:
                 for roads in self.roadmap:
                         line = str(roads).translate(str.maketrans('', '', string.punctuation))
                         filehandle.write('%s\n' % line)
