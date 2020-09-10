@@ -37,6 +37,12 @@ main.pdf
 range_only_env/
 range_only_env/*
 
+
+# debugging
+#############
+profiling/*.log
+profiling/*.svg
+
 # VSCode #
 #############
 .history/

@@ -108,16 +108,12 @@ class Graph:
         self.remove_all_edges()
         if self.nNodes <= 1:
             return
-        nodeKDTree = kdtree.KDTree(self.get_node_loc_list())
         self.nEdges = 0
-        for r1 in range(self.nNodes):
-            curLoc = self.nodes[r1].get_loc_tuple()
-            index, dists = nodeKDTree.search(np.array(curLoc).reshape(2, 1), k=self.nNodes)
-            inds = index[0][1:]
-            ds = dists[0][1:]
-            for r2, d2 in zip(inds, ds):
-                if d2 < radius:
-                    self.add_graph_edge(r1, r2)
+        for id1 in range(self.nNodes):
+            for id2 in range(id1+1, self.nNodes):
+                dist = self.get_dist_scal_between_nodes(id1, id2)
+                if dist < radius:
+                    self.add_graph_edge(id1, id2)
 
     def remove_connecting_node_edges(self, nodeNum):
         assert(self.node_exists(nodeNum))

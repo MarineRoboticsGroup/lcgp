@@ -1,5 +1,7 @@
 import numpy as np
 from numpy import linalg as la
+from typing import List, Tuple
+# from scipy import linalg as la
 import graph
 
 eps = 1e-8
@@ -40,16 +42,19 @@ def matprint(mat, fmt="g"):
 def get_list_all_eigvals(mat):
     assert(is_square_matrix(mat))
 
-    val, _ = la.eig(mat)
-    val[np.abs(val) < eps] = 0
-    val = np.real(val)
+    try:
+        val = la.eigvalsh(mat)
+        val[np.abs(val) < eps] = 0
+        val = np.real(val)
+    except:
+        val = np.zeros(mat.shape[0])
     return val
 
 def get_nth_eigpair(mat, n):
     assert(is_square_matrix(mat))
     index = n-1
 
-    eigvals, eigvecs = la.eig(mat)
+    eigvals, eigvecs = la.eigh(mat)
     eigvals[np.abs(eigvals) < eps] = 0
     eigvecs = np.real(eigvecs)
 
@@ -102,12 +107,14 @@ def sort_eigpairs(eigvals, eigvecs):
     srtVec = a[:,:-1]
     return(srtVal, srtVec)
 
-def build_fisher_matrix(edges, nodes, noise_model, noise_stddev):
+# TODO test to find which way of building is faster
+def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str, noise_stddev:float):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
     num_nodes = len(nodes)
-    # A = None
+    num_edges = len(edges)
+    A = np.zeros((num_edges, 2*num_nodes))
     K = np.zeros((num_nodes*2, num_nodes*2))
     alpha = None
     if noise_model == 'add':
@@ -117,7 +124,7 @@ def build_fisher_matrix(edges, nodes, noise_model, noise_stddev):
     else:
         raise NotImplementedError
 
-    for _, e in enumerate(edges):
+    for cnt, e in enumerate(edges):
         i, j = e
         if i == j:
             continue
@@ -130,29 +137,29 @@ def build_fisher_matrix(edges, nodes, noise_model, noise_stddev):
         dist = np.sqrt(delXij**2 + delYij**2)
 
         #### If want to form matrix as A.T @ A
-        # row = np.zeros(num_nodes*2)
-        # row[2*i] = delXij
-        # row[2*i+1] = delYij
-        # row[2*j] = -delXij
-        # row[2*j+1] = -delYij
-        # row = row/((noise_stddev)*(dist**alpha))
-        # if A is None:
-        #     A = row
-        # else:
-        #     A = np.vstack([A, row])
+        #* This is recommended as tests indicate that it is faster
+        row = np.zeros(num_nodes*2)
+        row[2*i] = delXij
+        row[2*i+1] = delYij
+        row[2*j] = -delXij
+        row[2*j+1] = -delYij
+        row = row/((noise_stddev)*(dist**alpha))
+        A[cnt] = row
 
-        Kii = np.array([[delXij**2,         delXij*delYij   ],
-                        [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
-        Kij = -Kii
-        # Kii
-        K[2*i:2*i+2, 2*i:2*i+2] += Kii
-        # Kjj
-        K[2*j:2*j+2, 2*j:2*j+2] += Kii
-        # Kij
-        K[2*i:2*i+2, 2*j:2*j+2] = Kij
-        # Kji
-        K[2*j:2*j+2, 2*i:2*i+2] = Kij
+        #### If want to form matrix directly
+        # Kii = np.array([[delXij**2,         delXij*delYij   ],
+        #                 [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
+        # Kij = -Kii
+        # # Kii
+        # K[2*i:2*i+2, 2*i:2*i+2] += Kii
+        # # Kjj
+        # K[2*j:2*j+2, 2*j:2*j+2] += Kii
+        # # Kij
+        # K[2*i:2*i+2, 2*j:2*j+2] = Kij
+        # # Kji
+        # K[2*j:2*j+2, 2*i:2*i+2] = Kij
 
+    K = A.T @ A
     #### Testing different ways of building matrix
     # test = (A.T @ A)-K
     # print("TESTING")

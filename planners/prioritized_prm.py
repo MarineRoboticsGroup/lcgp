@@ -26,6 +26,13 @@ import swarm
 import kdtree
 colors = ['b','g','r','c','m','y']
 
+def calc_dist_between_locations(loc1, loc2):
+    nx, ny = loc1
+    gx, gy = loc2
+    dx = gx-nx
+    dy = gy-ny
+    return math.hypot(dx, dy)
+
 class PriorityPrm():
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
@@ -60,7 +67,7 @@ class PriorityPrm():
 
     def astar_planning(self, cur_robot_id, useTime):
         start_id = self.roadmap.get_start_index(cur_robot_id)
-        goal_id = self.roadmap.getGoalIndex(cur_robot_id)
+        goal_id = self.roadmap.get_goal_index(cur_robot_id)
         print("StartID", start_id, self.roadmap.get_loc(start_id))
         print("GoalID", goal_id, self.roadmap.get_loc(goal_id))
         startNode = self.Node(self.start_loc_list[cur_robot_id], cost=0.0, pind=-1, timestep=0, index=start_id, useTime=useTime)
@@ -100,7 +107,7 @@ class PriorityPrm():
                     if new_id in closedSet:
                         continue
                     newLoc = self.roadmap.get_loc(new_id)
-                    # dist = self.calc_dist_between_locations(curLoc, newLoc)
+                    # dist = calc_dist_between_locations(curLoc, newLoc)
                     # newNode = self.Node(loc=newLoc, cost=curNode.cost + dist + 1, pind=curNode.index, timestep=curNode.timestep+1, index=new_id, useTime=useTime)
                     newNode = self.Node(loc=newLoc, cost=curNode.cost + 1, pind=curNode.index, timestep=curNode.timestep+1, index=new_id, useTime=useTime)
                     newKey = self.get_node_key(newNode, useTime)
@@ -115,7 +122,7 @@ class PriorityPrm():
                     else:
                         openSet[newKey] = newNode
         # generate final course
-        path_indices = [self.roadmap.getGoalIndex(cur_robot_id)] # Add goal node
+        path_indices = [self.roadmap.get_goal_index(cur_robot_id)] # Add goal node
         pkey = goalNode.pkey
         pind = goalNode.pind
         while pind != -1:
@@ -142,15 +149,14 @@ class PriorityPrm():
             if success_planning:
                 self.trajs[cur_robot_id] = traj
                 self.coordTrajs[cur_robot_id] = self.roadmap.convertTrajectoryToCoords(traj)
-                self.constraintSets.update_global_sets_from_robot_traj(self.trajs, cur_robot_id)
                 # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
-                # Planning Success Condition
+                #* Planning Success Condition
                 if cur_robot_id == self.robots.get_num_robots()-1:
                     print("All Planning Successful")
                     print()
                     return True
-                # TODO update with construct_valid_sets function
-                hasConflict, conflictTime = self.constraintSets.construct_valid_sets(cur_robot_id+1, trajs)
+                self.constraintSets.update_global_sets_from_robot_traj(self.trajs, cur_robot_id)
+                hasConflict, conflictTime = self.constraintSets.construct_valid_sets(cur_robot_id+1, self.trajs)
                 if hasConflict:
                     print("Found conflict planning for robot%d at time %d "%(cur_robot_id, conflictTime))
                     self.constraintSets.animate_valid_states(self.coordTrajs, cur_robot_id+1)
@@ -163,9 +169,9 @@ class PriorityPrm():
                     self.reset_traj(cur_robot_id)
                 else:
                     print("Planning successful for robot %d \n"%cur_robot_id)
-                    if cur_robot_id == 0:
+                    if cur_robot_id == 0 and False:
                         self.constraintSets.animate_connected_states(cur_robot_id+1, self.coordTrajs, self.goalLocs)
-                    else:
+                    elif cur_robot_id > 0 and False:
                         self.constraintSets.animate_rigid_states(cur_robot_id+1, self.coordTrajs, self.goalLocs)
                     self.constraintSets.clear_conflicts(cur_robot_id+1)
                     cur_robot_id += 1
@@ -197,15 +203,15 @@ class PriorityPrm():
         # if cur_robot_id == 1 :
         #     loc0 = self.get_location_at_time(0, timestep)
             # loc1 = self.roadmap.get_loc(loc_id)
-            # if self.calc_dist_between_locations(loc0, loc1) < 1:
+            # if calc_dist_between_locations(loc0, loc1) < 1:
         #         return False
         # if cur_robot_id == 2:
             # loc0 = self.get_location_at_time(0, timestep)
             # loc1 = self.get_location_at_time(1, timestep)
             # loc2 = self.roadmap.get_loc(loc_id)
-            # if self.calc_dist_between_locations(loc0, loc2) < 2:
+            # if calc_dist_between_locations(loc0, loc2) < 2:
             #     return False
-            # if self.calc_dist_between_locations(loc1, loc2) < 1:
+            # if calc_dist_between_locations(loc1, loc2) < 1:
                 # return False
         return True
 
@@ -234,13 +240,6 @@ class PriorityPrm():
             return 0.5 * math.hypot(dx, dy)
         else:
             return math.hypot(dx, dy)
-
-    def calc_dist_between_locations(self, loc1, loc2):
-        nx, ny = loc1
-        gx, gy = loc2
-        dx = gx-nx
-        dy = gy-ny
-        return math.hypot(dx, dy)
 
     def get_location_id_at_time(self, cur_robot_id, timestep):
         maxTime = len(self.trajs[cur_robot_id])-1
@@ -425,7 +424,7 @@ class PriorityPrm():
         def get_distance_between_loc_ids(self, loc_id_1, loc_id_2):
             loc_1 = self.get_loc(loc_id_1)
             loc_2 = self.get_loc(loc_id_2)
-            dist = self.calc_dist_between_locations(loc_1, loc_2)
+            dist = calc_dist_between_locations(loc_1, loc_2)
             return dist
 
         def get_neighbors_within_radius(self, loc, radius):
@@ -440,7 +439,7 @@ class PriorityPrm():
             index = self.N_SAMPLE + cur_robot_id
             return index
 
-        def getGoalIndex(self, cur_robot_id):
+        def get_goal_index(self, cur_robot_id):
             index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
 
@@ -509,12 +508,15 @@ class PriorityPrm():
             self.env = env
             self.roadmap = roadmap
             # Global Sets
-            self.connected_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
-            self.rigid_states = [[set()] for x in range(robots.get_num_robots())]        # list of list of sets of tuples
-            # Individual Sets
-            self.conflict_states = [[set()] for x in range(robots.get_num_robots())]     # list of list of sets of tuples
-            self.reachable_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
-            self.valid_states = [[set()] for x in range(robots.get_num_robots())]    # list of list of sets of tuples
+            self.connected_states = [[set()] for x in range(robots.get_num_robots())]
+            self.rigid_states = [[set()] for x in range(robots.get_num_robots())]
+            self.conflict_states = [[set()] for x in range(robots.get_num_robots())]
+            self.reachable_states = [[set()] for x in range(robots.get_num_robots())]
+            self.valid_states = [[set()] for x in range(robots.get_num_robots())]
+            self.last_timesteps = [[] for x in range(robots.get_num_robots())]
+
+            # initialize first robot valid set
+            self.construct_valid_sets(0, None)
 
         def construct_valid_sets(self, update_robot_id:int, trajs:List[List[Set[int]]]) -> Tuple[bool, int]:
             """sets the reachable states and valid states for the specified
@@ -539,17 +541,36 @@ class PriorityPrm():
             assert(update_robot_id >= 0)
             start_id = self.roadmap.get_start_index(update_robot_id)
             goal_id = self.roadmap.get_goal_index(update_robot_id)
-            reachable_sets_ = [set(start_id)]
-            valid_sets_ = [set(start_id)]
+            reachable_sets_ = [set([start_id])]
+            valid_sets_ = [set([start_id])]
             timestep = 0
+            wait_for_valid_growth_cntr = 2
+            time_past_goal_cntr = 2
             has_conflict = False
-            while goal_id not in valid_sets_[timestep]:
+            while time_past_goal_cntr:
+
+                # found goal location, add a few more sets just to be safe
+                if goal_id in valid_sets_[timestep]:
+                    time_past_goal_cntr -= 1
+
+                # update reachable and valid sets
+                for loc_id in reachable_sets_[timestep]:
+                    self.add_reachable_state(update_robot_id, timestep, loc_id)
+
+                for loc_id in valid_sets_[timestep]:
+                    self.add_valid_state(update_robot_id, timestep, loc_id)
 
                 # if valid set is empty return conflict where the conflict is
                 # the time of the empty valid set
                 if not valid_sets_[timestep]:
                     has_conflict = True
                     return has_conflict, timestep
+
+                # if valid set hasn't added new locations for 2 counts then
+                # return conflict at time when this began
+                if not wait_for_valid_growth_cntr:
+                    has_conflict = True
+                    return has_conflict, timestep-2
 
                 # extend the size of the reachable and valid sets
                 reachable_sets_.append(set())
@@ -559,22 +580,32 @@ class PriorityPrm():
                 # conflicts(update_robot_id, t+1)] - occupied[t+1]
                 neighbors = self.get_all_neighbors_of_set(valid_sets_[timestep])
                 conflicts = self.get_conflict_states(update_robot_id, timestep+1)
-                occupied = self.get_occupied_states(trajs, update_robot_id, timestep+1)
+
+                if update_robot_id == 0:
+                    occupied = set()
+                else:
+                    occupied = self.get_occupied_states(trajs, update_robot_id, timestep+1)
                 reachable_sets_[timestep+1] = reachable_sets_[timestep].union(neighbors).difference(conflicts).difference(occupied)
 
                 if update_robot_id == 0:
-                    valid_sets_[timestep+1] = reachable_sets_[timestep+1].deepcopy()
+                    valid_sets_[timestep+1] = copy.deepcopy(reachable_sets_[timestep+1])
                 elif update_robot_id == 1:
-                    connected_states = self.get_connected_states_at_time(update_robot_id, timestep+1)
+                    connected_states = self.get_connected_states(update_robot_id, timestep+1)
                     valid_sets_[timestep+1] = connected_states.union(reachable_sets_[timestep+1])
                 else:
-                    rigid_states = self.get_rigid_states_at_time(update_robot_id, timestep+1)
-                    valid_sets_[timestep+1] = connected_states.union(reachable_sets_[timestep+1])
+                    rigid_states = self.get_rigid_states(update_robot_id, timestep+1)
+                    valid_sets_[timestep+1] = rigid_states.union(reachable_sets_[timestep+1])
 
                 timestep += 1
 
-            self.reachable_states[update_robot_id] = reachable_sets_
-            self.valid_states[update_robot_id] = valid_sets_
+                # if valid set hasnt added new locations decrement counter
+                if not valid_sets_[timestep].difference(valid_sets_[timestep-1]):
+                    wait_for_valid_growth_cntr -= 1
+                elif wait_for_valid_growth_cntr < 2:
+                    wait_for_valid_growth_cntr = 2
+
+            # self.reachable_states[update_robot_id] = reachable_sets_
+            # self.valid_states[update_robot_id] = valid_sets_
 
             # if successful return None as conflict
             return has_conflict, None
@@ -599,27 +630,26 @@ class PriorityPrm():
             self.rigid_states[cur_robot_id].clear()
 
         def update_global_sets_from_robot_traj(self, trajs, cur_robot_id):
-            assert(trajs[cur_robot_id])
+            assert trajs[cur_robot_id], "Tried to update based on nonexisting trajectory"
 
             update_robot_id = cur_robot_id+1
             # copy over all current connected states because we know that won't
             # change. Do not copy over rigid though because that is nonmonotonic
             # property
-            self.connected_states[update_robot_id] = self.connected_states[cur_robot_id].deepcopy()
+            self.connected_states[update_robot_id] = copy.deepcopy(self.connected_states[cur_robot_id])
 
             # add new states based on newest trajectory
             for timestep, loc_id in enumerate(trajs[cur_robot_id]):
-                    self.update_connected_sets_from_state(trajs, update_robot_id, timestep, loc_id)
-            self.update_rigid_sets()
+                loc = self.roadmap.get_loc(loc_id)
+                neighbors = self.roadmap.get_neighbors_within_radius(loc, self.robots.sensingRadius)
+                for location in neighbors:
+                    self.add_connected_state(update_robot_id, timestep, location)
+                self.connected_states[update_robot_id][timestep].update(neighbors)
 
-        # TODO test this function
-        def update_connected_sets_from_state(self, trajs, update_robot_id, cur_timestep, loc_id):
-            loc = self.roadmap.get_loc(loc_id)
-            neighbors = self.roadmap.get_neighbors_within_radius(loc, self.robots.sensingRadius)
-            self.connected_states[update_robot_id][cur_timestep].update(neighbors)
+            # now that connected states are updated, we can update rigid set
+            self.update_rigid_sets(trajs, cur_robot_id+1)
 
-        # TODO test this function
-        def update_rigid_sets(self, update_robot_id):
+        def update_rigid_sets(self, trajs, update_robot_id):
             for timestep, connected_set in enumerate(self.connected_states[update_robot_id]):
                 for loc_id in connected_set:
                     if self.state_would_be_rigid(trajs, update_robot_id, timestep, loc_id):
@@ -657,10 +687,6 @@ class PriorityPrm():
             #     print(f"We have a rigid state for {len(loc_list)}")
             return is_rigid
 
-        def robot_has_options(self, cur_robot_id, timestep):
-            options = self.reachable_states[cur_robot_id][timestep] - self.conflict_states[cur_robot_id][timestep]
-            return (len(options) is not 0)
-
         def is_occupied_state(self, trajs, cur_robot_id, timestep, loc_id):
             for robot_id in range(cur_robot_id):
                 if self.get_location_id_at_time(trajs, robot_id, timestep) == loc_id:
@@ -668,22 +694,22 @@ class PriorityPrm():
             return False
 
         def is_connected_state(self, cur_robot_id, timestep, loc_id):
-            connStates = self.get_connected_states_at_time(cur_robot_id, timestep)
+            connStates = self.get_connected_states(cur_robot_id, timestep)
             return loc_id in connStates
 
         def is_rigid_state(self, cur_robot_id, timestep, loc_id):
-            rigid_set = self.get_rigid_states_at_time(cur_robot_id, timestep)
+            rigid_set = self.get_rigid_states(cur_robot_id, timestep)
             # print("is_rigid_state:", loc_id, rigid_set)
             if rigid_set is None:
                 return False
             return (loc_id in rigid_set)
 
         def is_valid_state(self, cur_robot_id, timestep, loc_id):
-            valid_set = self.get_valid_states_at_time(cur_robot_id, timestep)
+            valid_set = self.get_valid_states(cur_robot_id, timestep)
             return (loc_id in valid_set)
 
         def is_reachable_state(self, cur_robot_id, timestep, loc_id):
-            reachSet = self.get_reachable_states_at_time(cur_robot_id, timestep)
+            reachSet = self.get_reachable_states(cur_robot_id, timestep)
             return (loc_id in reachSet)
 
         def is_conflict_state(self, cur_robot_id, timestep, loc_id):
@@ -695,33 +721,14 @@ class PriorityPrm():
             return isConflict
 
         ###### Getters #######
-        # This is where what is valid is determined
         def get_occupied_states(self, trajs, cur_robot_id, timestep):
             occupied_states = set()
             for robot_id in range(cur_robot_id):
-                cur_loc = trajs[cur_robot_id][timestep]
+                max_time = len(trajs[cur_robot_id])-1
+                used_time = min(abs(max_time), timestep)
+                cur_loc = trajs[robot_id][used_time]
                 occupied_states.add(cur_loc)
             return occupied_states
-
-        # TODO determine if this is still needed
-        def get_valid_subset(self, origSet, trajs, cur_robot_id, timestep):
-            assert(cur_robot_id >= 0)
-            validSet = set()
-            for loc_id in origSet:
-                if self.is_occupied_state(trajs, cur_robot_id, timestep, loc_id):
-                    continue
-                if cur_robot_id == 0:
-                    validSet.add(loc_id)
-                elif cur_robot_id == 1:
-                    if self.is_connected_state(cur_robot_id, timestep, loc_id):
-                        validSet.add(loc_id)
-                elif cur_robot_id == 2 :
-                    if self.is_connected_state(cur_robot_id, timestep, loc_id):
-                        validSet.add(loc_id)
-                else:
-                    if self.is_rigid_state(cur_robot_id, timestep, loc_id):
-                        validSet.add(loc_id)
-            return validSet
 
         def get_location_id_at_time(self, trajs, cur_robot_id, timestep):
             maxTime = len(trajs[cur_robot_id])-1
@@ -733,7 +740,7 @@ class PriorityPrm():
             time = min(maxTime, timestep)
             return self.roadmap.get_loc(trajs[cur_robot_id][time])
 
-        def get_connected_states_at_time(self, cur_robot_id, timestep):
+        def get_connected_states(self, cur_robot_id, timestep):
             # find most recent time to avoid checking state past end of robot
             # trajectory
             maxTime = len(self.connected_states[cur_robot_id])-1
@@ -745,7 +752,7 @@ class PriorityPrm():
                 else:
                     return conn_set
 
-        def get_rigid_states_at_time(self, cur_robot_id, timestep):
+        def get_rigid_states(self, cur_robot_id, timestep):
             # find most recent time to avoid checking state past end of robot
             # trajectory
             maxTime = len(self.rigid_states[cur_robot_id])-1
@@ -757,18 +764,25 @@ class PriorityPrm():
                 else:
                     return rig_set
 
-        def get_reachable_states_at_time(self, cur_robot_id, timestep):
+        def get_reachable_states(self, cur_robot_id, timestep):
             maxTime = len(self.reachable_states[cur_robot_id])-1
             time = min(maxTime, timestep)
             return self.reachable_states[cur_robot_id][time]
 
-        def get_valid_states_at_time(self, cur_robot_id, timestep):
+        def get_valid_states(self, cur_robot_id, timestep):
             maxTime = len(self.valid_states[cur_robot_id])-1
             time = min(maxTime, timestep)
             return self.valid_states[cur_robot_id][time]
 
+        def get_conflict_states(self, cur_robot_id, timestep):
+            max_time = len(self.conflict_states[cur_robot_id])-1
+            if timestep > max_time:
+                return set()
+            return self.conflict_states[cur_robot_id][timestep]
+
         ###### Add/Remove/Clear #######
         # TODO make sure that connected states of all robot_id+1 is superset of robot_id
+        # TODO something about setting the connected states is currently wrong
         def add_connected_state(self, cur_robot_id, timestep, loc_id):
             while len(self.connected_states[cur_robot_id]) <= timestep:
                 self.connected_states[cur_robot_id].append(set())
@@ -782,13 +796,11 @@ class PriorityPrm():
             self.rigid_states[cur_robot_id][timestep].add(loc_id)
 
         def add_reachable_state(self, cur_robot_id, timestep, loc_id):
-            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
             while(len(self.reachable_states[cur_robot_id]) <= timestep):
                 self.reachable_states[cur_robot_id].append(set())
             self.reachable_states[cur_robot_id][timestep].add(loc_id)
 
         def add_valid_state(self, cur_robot_id, timestep, loc_id):
-            assert False, "This function shouldn't be used. It has been replaced by construct_valid_sets"
             while(len(self.valid_states[cur_robot_id]) <= timestep):
                 self.valid_states[cur_robot_id].append(set())
             self.valid_states[cur_robot_id][timestep].add(loc_id)
@@ -821,17 +833,17 @@ class PriorityPrm():
         def animate_connected_states(self, cur_robot_id, coordTrajs, goalLocs):
             # plot.plot_trajectories(self.coordTrajs, self.robots, self.env, self.goalLocs)
             print("Plotting Connected States")
-            trajLens = [len(x) for x in self.connected_states]
+            trajLens = [len(x) for x in coordTrajs]
             maxTimestep = max(trajLens)
             plt.close()
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Connected States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plot_connected_states(cur_robot_id+1, timestep)
+                self.plot_connected_states(cur_robot_id, timestep)
                 for i, traj in enumerate(coordTrajs):
+                    time = min(timestep, trajLens[i]-1)
                     if traj == []:
                         continue
-                    time = min(timestep, trajLens[i]-1)
                     loc = traj[time]
                     plt.scatter(loc[0], loc[1], color=colors[i%6])
                     plt.plot(*zip(*traj), color=colors[i%6])
@@ -842,15 +854,15 @@ class PriorityPrm():
             plt.close()
 
         def animate_rigid_states(self, cur_robot_id, coordTrajs, goalLocs):
-            print("Plotting Rigid States")
-            trajLens = [len(x) for x in self.connected_states]
+            print(f"Plotting Rigid States for Robot {cur_robot_id}")
+            trajLens = [len(x) for x in coordTrajs]
             maxTimestep = max(trajLens)
             plt.close()
             # plt.pause(5)
             for timestep in range(maxTimestep):
                 plot.clear_plot()
                 plt.title("Rigid States: Robot %d timestep %d"%(cur_robot_id, timestep))
-                self.plot_rigid_states(cur_robot_id+1, timestep)
+                self.plot_rigid_states(cur_robot_id, timestep)
                 for i, traj in enumerate(coordTrajs):
                     if traj == []:
                         continue
@@ -880,7 +892,7 @@ class PriorityPrm():
 
         def animate_valid_states(self, trajs, cur_robot_id):
             print("Plotting Valid States")
-            goal_id = self.roadmap.getGoalIndex(cur_robot_id)
+            goal_id = self.roadmap.get_goal_index(cur_robot_id)
             goalLoc = self.roadmap.get_loc(goal_id)
             maxTimestep = len(self.valid_states[cur_robot_id])
             plt.close()
@@ -906,7 +918,7 @@ class PriorityPrm():
                 plt.pause(0.1)
 
         def plot_connected_states(self, cur_robot_id, timestep):
-            loc_ids = self.get_connected_states_at_time(cur_robot_id, timestep)
+            loc_ids = self.get_connected_states(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
                 pts.append(self.roadmap.get_loc(loc_id))
@@ -915,7 +927,7 @@ class PriorityPrm():
             plt.scatter(xLocs, yLocs, color='g')
 
         def plot_rigid_states(self, cur_robot_id, timestep):
-            loc_ids = self.get_rigid_states_at_time(cur_robot_id, timestep)
+            loc_ids = self.get_rigid_states(cur_robot_id, timestep)
             print(f"Rigid States for {cur_robot_id} at time {timestep}")
             pts = []
             for loc_id in loc_ids:
@@ -925,7 +937,7 @@ class PriorityPrm():
             plt.scatter(xLocs, yLocs, color='y')
 
         def plot_reachable_states(self, cur_robot_id, timestep):
-            loc_ids = self.get_reachable_states_at_time(cur_robot_id, timestep)
+            loc_ids = self.get_reachable_states(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
                 pts.append(self.roadmap.get_loc(loc_id))
@@ -934,7 +946,7 @@ class PriorityPrm():
             plt.scatter(xLocs, yLocs, color='b')
 
         def plot_valid_states(self, cur_robot_id, timestep):
-            loc_ids = self.get_valid_states_at_time(cur_robot_id, timestep)
+            loc_ids = self.get_valid_states(cur_robot_id, timestep)
             pts = []
             for loc_id in loc_ids:
                 pts.append(self.roadmap.get_loc(loc_id))

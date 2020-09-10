@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+import os
 import flamegraph
 import time
 import random
+import subprocess
 
 # custom libraries
 import math_utils
@@ -73,7 +75,7 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
         mean_error = sum(error_list)/len(error_list)
         mean_error_list.append(mean_error)
 
-        if min_eigval == 0:
+        if min_eigval == 0 and False:
             print("Flexible Loc Est")
             print(est_locs)
             print()
@@ -116,7 +118,8 @@ def is_feasible_planning_problem(swarm, env, goals):
     start_loc_list = swarm.get_position_list()
     graph = swarm.get_robot_graph()
 
-    plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
+    # show preliminary view of the planning problem
+    # plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
 
     if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
@@ -353,8 +356,10 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     # Perform Planning
     startPlanning = time.time()
     if profile:
-        #pylint: disable=no-member
-        flamegraph.start_profile_thread(fd=open("./perf.log", "w"))
+        cwd = os.getcwd()
+        fg_timestamp = int(startPlanning)
+        fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{fg_timestamp}.log"
+        fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
 
     if expName == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
         trajs = get_decoupled_rrt_path(robots, env, goals)
@@ -370,6 +375,12 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     endPlanning= time.time()
     print('Time Planning:', endPlanning - startPlanning)
 
+    if profile:
+        fg_thread.stop()
+        fg_image_path = f'{cwd}/profiling/flamegraph_profile_{fg_timestamp}.svg'
+        fg_script_path = f'{cwd}/flamegraph/flamegraph.pl'
+        fg_bash_command = f'bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}'
+        subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
     if useRelative:
         print("Converting trajectory from absolute to relative")
@@ -378,7 +389,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     if showAnimation:
         print("Showing trajectory animation")
         test_trajectory(robots, env, trajs, goals,expName, relativeTraj=useRelative, sensor_noise=noise_stddev)
-
 if __name__ == '__main__':
     """
     This instantiates and calls everything.
@@ -388,10 +398,10 @@ if __name__ == '__main__':
     # exp = 'decoupled_rrt'
     exp = 'priority_prm'
     # exp = 'read_file'
-    useTime = True
+    useTime = False
     useRelative = False
     showAnimation = True
-    profile = False
+    profile = True
 
     # swarmForm = 'square'
     # swarmForm = 'test6'
@@ -400,7 +410,7 @@ if __name__ == '__main__':
     nRobots = 8
     noise_model = 'add'
     sensingRadius = 6.5
-    min_eigval= 0.0
+    min_eigval= 0.05
     noise_stddev = 0.25
 
     # setting = 'random'

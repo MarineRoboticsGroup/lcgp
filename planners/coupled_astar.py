@@ -28,7 +28,7 @@ class CoupledAstar():
         self.roadmap = self.Roadmap(self.robots, self.env, self.goalLocs, roadmap_sampling, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN)
         self.plot_roadmap()
         self.startIndexs = self.roadmap.get_start_indexList()
-        self.goalIndexs = self.roadmap.getGoalIndexList()
+        self.goalIndexs = self.roadmap.get_goal_indexList()
         print("Start Index:", self.startIndexs)
         print("Goal Index:", self.goalIndexs)
 
@@ -292,7 +292,7 @@ class CoupledAstar():
         def get_start_index(self, cur_robot_id):
             index = self.N_SAMPLE + cur_robot_id
             return index
-        def getGoalIndex(self, cur_robot_id):
+        def get_goal_index(self, cur_robot_id):
             index = self.N_SAMPLE + self.robots.get_num_robots() + cur_robot_id
             return index
         def get_start_indexList(self):
@@ -300,10 +300,10 @@ class CoupledAstar():
             for i in range(self.robots.get_num_robots()):
                 indexList.append(self.get_start_index(i))
             return indexList
-        def getGoalIndexList(self):
+        def get_goal_indexList(self):
             indexList = []
             for i in range(self.robots.get_num_robots()):
-                indexList.append(self.getGoalIndex(i))
+                indexList.append(self.get_goal_index(i))
             return indexList
         ###### Conversions #######
         def convertTrajectoriesToCoords(self, trajs):

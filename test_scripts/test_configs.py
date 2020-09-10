@@ -1,7 +1,7 @@
-import math_utils
-import swarm
-import environment
-import plot
+from .. import math_utils
+from .. import swarm
+from .. import environment
+from .. import plot
 
 import time
 import numpy as np

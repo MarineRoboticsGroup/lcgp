@@ -1,5 +1,5 @@
-import swarm
-import math_utils
+from .. import swarm
+from .. import math_utils
 
 from typing import List, Tuple
 from tqdm import tqdm
