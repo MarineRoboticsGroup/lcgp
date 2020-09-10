@@ -14,6 +14,7 @@ import scipy.spatial
 import matplotlib.pyplot as plt
 import os.path
 from os import path
+import os
 import string
 import time
 import copy
@@ -323,8 +324,10 @@ class PriorityPrm():
             self.N_SAMPLE = N_SAMPLE
             self.N_KNN = N_KNN
             self.MAX_EDGE_LEN = MAX_EDGE_LEN
-            self.roadmap_filename = f"roadmap_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
-            self.sample_locs_filename = f"sample_locs_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
+
+            cwd = os.getcwd()
+            self.roadmap_filename = f"{cwd}/cached_planning/roadmap_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
+            self.sample_locs_filename = f"{cwd}/cached_planning/sample_locs_{self.env.setting}_{self.sampling_type}_{self.robots.startConfig}_{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}len_{self.robots.get_num_robots()}rob.txt"
             self.initSampleLocsAndRoadmap()
 
         def initSampleLocsAndRoadmap(self):
@@ -336,6 +339,7 @@ class PriorityPrm():
             if sample_locs and len(sample_locs) > 0:
                 self.sample_locs = sample_locs
             else:
+                print("%s not found.\nGenerating Sample Locs"%self.sample_locs_filename)
                 if self.sampling_type == "random":
                     self.sample_locs = np.array(self.generateSampleLocationsRandom())
                 elif self.sampling_type == "uniform":
@@ -343,6 +347,8 @@ class PriorityPrm():
                 else:
                     raise NotImplementedError
                 self.write_sample_locs()
+                print(self.sample_locs[-20:])
+                print("New sample locations written to file\n")
             self.nodeKDTree = kdtree.KDTree(self.sample_locs)
 
             # try to read roadmap from file. If doesn't exist then generate new
@@ -576,8 +582,6 @@ class PriorityPrm():
                 reachable_sets_.append(set())
                 valid_sets_.append(set())
 
-                # reachable(t+1) = [reachable(t) + neighbors of reachable(t) -
-                # conflicts(update_robot_id, t+1)] - occupied[t+1]
                 neighbors = self.get_all_neighbors_of_set(valid_sets_[timestep])
                 conflicts = self.get_conflict_states(update_robot_id, timestep+1)
 
@@ -585,16 +589,19 @@ class PriorityPrm():
                     occupied = set()
                 else:
                     occupied = self.get_occupied_states(trajs, update_robot_id, timestep+1)
-                reachable_sets_[timestep+1] = reachable_sets_[timestep].union(neighbors).difference(conflicts).difference(occupied)
+
+                # reachable(t+1) = [valid(t) + neighbors of valid(t) -
+                # conflicts(update_robot_id, t+1)] - occupied[t+1]
+                reachable_sets_[timestep+1] = valid_sets_[timestep].union(neighbors).difference(conflicts).difference(occupied)
 
                 if update_robot_id == 0:
                     valid_sets_[timestep+1] = copy.deepcopy(reachable_sets_[timestep+1])
                 elif update_robot_id == 1:
                     connected_states = self.get_connected_states(update_robot_id, timestep+1)
-                    valid_sets_[timestep+1] = connected_states.union(reachable_sets_[timestep+1])
+                    valid_sets_[timestep+1] = connected_states.intersection(reachable_sets_[timestep+1])
                 else:
                     rigid_states = self.get_rigid_states(update_robot_id, timestep+1)
-                    valid_sets_[timestep+1] = rigid_states.union(reachable_sets_[timestep+1])
+                    valid_sets_[timestep+1] = rigid_states.intersection(reachable_sets_[timestep+1])
 
                 timestep += 1
 
@@ -652,8 +659,15 @@ class PriorityPrm():
         def update_rigid_sets(self, trajs, update_robot_id):
             for timestep, connected_set in enumerate(self.connected_states[update_robot_id]):
                 for loc_id in connected_set:
-                    if self.state_would_be_rigid(trajs, update_robot_id, timestep, loc_id):
-                        self.add_rigid_state(update_robot_id, timestep, loc_id)
+                    try:
+                        if self.is_occupied_state(trajs, update_robot_id, timestep, loc_id):
+                            continue
+                        elif self.state_would_be_rigid(trajs, update_robot_id, timestep, loc_id):
+                            self.add_rigid_state(update_robot_id, timestep, loc_id)
+                    except:
+                        print("somewhere I failed")
+                        assert False, "Two locations occupy the same position"
+
 
         ###### Check Status #######
         # TODO review the use of this function
@@ -677,6 +691,8 @@ class PriorityPrm():
                 dist_to_node_id = self.roadmap.get_distance_between_loc_ids(loc_id, node_id)
                 if dist_to_node_id < self.robots.get_sensing_radius():
                     num_neighbors += 1
+                if dist_to_node_id < 1e-4:
+                    return False
 
             # must be within sensing radius of 2 robots to be rigid
             if num_neighbors < 2:

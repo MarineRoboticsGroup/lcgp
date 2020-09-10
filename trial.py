@@ -6,6 +6,7 @@ import flamegraph
 import time
 import random
 import subprocess
+from typing import List, Tuple
 
 # custom libraries
 import math_utils
@@ -17,6 +18,9 @@ import plot
 from planners import decoupled_rrt
 from planners import coupled_astar
 from planners import prioritized_prm
+
+priority_planners = ['decoupled_rrt', 'priority_prm']
+trial_timestamp = int(time.time())
 
 def test_trajectory(robots, env, trajs, goals, plan_name,
                    delay_animation=False, relativeTraj=False, sensor_noise=0.5):
@@ -40,7 +44,9 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
     nonrigid_time = 0
     assert trajs is not None
 
-    with open('recent_traj.txt', 'w') as filehandle:
+    cwd = os.getcwd()
+    traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
+    with open(traj_filepath, 'w') as filehandle:
         for traj in trajs:
             filehandle.write('%s\n' % traj)
 
@@ -52,6 +58,7 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
     mean_error_list = []
 
     while not (traj_indices == final_traj_indices):
+        plot.plot(robots.get_robot_graph(), env, blocking=False, animation=True, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
         total_time += 1
         move.clear()
         config.clear()
@@ -85,7 +92,7 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
 
         if min_eigval < robots.min_eigval:
             nonrigid_time += 1
-            print(min_eigval, " < ", robots.min_eigval)
+            print(f"{min_eigval} < {robots.min_eigval} at time {total_time}")
             plot.plot_nth_eigvec(robots, 4)
             plt.pause (5)
         if delay_animation and total_time == 1:
@@ -106,16 +113,17 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
     plt.xlabel("time")
     plt.legend(["Eigvals", "Error"])
     plt.show()
-    plt.savefig('plan_%s_noise_%f_avg_%f_max_%f.png'%(plan_name, sensor_noise, avg_error, worst_error))
 
+    cwd = os.getcwd()
+    figure_path = f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
+    plt.savefig(figure_path)
 
     print("Total Time:", total_time)
     print("Bad Time:", nonrigid_time)
 
-def is_feasible_planning_problem(swarm, env, goals):
+def is_feasible_planning_problem(swarm, env, goals:List, planner:str):
     feasible = True
-    start_eigval = swarm.get_nth_eigval(4)
-    start_loc_list = swarm.get_position_list()
+    start_loc_list = swarm.get_position_list_tuples()
     graph = swarm.get_robot_graph()
 
     # show preliminary view of the planning problem
@@ -132,33 +140,41 @@ def is_feasible_planning_problem(swarm, env, goals):
     goalLoc = []
     for goal in goals:
         goalLoc += list(goal)
-    swarm.move_swarm(goalLoc, is_relative_move=False)
-    swarm.update_swarm()
-    graph = swarm.get_robot_graph()
-    goal_eigval = swarm.get_nth_eigval(4)
 
     # plot.plot(graph, env, goals)
 
-    swarm.move_swarm(start_loc_list, is_relative_move=False)
-    swarm.update_swarm()
-    if (start_eigval < swarm.min_eigval):
-        print("\nStarting Config Insufficiently Rigid")
-        print("Start Eigenvalue:", start_eigval)
-        print()
-        graph = swarm.get_robot_graph()
-        plot.plot_nth_eigvec(swarm, 4)
-        plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
-        feasible = False
-    if (goal_eigval < swarm.min_eigval):
-        print("\nGoal Config Insufficiently Rigid")
-        print("Goal Eigenvalue:", goal_eigval)
-        print()
-        swarm.move_swarm(goalLoc, is_relative_move=False)
-        swarm.update_swarm()
-        graph = swarm.get_robot_graph()
-        plot.plot_nth_eigvec(swarm, 4)
-        plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
-        feasible = False
+    # if priority planner we should check rigidity incrementally by iterating
+    # over all of the robots
+    if planner in priority_planners:
+        for num_robot in range(3, swarm.get_num_robots()):
+            start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list[:num_robot])
+            goal_is_rigid = swarm.test_rigidity_from_loc_list(goals[:num_robot])
+            if not start_is_rigid:
+                print(f"\nStarting Config Insufficiently Rigid at Robot {num_robot}")
+                feasible = False
+            if not goal_is_rigid:
+                print(f"\nGoal Config Insufficiently Rigid at Robot {num_robot}")
+                feasible = False
+
+    else:
+        start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list)
+        goal_is_rigid = swarm.test_rigidity_from_loc_list(goals)
+        if not start_is_rigid:
+            print("\nStarting Config Insufficiently Rigid")
+            print()
+            graph = swarm.get_robot_graph()
+            plot.plot_nth_eigvec(swarm, 4)
+            plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
+            feasible = False
+        if not goal_is_rigid:
+            print("\nGoal Config Insufficiently Rigid")
+            print()
+            swarm.move_swarm(goalLoc, is_relative_move=False)
+            swarm.update_swarm()
+            graph = swarm.get_robot_graph()
+            plot.plot_nth_eigvec(swarm, 4)
+            plot.plot(graph, env, goals=goals, show_goals=True, blocking=True, animation=False)
+            feasible = False
     return feasible
 
 def read_traj_from_file(filename ):
@@ -306,9 +322,6 @@ def get_priority_prm_path(robots, environment, goals, useTime):
 
 def init_goals(robots):
     goals = [(loc[0]+23, loc[1]+24) for loc in robots.get_position_list_tuples()]
-
-
-
     loc1 = (28, 19)
     loc2 = (31, 21)
     loc3 = (27.5, 21.5)
@@ -318,7 +331,7 @@ def init_goals(robots):
     loc6 = (29.5, 27)
     loc7 = (27.5, 30)
     loc8 = (32.5, 29)
-    goals = [loc1, loc2, loc3, loc4, loc5, loc6, loc7, loc8]
+    # goals = [loc1, loc2, loc3, loc4, loc5, loc6, loc7, loc8]
 
     # random.shuffle(goals)
     # print("Goals:", goals)
@@ -327,12 +340,11 @@ def init_goals(robots):
 def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     np.random.seed(seed)
 
-    expName, useTime, useRelative, showAnimation, profile = experimentInfo
+    expName, useTime, useRelative, showAnimation, profile, timestamp = experimentInfo
     nRobots, swarmFormation, sensingRadius, noise_model, min_eigval, noise_stddev = swarmInfo
     setting, bounds, n_obstacles = envInfo
 
     envBounds = (0, bounds[0], 0, bounds[1])
-
 
     # Initialize Environment
     env = environment.Environment(envBounds, setting=setting, num_obstacles=n_obstacles)
@@ -347,18 +359,19 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     else:
         robots.initialize_swarm(bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
 
+    # Init goals
     goals = init_goals(robots)
-    print(f"Goals:{goals}")
 
-    assert(is_feasible_planning_problem(robots, env, goals))
+    # Sanity checks
+    assert(is_feasible_planning_problem(robots, env, goals, expName))
     assert(nRobots == robots.get_num_robots())
 
-    # Perform Planning
+    ##### Perform Planning ######
+    #############################
     startPlanning = time.time()
     if profile:
         cwd = os.getcwd()
-        fg_timestamp = int(startPlanning)
-        fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{fg_timestamp}.log"
+        fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{trial_timestamp}.log"
         fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
 
     if expName == 'decoupled_rrt': # generate trajectories via naive fully decoupled rrt
@@ -368,7 +381,9 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     elif expName == 'priority_prm':
         trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == 'read_file':
-        trajs = read_traj_from_file('recent_traj.txt')
+        assert(timestamp is not None), 'trying to read trajectory file but no timestamp specified'
+        traj_filepath = f"{cwd}/trajs/traj_{timestamp}.txt"
+        trajs = read_traj_from_file(traj_filepath)
     else:
         raise AssertionError
 
@@ -377,7 +392,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
 
     if profile:
         fg_thread.stop()
-        fg_image_path = f'{cwd}/profiling/flamegraph_profile_{fg_timestamp}.svg'
+        fg_image_path = f'{cwd}/profiling/flamegraph_profile_{trial_timestamp}.svg'
         fg_script_path = f'{cwd}/flamegraph/flamegraph.pl'
         fg_bash_command = f'bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}'
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
@@ -389,6 +404,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     if showAnimation:
         print("Showing trajectory animation")
         test_trajectory(robots, env, trajs, goals,expName, relativeTraj=useRelative, sensor_noise=noise_stddev)
+
 if __name__ == '__main__':
     """
     This instantiates and calls everything.
@@ -398,10 +414,11 @@ if __name__ == '__main__':
     # exp = 'decoupled_rrt'
     exp = 'priority_prm'
     # exp = 'read_file'
+    timestamp = None
     useTime = False
     useRelative = False
     showAnimation = True
-    profile = True
+    profile = False
 
     # swarmForm = 'square'
     # swarmForm = 'test6'
@@ -410,7 +427,7 @@ if __name__ == '__main__':
     nRobots = 8
     noise_model = 'add'
     sensingRadius = 6.5
-    min_eigval= 0.05
+    min_eigval= 0.005
     noise_stddev = 0.25
 
     # setting = 'random'
@@ -420,7 +437,7 @@ if __name__ == '__main__':
     envSize = (35, 35)
     numObstacles = 20
 
-    experimentInfo = (exp, useTime, useRelative, showAnimation, profile)
+    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
     swarmInfo = (nRobots, swarmForm, sensingRadius, noise_model, min_eigval, noise_stddev)
     envInfo = (setting, envSize, numObstacles)
 

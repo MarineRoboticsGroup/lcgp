@@ -88,6 +88,7 @@ class Swarm:
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
         return eigvals[n-1]
+
     def get_nth_eigpair(self, n):
         eigpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         return eigpair
@@ -103,6 +104,8 @@ class Swarm:
 
     ####### Checks #######
     def test_rigidity_from_loc_list(self, loc_list):
+        if len(loc_list) < 3:
+            return False
         testGraph = graph.Graph(self.noise_model, self.noise_stddev)
         testGraph.initialize_from_location_list(loc_list, self.sensingRadius)
         eigval = testGraph.get_nth_eigval(4)

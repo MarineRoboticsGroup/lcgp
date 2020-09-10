@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from numpy import linalg as la
 from typing import List, Tuple
 # from scipy import linalg as la
@@ -54,7 +55,13 @@ def get_nth_eigpair(mat, n):
     assert(is_square_matrix(mat))
     index = n-1
 
-    eigvals, eigvecs = la.eigh(mat)
+    try:
+        eigvals, eigvecs = la.eigh(mat)
+    except np.linalg.LinAlgError:
+        print("Failed to converge on matrix computation")
+        print(mat)
+        eigvals, eigvecs = la.eig(mat)
+
     eigvals[np.abs(eigvals) < eps] = 0
     eigvecs = np.real(eigvecs)
 
@@ -107,7 +114,6 @@ def sort_eigpairs(eigvals, eigvecs):
     srtVec = a[:,:-1]
     return(srtVal, srtVec)
 
-# TODO test to find which way of building is faster
 def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str, noise_stddev:float):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
@@ -143,7 +149,16 @@ def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str
         row[2*i+1] = delYij
         row[2*j] = -delXij
         row[2*j+1] = -delYij
-        row = row/((noise_stddev)*(dist**alpha))
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            try:
+                row = row/((noise_stddev)*(dist**alpha))
+            except:
+                print(f"nodes: {i, j}")
+                print(f"locs: {xi, yi, xj, yj}")
+                print(f"row: {row}")
+                print(f"dist: {dist}")
+                assert False, 'failed to prevent from occupying same position'
         A[cnt] = row
 
         #### If want to form matrix directly

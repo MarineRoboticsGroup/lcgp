@@ -63,8 +63,9 @@ test.py
 
 # Cached Files from Python #
 ##########
-roadmap*
-recent_traj*
+cached_planning/*.txt
+figures/*.png
+trajs/*.txt
 
 
 # PyTorch #
