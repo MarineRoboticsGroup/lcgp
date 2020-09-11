@@ -156,8 +156,11 @@ class PriorityPrm():
                     print("All Planning Successful")
                     print()
                     return True
+
+                # update based on new trajectory
                 self.constraintSets.update_global_sets_from_robot_traj(self.trajs, cur_robot_id)
                 hasConflict, conflictTime = self.constraintSets.construct_valid_sets(cur_robot_id+1, self.trajs)
+
                 if hasConflict:
                     print("Found conflict planning for robot%d at time %d "%(cur_robot_id, conflictTime))
                     self.constraintSets.animate_valid_states(self.coordTrajs, cur_robot_id+1)
@@ -347,7 +350,6 @@ class PriorityPrm():
                 else:
                     raise NotImplementedError
                 self.write_sample_locs()
-                print(self.sample_locs[-20:])
                 print("New sample locations written to file\n")
             self.nodeKDTree = kdtree.KDTree(self.sample_locs)
 

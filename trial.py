@@ -93,8 +93,8 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
         if min_eigval < robots.min_eigval:
             nonrigid_time += 1
             print(f"{min_eigval} < {robots.min_eigval} at time {total_time}")
-            plot.plot_nth_eigvec(robots, 4)
-            plt.pause (5)
+            # plot.plot_nth_eigvec(robots, 4)
+            # plt.pause (5)
         if delay_animation and total_time == 1:
             plt.pause(10)
 
@@ -127,7 +127,7 @@ def is_feasible_planning_problem(swarm, env, goals:List, planner:str):
     graph = swarm.get_robot_graph()
 
     # show preliminary view of the planning problem
-    # plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
+    plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
 
     if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
@@ -321,7 +321,7 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     return traj
 
 def init_goals(robots):
-    goals = [(loc[0]+23, loc[1]+24) for loc in robots.get_position_list_tuples()]
+    goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
     loc1 = (28, 19)
     loc2 = (31, 21)
     loc3 = (27.5, 21.5)
@@ -337,7 +337,7 @@ def init_goals(robots):
     # print("Goals:", goals)
     return goals
 
-def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
+def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     np.random.seed(seed)
 
     expName, useTime, useRelative, showAnimation, profile, timestamp = experimentInfo
@@ -352,10 +352,11 @@ def main(experimentInfo, swarmInfo, envInfo, seed=999999999):
     # Initialize Robots
     robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
     if swarmFormation=='random':
-        robots.initialize_swarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
+        robots.initialize_swarm(env=env, bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
         goals = init_goals(robots)
-        while not is_feasible_planning_problem(robots, env, goals):
-            robots.initialize_swarm(bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
+        while not is_feasible_planning_problem(robots, env, goals, expName):
+            robots.initialize_swarm(env=env, bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
+            goals = init_goals(robots)
     else:
         robots.initialize_swarm(bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
 
@@ -411,8 +412,8 @@ if __name__ == '__main__':
     Any parameters that need to be changed should be accessible from here
     """
     # exp = 'coupled_astar'
-    # exp = 'decoupled_rrt'
-    exp = 'priority_prm'
+    exp = 'decoupled_rrt'
+    # exp = 'priority_prm'
     # exp = 'read_file'
     timestamp = None
     useTime = False
@@ -422,20 +423,20 @@ if __name__ == '__main__':
 
     # swarmForm = 'square'
     # swarmForm = 'test6'
-    swarmForm = 'test8'
-    # swarmForm = 'random'
-    nRobots = 8
+    # swarmForm = 'test8'
+    swarmForm = 'random'
+    nRobots = 20
     noise_model = 'add'
     sensingRadius = 6.5
-    min_eigval= 0.005
+    min_eigval= 0.25
     noise_stddev = 0.25
 
-    # setting = 'random'
-    setting = 'curve_maze'
+    setting = 'random'
+    # setting = 'curve_maze'
     # setting = 'adversarial1'
     # setting = 'adversarial2'
     envSize = (35, 35)
-    numObstacles = 20
+    numObstacles = 30
 
     experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
     swarmInfo = (nRobots, swarmForm, sensingRadius, noise_model, min_eigval, noise_stddev)

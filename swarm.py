@@ -14,7 +14,7 @@ class Swarm:
         self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
 
     ####### Swarm Utils #######
-    def initialize_swarm(self, bounds, formation='square', nRobots=None, min_eigval=0.75):
+    def initialize_swarm(self, env, bounds, formation='square', nRobots=None, min_eigval=0.75):
         # initialize formation and edges
         self.startConfig = formation
         self.min_eigval = min_eigval
@@ -28,7 +28,7 @@ class Swarm:
         elif formation.lower() == 'test8':
             self.robot_graph.init_test8_formation()
         elif formation.lower() == 'random':
-            self.robot_graph.init_random_formation(nRobots, bounds)
+            self.robot_graph.init_random_formation(env, nRobots, bounds)
         else:
             print("The given formation is not valid\n")
             raise NotImplementedError

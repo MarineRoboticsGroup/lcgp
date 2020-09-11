@@ -207,12 +207,12 @@ class Graph:
 
     ####### Construct Graph Formations #######
     def init_test6_formation(self):
-        self.add_node(0, 0)
-        self.add_node(0, 2)
-        self.add_node(1, 3)
-        self.add_node(2, 2)
-        self.add_node(2, 0)
-        self.add_node(1, 1)
+        self.add_node(3, 3)
+        self.add_node(4, 2)
+        self.add_node(2, 3)
+        self.add_node(6, 6)
+        self.add_node(5, 3)
+        self.add_node(2, 6)
 
     def init_test8_formation(self):
         self.add_node(2, 2)
@@ -234,12 +234,36 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(6, 2)
 
-    def init_random_formation(self, num_robots, bounds):
-        xVal = np.random.uniform(low=1, high=10, size=num_robots)
-        yVal = np.random.uniform(low=1, high=10, size=num_robots)
-        for i in range(num_robots):
+    # TODO make this method more official. Add environmental checks and incorporate sensing radius into determining if a node is legal to add
+    def init_random_formation(self, env, num_robots, bounds):
+        loc = math_utils.generate_random_loc(2, 10, 2, 10)
+        locs = [loc]
 
-            self.add_node(xVal[i], yVal[i])
+        def distance(loc, ref_loc):
+            dist = np.sqrt((loc[0]-ref_loc[0])**2 + (loc[1]-ref_loc[1])**2)
+            return dist
+
+        while len(locs) < num_robots:
+            loc = math_utils.generate_random_loc(2, bounds[0]/2, 2, bounds[1]/2)
+
+            if not env.is_free_space(loc):
+                continue
+
+            satisfies_conditions = True
+            dists = np.array([distance(loc, existing_loc) for existing_loc in locs])
+            if (dists < 1).any():
+                satisfies_conditions = False
+            elif len(locs) == 1:
+                satisfies_conditions = (np.count_nonzero(dists < 5) == 1)
+            elif len(locs) >= 2:
+                satisfies_conditions = (np.count_nonzero(dists < 5) >= 2)
+
+            if satisfies_conditions:
+                locs.append(loc)
+
+        for i in range(num_robots):
+            self.add_node(locs[i][0], locs[i][1])
+        print(f"Randomly Generated Robot Formation")
 
     ####### Controls #######
     def move_to(self, vec, is_relative_move=True):
