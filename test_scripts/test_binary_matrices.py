@@ -16,13 +16,6 @@ def construct_random_arr(constructor, density:float, size:int):
     return new_arr
 
 
-    for row in range(n):
-        for col in range(n):
-            arr[row, col] = np.random.rand() > p
-    new_arr = constructor(arr, dtype=bool)
-    return new_arr
-
-
 def test_array_formation(constructor, density:float, size:int, num_reps:int)->float:
     start_time = time.time()
     for _ in range(num_reps):
@@ -73,7 +66,7 @@ if __name__ == "__main__":
         - speed of numpy construction (obviously) should scale near linearly
           with density
     """
-    density = 0.05
+    density = 0.01
     p = 1-density
     n = 100
     n_reps = 100

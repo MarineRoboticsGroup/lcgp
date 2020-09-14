@@ -59,6 +59,11 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
 
     while not (traj_indices == final_traj_indices):
         plot.plot(robots.get_robot_graph(), env, blocking=False, animation=True, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
+        # plot.plot(robots.get_robot_graph(), env, blocking=True, animation=False, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
+
+        cwd = os.getcwd()
+        trajectory_img_path = f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
+        plt.savefig(trajectory_img_path)
         total_time += 1
         move.clear()
         config.clear()
@@ -97,6 +102,13 @@ def test_trajectory(robots, env, trajs, goals, plan_name,
             # plt.pause (5)
         if delay_animation and total_time == 1:
             plt.pause(10)
+
+
+    plot.plot(robots.get_robot_graph(), env, blocking=False, animation=True, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
+    cwd = os.getcwd()
+    trajectory_img_path = f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
+    plt.savefig(trajectory_img_path)
+
 
     worst_error = max(mean_error_list)
     avg_error = sum(mean_error_list)/float(len(mean_error_list))
@@ -321,7 +333,12 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     return traj
 
 def init_goals(robots):
-    goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
+    # random config
+    # goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
+
+    # curve environment
+    goals = [(loc[0]+24, loc[1]+25) for loc in robots.get_position_list_tuples()]
+
     loc1 = (28, 19)
     loc2 = (31, 21)
     loc3 = (27.5, 21.5)
@@ -358,7 +375,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
             robots.initialize_swarm(env=env, bounds=bounds, formation=swarmFormation, nRobots=nRobots, min_eigval=min_eigval)
             goals = init_goals(robots)
     else:
-        robots.initialize_swarm(bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
+        robots.initialize_swarm(env=env, bounds=bounds, formation=swarmFormation, min_eigval=min_eigval)
 
     # Init goals
     goals = init_goals(robots)
@@ -412,8 +429,8 @@ if __name__ == '__main__':
     Any parameters that need to be changed should be accessible from here
     """
     # exp = 'coupled_astar'
-    exp = 'decoupled_rrt'
-    # exp = 'priority_prm'
+    # exp = 'decoupled_rrt'
+    exp = 'priority_prm'
     # exp = 'read_file'
     timestamp = None
     useTime = False
@@ -423,16 +440,16 @@ if __name__ == '__main__':
 
     # swarmForm = 'square'
     # swarmForm = 'test6'
-    # swarmForm = 'test8'
-    swarmForm = 'random'
-    nRobots = 20
+    swarmForm = 'test8'
+    # swarmForm = 'random'
+    nRobots = 8
     noise_model = 'add'
     sensingRadius = 6.5
     min_eigval= 0.25
     noise_stddev = 0.25
 
-    setting = 'random'
-    # setting = 'curve_maze'
+    # setting = 'random'
+    setting = 'curve_maze'
     # setting = 'adversarial1'
     # setting = 'adversarial2'
     envSize = (35, 35)

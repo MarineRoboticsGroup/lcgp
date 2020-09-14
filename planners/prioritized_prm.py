@@ -158,7 +158,7 @@ class PriorityPrm():
                     return True
 
                 # update based on new trajectory
-                self.constraintSets.update_global_sets_from_robot_traj(self.trajs, cur_robot_id)
+                self.constraintSets.update_connected_sets_from_robot_traj(self.trajs, cur_robot_id)
                 hasConflict, conflictTime = self.constraintSets.construct_valid_sets(cur_robot_id+1, self.trajs)
 
                 if hasConflict:
@@ -602,8 +602,7 @@ class PriorityPrm():
                     connected_states = self.get_connected_states(update_robot_id, timestep+1)
                     valid_sets_[timestep+1] = connected_states.intersection(reachable_sets_[timestep+1])
                 else:
-                    rigid_states = self.get_rigid_states(update_robot_id, timestep+1)
-                    valid_sets_[timestep+1] = rigid_states.intersection(reachable_sets_[timestep+1])
+                    valid_sets_[timestep+1] = self.get_rigid_subset(trajs, update_robot_id, timestep+1, reachable_sets_[timestep+1])
 
                 timestep += 1
 
@@ -638,7 +637,7 @@ class PriorityPrm():
             self.connected_states[cur_robot_id].clear()
             self.rigid_states[cur_robot_id].clear()
 
-        def update_global_sets_from_robot_traj(self, trajs, cur_robot_id):
+        def update_connected_sets_from_robot_traj(self, trajs, cur_robot_id):
             assert trajs[cur_robot_id], "Tried to update based on nonexisting trajectory"
 
             update_robot_id = cur_robot_id+1
@@ -656,9 +655,10 @@ class PriorityPrm():
                 self.connected_states[update_robot_id][timestep].update(neighbors)
 
             # now that connected states are updated, we can update rigid set
-            self.update_rigid_sets(trajs, cur_robot_id+1)
+            # self.update_rigid_sets(trajs, cur_robot_id+1)
 
         def update_rigid_sets(self, trajs, update_robot_id):
+            assert False, "I shouldn't be using this method anymore. We should only check for rigidity if is a reachable set"
             for timestep, connected_set in enumerate(self.connected_states[update_robot_id]):
                 for loc_id in connected_set:
                     try:
@@ -771,6 +771,7 @@ class PriorityPrm():
                     return conn_set
 
         def get_rigid_states(self, cur_robot_id, timestep):
+            assert False, "shouldnt be using this function anymore"
             # find most recent time to avoid checking state past end of robot
             # trajectory
             maxTime = len(self.rigid_states[cur_robot_id])-1
@@ -781,6 +782,10 @@ class PriorityPrm():
                     return set([])
                 else:
                     return rig_set
+
+        def get_rigid_subset(self, trajs, cur_robot_id, timestep, original_set):
+            rigid_subset = set([loc_id for loc_id in original_set if self.state_would_be_rigid(trajs, cur_robot_id, timestep, loc_id)])
+            return rigid_subset
 
         def get_reachable_states(self, cur_robot_id, timestep):
             maxTime = len(self.reachable_states[cur_robot_id])-1
