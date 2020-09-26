@@ -1,47 +1,58 @@
 import numpy as np
 import warnings
+import math
 from numpy import linalg as la
 from typing import List, Tuple
+
 # from scipy import linalg as la
-import graph
 
 eps = 1e-8
 
-####### Testing Utils #######
+""" Testing Utils """
+
+
 def assert_is_eigpair(K, eigpair):
     eigval, eigvec = eigpair
     testVec = K @ eigvec
     np.testing.assert_array_almost_equal(eigval * eigvec, testVec)
     return True
 
+
 def is_square_matrix(mat):
     num_rows, num_cols = mat.shape
-    return (num_rows is num_cols)
+    return num_rows is num_cols
 
-####### Printing Utils #######
+
+""" Printing Utils """
+
+
 def matprint_block(mat, fmt="g"):
-    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
+    col_maxes = [max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T]
     for j, x in enumerate(mat):
-        if j%2 == 0:
+        if j % 2 == 0:
             print("__  __  __   __  __  __  __  __  __  __  __  __  __")
             print("")
         for i, y in enumerate(x):
-            if i%2 == 1:
-                print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end=" | ")
+            if i % 2 == 1:
+                print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end=" | ")
             else:
-                print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
+                print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
         print("")
+
 
 def matprint(mat, fmt="g"):
-    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
+    col_maxes = [max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T]
     for x in mat:
         for i, y in enumerate(x):
-            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
+            print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
         print("")
 
-####### Matrix Utils #######
+
+""" Matrix Utils """
+
+
 def get_list_all_eigvals(mat):
-    assert(is_square_matrix(mat))
+    assert is_square_matrix(mat)
 
     try:
         val = la.eigvalsh(mat)
@@ -51,9 +62,10 @@ def get_list_all_eigvals(mat):
         val = np.zeros(mat.shape[0])
     return val
 
+
 def get_nth_eigpair(mat, n):
-    assert(is_square_matrix(mat))
-    index = n-1
+    assert is_square_matrix(mat)
+    index = n - 1
 
     try:
         eigvals, eigvecs = la.eigh(mat)
@@ -73,17 +85,18 @@ def get_nth_eigpair(mat, n):
 
     # sort array based on eigenvalues
     # least eigenvalue first
-    ind=np.argsort(a[:,-1])
-    sorted_eigpairs=a[ind]
-    sorted_eigvals = sorted_eigpairs[:,-1:]
-    sorted_eigvecs = sorted_eigpairs[:,:-1]
+    ind = np.argsort(a[:, -1])
+    sorted_eigpairs = a[ind]
+    sorted_eigvals = sorted_eigpairs[:, -1:]
+    sorted_eigvecs = sorted_eigpairs[:, :-1]
 
     desired_eigval = sorted_eigvals[index][0]
-    desired_eigvec = sorted_eigvecs[index,:]
+    desired_eigvec = sorted_eigvecs[index, :]
     eigpair = (desired_eigval, desired_eigvec)
     assert_is_eigpair(mat, eigpair)
     # return desired eigpair
     return eigpair
+
 
 def sort_eigpairs(eigvals, eigvecs):
     """
@@ -104,28 +117,31 @@ def sort_eigpairs(eigvals, eigvecs):
     # take transpose to properly align
     a = a.T
     # sort array based on eigenvalues
-    ind=np.argsort(a[:,-1])
-    a=a[ind]
+    ind = np.argsort(a[:, -1])
+    a = a[ind]
 
     # trim zero-eigenvectors and eigenvalue col
     # a = a[3:,:-1]
 
-    srtVal = a[:,-1:].flatten()
-    srtVec = a[:,:-1]
-    return(srtVal, srtVec)
+    srtVal = a[:, -1:].flatten()
+    srtVec = a[:, :-1]
+    return (srtVal, srtVec)
 
-def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str, noise_stddev:float):
+
+def build_fisher_matrix(
+    edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float
+):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
     num_nodes = len(nodes)
     num_edges = len(edges)
-    A = np.zeros((num_edges, 2*num_nodes))
-    K = np.zeros((num_nodes*2, num_nodes*2))
+    A = np.zeros((num_edges, 2 * num_nodes))
+    K = np.zeros((num_nodes * 2, num_nodes * 2))
     alpha = None
-    if noise_model == 'add':
+    if noise_model == "add":
         alpha = float(1)
-    elif noise_model == 'lognorm':
+    elif noise_model == "lognorm":
         alpha = float(2)
     else:
         raise NotImplementedError
@@ -138,30 +154,30 @@ def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str
         node_j = nodes[j]
         xi, yi = node_i.get_loc_tuple()
         xj, yj = node_j.get_loc_tuple()
-        delXij = xi-xj
-        delYij = yi-yj
-        dist = np.sqrt(delXij**2 + delYij**2)
+        delXij = xi - xj
+        delYij = yi - yj
+        dist = np.sqrt(delXij ** 2 + delYij ** 2)
 
-        #### If want to form matrix as A.T @ A
-        #* This is recommended as tests indicate that it is faster
-        row = np.zeros(num_nodes*2)
-        row[2*i] = delXij
-        row[2*i+1] = delYij
-        row[2*j] = -delXij
-        row[2*j+1] = -delYij
+        # If want to form matrix as A.T @ A
+        # * This is recommended as tests indicate that it is faster
+        row = np.zeros(num_nodes * 2)
+        row[2 * i] = delXij
+        row[2 * i + 1] = delYij
+        row[2 * j] = -delXij
+        row[2 * j + 1] = -delYij
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             try:
-                row = row/((noise_stddev)*(dist**alpha))
+                row = row / ((noise_stddev) * (dist ** alpha))
             except:
                 print(f"nodes: {i, j}")
                 print(f"locs: {xi, yi, xj, yj}")
                 print(f"row: {row}")
                 print(f"dist: {dist}")
-                assert False, 'failed to prevent from occupying same position'
+                assert False, "failed to prevent from occupying same position"
         A[cnt] = row
 
-        #### If want to form matrix directly
+        # If want to form matrix directly
         # Kii = np.array([[delXij**2,         delXij*delYij   ],
         #                 [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
         # Kij = -Kii
@@ -175,7 +191,7 @@ def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str
         # K[2*j:2*j+2, 2*i:2*i+2] = Kij
 
     K = A.T @ A
-    #### Testing different ways of building matrix
+    # Testing different ways of building matrix
     # test = (A.T @ A)-K
     # print("TESTING")
     # matprint_block(test)
@@ -186,17 +202,21 @@ def build_fisher_matrix(edges:List[Tuple[int, int]], nodes:List, noise_model:str
     # print()
     # matprint_block(A.T @ A)
 
-    return (K)
+    return K
+
 
 def ground_nodes_in_matrix(A, n, nodes):
     l = list(nodes)
     l.sort()
     for i in nodes:
-        l.append(i+n)
+        l.append(i + n)
     B = np.delete(A, l, axis=1)
     return B
 
-####### Matrix Calculus #######
+
+""" Matrix Calculus """
+
+
 def get_gradient_of_eigpair(K, eigpair, graph):
     """
     Returns the gradient of the eigenvalue corresponding to the eigvec and matrix
@@ -216,9 +236,9 @@ def get_gradient_of_eigpair(K, eigpair, graph):
     """
 
     assert_is_eigpair(K, eigpair)
-    assert(is_square_matrix(K))
+    assert is_square_matrix(K)
 
-    #pylint: disable=unused-variable
+    # pylint: disable=unused-variable
     eigval, eigvec = eigpair
     num_rows, num_cols = K.shape
     grad = np.zeros(num_rows)
@@ -227,8 +247,9 @@ def get_gradient_of_eigpair(K, eigpair, graph):
         A = get_partial_deriv_of_matrix(K, index, graph)
         grad[index] = get_quadratic_multiplication(eigvec, A)
 
-    grad = grad/la.norm(grad,2)
+    grad = grad / la.norm(grad, 2)
     return grad
+
 
 def get_partial_deriv_of_matrix(K, index, graph):
     """
@@ -240,13 +261,13 @@ def get_partial_deriv_of_matrix(K, index, graph):
     :param      i:    index of input variable (eg (i = 0, v=x0) or (i=1, v=y0))
     :type       i:    int
     """
-    v = ''
+    v = ""
 
-    i = (int)(np.floor(index/2))
+    i = (int)(np.floor(index / 2))
     if index % 2 == 0:
-        v = 'x'
+        v = "x"
     else:
-        v = 'y'
+        v = "y"
 
     A = np.zeros_like(K)
     xi, yi = graph.get_node_loc_tuple(i)
@@ -255,40 +276,46 @@ def get_partial_deriv_of_matrix(K, index, graph):
     for j in node_i_connections:
         xj, yj = graph.get_node_loc_tuple(j)
 
-        dKii_di = np.zeros((2,2))
-        dKjj_di = np.zeros((2,2))
-        dKij_di = np.zeros((2,2))
-        dKji_di = np.zeros((2,2))
-        if v is 'x':
-            dKii_di = np.array( [[2*(xi-xj),        yi-yj   ],
-                                [yi-yj,             0       ]])
-            dKij_di = np.array( [[2*(xj-xi),        yj-yi   ],
-                                [yj-yi,             0       ]])
+        dKii_di = np.zeros((2, 2))
+        dKjj_di = np.zeros((2, 2))
+        dKij_di = np.zeros((2, 2))
+        dKji_di = np.zeros((2, 2))
+        if v is "x":
+            dKii_di = np.array([[2 * (xi - xj), yi - yj], [yi - yj, 0]])
+            dKij_di = np.array([[2 * (xj - xi), yj - yi], [yj - yi, 0]])
             dKjj_di = dKii_di
             dKji_di = dKij_di
-        elif v is 'y':
-            dKii_di = np.array( [[0,                xi-xj   ],
-                                [xi-xj,             2*(yi-yj)]])
-            dKij_di = np.array( [[0,                xj-xi   ],
-                                [xj-xi,             2*(yj-yi)]])
+        elif v is "y":
+            dKii_di = np.array([[0, xi - xj], [xi - xj, 2 * (yi - yj)]])
+            dKij_di = np.array([[0, xj - xi], [xj - xi, 2 * (yj - yi)]])
             dKjj_di = dKii_di
             dKji_di = dKij_di
         else:
             raise AssertionError
 
         # Kii
-        A[2*i:2*i+2, 2*i:2*i+2] += dKii_di
+        A[2 * i : 2 * i + 2, 2 * i : 2 * i + 2] += dKii_di
         # Kjj
-        A[2*j:2*j+2, 2*j:2*j+2] += dKjj_di
+        A[2 * j : 2 * j + 2, 2 * j : 2 * j + 2] += dKjj_di
         # Kij
-        A[2*i:2*i+2, 2*j:2*j+2] += dKij_di
+        A[2 * i : 2 * i + 2, 2 * j : 2 * j + 2] += dKij_di
         # Kji
-        A[2*j:2*j+2, 2*i:2*i+2] += dKji_di
-
+        A[2 * j : 2 * j + 2, 2 * i : 2 * i + 2] += dKji_di
 
     return A
 
-####### Lin. Alg. Utils #######
+
+""" Lin. Alg. Utils """
+
+
+def calc_dist_between_locations(loc1, loc2):
+    nx, ny = loc1
+    gx, gy = loc2
+    dx = gx - nx
+    dy = gy - ny
+    return math.hypot(dx, dy)
+
+
 def get_quadratic_multiplication(vec, mat):
     """
     returns x.T @ A @ x
@@ -303,36 +330,40 @@ def get_quadratic_multiplication(vec, mat):
 
     :raises     AssertionError:  x and A must be arrays of described shape
     """
-    quad_result =  vec.T @ mat @ vec
+    quad_result = vec.T @ mat @ vec
     return np.real(quad_result)
 
-####### Random Generator Utils #######
+
+""" Random Generator Utils """
+
+
 def generate_random_vec(nDim, length):
     vec = np.random.uniform(low=-2, high=2, size=nDim)
-    vec = vec/np.linalg.norm(vec,2)
+    vec = vec / np.linalg.norm(vec, 2)
     vec *= length
     return vec
+
 
 def generate_random_tuple(lb=0, ub=10, size=2):
     vec = np.random.uniform(low=lb, high=ub, size=size)
     t = tuple(vec)
     return t
 
-def generate_random_loc(xlb, xub, ylb, yub):
+
+def generate_random_loc(xlb: float, xub: float, ylb: float, yub: float) -> Tuple:
     x_val = np.random.uniform(low=xlb, high=xub)
     y_val = np.random.uniform(low=ylb, high=yub)
     return (x_val, y_val)
+
 
 def calc_localization_error(gnd_truth, est_locs):
     if not (gnd_truth.shape == est_locs.shape):
         print("Ground Truth Locs", gnd_truth)
         print("Estimated Locs", est_locs)
-        assert(gnd_truth.shape == est_locs.shape)
+        assert gnd_truth.shape == est_locs.shape
     num_rows = gnd_truth.shape[0]
     errors = []
     diff = gnd_truth - est_locs
     for row in range(num_rows):
         errors.append(la.norm(diff[row]))
     return errors
-
-

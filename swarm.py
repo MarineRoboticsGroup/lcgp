@@ -4,6 +4,7 @@ import numpy as np
 import graph
 import math_utils
 
+
 class Swarm:
     def __init__(self, sensingRadius, noise_model, noise_stddev):
         self.sensingRadius = sensingRadius
@@ -13,7 +14,8 @@ class Swarm:
         self.noise_stddev = noise_stddev
         self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
 
-    ####### Swarm Utils #######
+    """ Swarm Utils """
+
     def initialize_swarm(self, env, bounds, formation='square', nRobots=None, min_eigval=0.75):
         # initialize formation and edges
         self.startConfig = formation
@@ -47,7 +49,7 @@ class Swarm:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initialize_swarm_from_loc_list(self, loc_list):
-        assert(len(loc_list)%2 == 0)
+        assert(len(loc_list) % 2 == 0)
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
@@ -65,7 +67,8 @@ class Swarm:
         if self.robot_graph.get_num_edges() > 0:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
-    ####### Accessors #######
+    """ Accessors """
+
     def get_sensing_radius(self):
         return self.sensingRadius
 
@@ -93,33 +96,38 @@ class Swarm:
         eigpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         return eigpair
 
-    ####### Computation #######
+    """ Computation """
+
     def get_gradient_nth_eigval(self, n):
         nthEigenpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         if not (nthEigenpair[0] > 0):
             return False
 
-        gradient = math_utils.get_gradient_of_eigpair(self.fisher_info_matrix, nthEigenpair, self.robot_graph)
+        gradient = math_utils.get_gradient_of_eigpair(
+            self.fisher_info_matrix, nthEigenpair, self.robot_graph)
         return gradient
 
-    ####### Checks #######
+    """ Checks """
+
     def test_rigidity_from_loc_list(self, loc_list):
         if len(loc_list) < 3:
             return False
-        testGraph = graph.Graph(self.noise_model, self.noise_stddev)
-        testGraph.initialize_from_location_list(loc_list, self.sensingRadius)
-        eigval = testGraph.get_nth_eigval(4)
+        test_graph = graph.Graph(self.noise_model, self.noise_stddev)
+        test_graph.initialize_from_location_list(loc_list, self.sensingRadius)
+        eigval = test_graph.get_nth_eigval(4)
         return (self.min_eigval <= eigval)
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
         return (not (eigval == 0))
 
-    ####### Control #######
+    """ Control """
+
     def move_swarm(self, vector, is_relative_move=True):
         self.robot_graph.move_to(vector, is_relative_move=is_relative_move)
 
-    ####### Display Utils #######
+    """ Display Utils """
+
     def print_fisher_matrix(self):
         math_utils.matprint_block(self.fisher_info_matrix)
 

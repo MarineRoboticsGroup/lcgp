@@ -1,17 +1,16 @@
+from snl import solve_snl_with_sdp
+import kdtree
+import environment
+import math_utils
+from scipy.linalg import null_space, toeplitz
+from numpy import linalg as la
+import numpy as np
 import sys
 sys.path.insert(1, './snl')
 
-import numpy as np
-from numpy import linalg as la
-from scipy.linalg import null_space, toeplitz
-
-import math_utils
-import environment
-import kdtree
-from snl import solve_snl_with_sdp
 
 class Graph:
-    def __init__(self, noise_model:str, noise_stddev:float):
+    def __init__(self, noise_model: str, noise_stddev: float):
         self.edges = []
         self.edgeDistances = []
         self.nodes = []
@@ -23,7 +22,7 @@ class Graph:
         self.noise_stddev = noise_stddev
         self.fisher_info_matrix = None
 
-    def perform_snl(self, init_guess=None, solver:str=None):
+    def perform_snl(self, init_guess=None, solver: str = None):
         num_anchors = 3
         num_nodes = self.get_num_nodes() - num_anchors
         anchor_ids = [v+num_nodes for v in range(num_anchors)]
@@ -51,10 +50,12 @@ class Graph:
             else:
                 node_node_dists[edge] = noisy_dist
 
-        loc_est = solve_snl_with_sdp(num_nodes, node_node_dists, node_anchor_dists, anchor_locs, anchor_ids, init_guess=init_guess, solver=solver)
+        loc_est = solve_snl_with_sdp(num_nodes, node_node_dists, node_anchor_dists,
+                                     anchor_locs, anchor_ids, init_guess=init_guess, solver=solver)
         return loc_est
 
-    ###### Initialize and Format Graph ########
+    """ Initialize and Format Graph """
+
     def initialize_from_location_list(self, locationList, radius):
         self.remove_all_nodes()
         for loc in locationList:
@@ -87,7 +88,7 @@ class Graph:
         assert(self.edge_exists(edge))
         self.nEdges -= 1
         n1, n2 = edge
-        if (n1,n2) in self.edges:
+        if (n1, n2) in self.edges:
             self.edges.remove((n1, n2))
         else:
             self.edges.remove((n2, n1))
@@ -122,7 +123,8 @@ class Graph:
             self.remove_graph_edge(connection)
             self.nEdges -= 1
 
-    ###### Graph Accessors ########
+    """ Graph Accessors """
+
     def get_graph_edge_list(self, ):
         return self.edges
 
@@ -149,7 +151,8 @@ class Graph:
             locs.append(node.get_loc_tuple())
         return locs
 
-    ###### Node Accessors ########
+    """ Node Accessors """
+
     def get_node_loc_tuple(self, nodeNum):
         assert (self.node_exists(nodeNum))
         node = self.nodes[nodeNum]
@@ -173,39 +176,23 @@ class Graph:
             edges.append(edge)
         return edges
 
-    def get_edge_dist_vec(self, edge):
-        assert(self.edge_exists(edge))
-        id1, id2 = edge
-        node1 = self.nodes[id1]
-        node2 = self.nodes[id2]
-        x1, y1 = node1.get_loc_tuple()
-        x2, y2 = node2.get_loc_tuple()
-        v = np.array([x1-x2, y1-y2])
-        return v
-
     def get_edge_dist_scal(self, edge):
         assert(self.edge_exists(edge))
-        v = self.get_edge_dist_vec(edge)
-        return la.norm(v, 2)
+        id1, id2 = edge
+        loc1 = self.nodes[id1].get_loc_tuple()
+        loc2 = self.nodes[id2].get_loc_tuple()
+        return math_utils.calc_dist_between_locations(loc1, loc2)
 
-    def get_dist_vec_between_nodes(self, n1 , n2):
+    def get_dist_scal_between_nodes(self, n1, n2):
         assert(self.node_exists(n1))
         assert(self.node_exists(n2))
-        node1 = self.nodes[n1]
-        node2 = self.nodes[n2]
-        x1, y1 = node1.get_loc_tuple()
-        x2, y2 = node2.get_loc_tuple()
-        v = np.array([x1-x2, y1-y2])
-        return v
-
-    def get_dist_scal_between_nodes(self, n1 , n2):
-        assert(self.node_exists(n1))
-        assert(self.node_exists(n2))
-        v = self.get_dist_vec_between_nodes(n1, n2)
-        dist = la.norm(v, 2)
+        loc1 = self.nodes[n1].get_loc_tuple()
+        loc2 = self.nodes[n2].get_loc_tuple()
+        dist = math_utils.calc_dist_between_locations(loc1, loc2)
         return dist
 
-    ####### Construct Graph Formations #######
+    """ Construct Graph Formations """
+
     def init_test6_formation(self):
         self.add_node(3, 3)
         self.add_node(4, 2)
@@ -244,13 +231,15 @@ class Graph:
             return dist
 
         while len(locs) < num_robots:
-            loc = math_utils.generate_random_loc(2, bounds[0]/2, 2, bounds[1]/2)
+            loc = math_utils.generate_random_loc(
+                2, bounds[0]/2, 2, bounds[1]/2)
 
             if not env.is_free_space(loc):
                 continue
 
             satisfies_conditions = True
-            dists = np.array([distance(loc, existing_loc) for existing_loc in locs])
+            dists = np.array([distance(loc, existing_loc)
+                              for existing_loc in locs])
             if (dists < 1).any():
                 satisfies_conditions = False
             elif len(locs) == 1:
@@ -265,7 +254,8 @@ class Graph:
             self.add_node(locs[i][0], locs[i][1])
         print(f"Randomly Generated Robot Formation")
 
-    ####### Controls #######
+    """ Controls """
+
     def move_to(self, vec, is_relative_move=True):
         assert(len(vec) == 2*len(self.nodes))
         for i, node in enumerate(self.nodes):
@@ -277,15 +267,17 @@ class Graph:
             else:
                 node.move_node_absolute(newX, newY)
 
-    ####### Testing #######
+    """ Testing """
+
     def edge_exists(self, edge):
         n1, n2 = edge[0], edge[1]
         assert(self.node_exists(n1))
         assert(self.node_exists(n2))
-        return (((n1, n2) in self.edges ) or ((n2, n1) in self.edges ))
+        return (((n1, n2) in self.edges) or ((n2, n1) in self.edges))
 
     def node_exists(self, node):
         return (node < self.nNodes)
+
 
 class Node:
     def __init__(self, x, y):

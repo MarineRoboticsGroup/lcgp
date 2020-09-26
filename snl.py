@@ -11,9 +11,9 @@ def get_exclusion_vector(n, index):
     return vec
 
 def get_dist_between_locs(loc1, loc2):
-    deltax = loc1[0]-loc2[0]
-    deltay = loc1[1]-loc2[1]
-    dist = np.sqrt(deltax**2 + deltay**2)
+    delta_x = loc1[0]-loc2[0]
+    delta_y = loc1[1]-loc2[1]
+    dist = np.sqrt(delta_x**2 + delta_y**2)
     return dist
 
 def node_locs_to_dist_matrix(node_locs):

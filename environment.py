@@ -3,11 +3,12 @@ import math
 import math_utils
 import kdtree
 
+
 class Environment:
     def __init__(self, bounds, setting, num_obstacles):
         self.setting = setting
         self.obstacles = []
-        self.bounds = bounds # xlb, xub, ylb, yub
+        self.bounds = bounds  # xlb, xub, ylb, yub
         self.obstacleKDTree = None
 
         if setting == 'random':
@@ -21,7 +22,8 @@ class Environment:
         elif not setting == 'empty':
             raise NotImplementedError
 
-    ##### Modify and Initialize ############
+    """ Modify and Initialize """
+
     def add_obstacle(self, obs):
         self.obstacles.append(obs)
         return None
@@ -217,20 +219,24 @@ class Environment:
             radius = math_utils.generate_random_tuple(lb=.5, ub=1, size=1)
             center = math_utils.generate_random_tuple(lb=low, ub=upp, size=2)
             while not self.is_inside_bounds(center):
-                center = math_utils.generate_random_tuple(lb=low, ub=upp, size=2)
+                center = math_utils.generate_random_tuple(
+                    lb=low, ub=upp, size=2)
             obs = Obstacle(center, radius[0])
             self.add_obstacle(obs)
 
         if numObstacles > 0:
-            self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
+            self.obstacleKDTree = kdtree.KDTree(
+                self.get_obstacle_centers_list())
 
-    ###### Check Status ############
+    """ Check Status """
+
     def is_free_space(self, coords):
         if self.get_num_obstacles() == 0:
             return True
         if (not self.is_inside_bounds(coords)):
             return False
-        indices, dist = self.obstacleKDTree.search(np.array(coords).reshape(2, 1))
+        indices, dist = self.obstacleKDTree.search(
+            np.array(coords).reshape(2, 1))
         if dist[0] <= self.obstacles[indices[0]].get_radius():
             return False  # collision
         return True
@@ -257,7 +263,8 @@ class Environment:
             dx = (i+1)/num_steps*move[0]
             dy = (i+1)/num_steps*move[1]
             loc = [sx+dx, sy+dy]
-            indices, dist = self.obstacleKDTree.search(np.array(loc).reshape(2, 1))
+            indices, dist = self.obstacleKDTree.search(
+                np.array(loc).reshape(2, 1))
             if dist[0] <= self.obstacles[indices[0]].get_radius():
                 return False  # collision
 
@@ -268,13 +275,14 @@ class Environment:
         xlb, xub, ylb, yub = self.bounds
         return ((xlb < x < xub) and (ylb < y < yub))
 
-    ###### Accessors ############
+    """ Accessors """
+
     def get_obstacle_list(self,):
         return self.obstacles
 
     def get_obstacle_centers_list(self,):
         centers = []
-        for obs in  self.obstacles:
+        for obs in self.obstacles:
             cen = list(obs.get_center())
             centers.append(cen)
         return centers
@@ -284,6 +292,7 @@ class Environment:
 
     def get_num_obstacles(self):
         return len(self.obstacles)
+
 
 class Obstacle:
     def __init__(self, center, radius):
@@ -301,4 +310,3 @@ class Obstacle:
         x_center, y_center = self.center
         delta = np.array([x_pos-x_center, y_pos-y_center])
         return (np.linalg.norm(delta, 2) < self.radius)
-
