@@ -1,6 +1,7 @@
 import math_utils
 import graph
 
+from typing import Tuple, List
 import itertools
 import tracemalloc
 from sys import getsizeof
@@ -30,10 +31,10 @@ class RigidityLibrary:
         num_cols: int,
         max_num_robots: int,
     ):
-        assert noise_model in [
-            "add",
-            "lognorm",
-        ], f"You passed in an invalid noise model for the rigidity library: {noise_model}"
+        assert noise_model in ["add", "lognorm",], (
+            f"You passed in an invalid noise model for the"
+            f"rigidity library: {noise_model}"
+        )
 
         self.sensing_radius = sensing_radius
         self.noise_stddev = noise_stddev
@@ -43,9 +44,33 @@ class RigidityLibrary:
         self.num_cols = num_cols
         self.max_num_robots = max_num_robots
 
+        row_indices = range(self.num_rows)
+        col_indices = range(self.num_cols)
+        self.all_possible_node_indices = list(
+            itertools.product(row_indices, col_indices)
+        )
+
         cwd = os.getcwd()
-        self.filename = f"{cwd}/rigidity_dicts/{num_rows}rows_{num_cols}cols_{dist_between_nodes}delta_{noise_model}noise_{sensing_radius}radius.json"
+        self.filepath = (
+            f"{cwd}/rigidity_dicts/"
+            f"{num_rows}rows_{num_cols}cols_"
+            f"{dist_between_nodes}spacing_"
+            f"{noise_model}noise_{sensing_radius}radius.json"
+        )
         self.init_rigidity_library()
+
+    def increment_max_num_robots(self):
+        assert (
+            self.rigidity_library
+        ), f"ERROR! Rigidity library is: {self.rigidity_library}"
+        self.max_num_robots += 1
+        self.rigidity_library[self.max_num_robots] = self._generate_rigidity_dict(
+            self.max_num_robots
+        )
+
+    def get_current_num_robots(self):
+        num_robots = max(self.rigidity_library)
+        return int(num_robots)
 
     def has_cached_value(self, rows, cols, n_robots):
         if (
@@ -57,19 +82,24 @@ class RigidityLibrary:
         else:
             return True
 
-    def get_rigidity_value(self, locs: Tuple):
+    def get_rigidity_value(self, locs: List[Tuple]):
         n_robots = len(locs)
-        rigidity_value = self.rigidity_library[n_robots][str(locs)]
+        if n_robots > self.max_num_robots or n_robots < 3:
+            return None
+        locs = sorted(locs, key=lambda element: (element[0], element[1]))
+        locs = tuple(locs)
+        rigidity_value = self.rigidity_library.get(str(n_robots)).get(str(locs))
+        return rigidity_value
 
     def read_rigidity_library(self):
         path_dir = os.path.dirname(self.filepath)
         if not os.path.isdir(path_dir):
             os.mkdir(path_dir)
 
-        if not os.path.isfile(self.filename):
+        if not os.path.isfile(self.filepath):
             return None
 
-        with open(self.filename) as f:
+        with open(self.filepath) as f:
             data = json.load(f)
         return data
 
@@ -80,13 +110,7 @@ class RigidityLibrary:
         with open(self.filepath, "w") as f:
             json.dump(self.rigidity_library, f)
 
-    def init_rigidity_library(self):
-        """
-        Tries to read the rigidity library from a presaved file. If file not
-        found, then we construct the library and then write it to file for
-        future use
-        """
-
+    def _generate_rigidity_dict(self, num_robots):
         def check_if_locs_aligned(node_indices) -> bool:
             """This function is to check if the nodes are properly aligned in
             the checkerboard frame, as many of the possible combinations will
@@ -103,7 +127,6 @@ class RigidityLibrary:
             """
             if not (0 == node_indices[0][0]):
                 return False
-            aligned_col_0 = False
             for loc in node_indices:
                 if loc[1] == 0:
                     return True
@@ -162,21 +185,40 @@ class RigidityLibrary:
                         current * 1e-9 < 3
                     ), f"Overused memory. Stopping process. Current memory usage {current*1e-9} GB"
 
+        print(
+            f"Building Rigidity Library: {num_robots} robots, {self.dist_between_nodes} spacing, {self.num_rows} rows, {self.num_cols} cols"
+        )
+        rigidity_dict = {}
+        possible_node_locs = itertools.combinations(
+            self.all_possible_node_indices, num_robots
+        )
+        write_locs_to_dict(possible_node_locs, rigidity_dict)
+        return rigidity_dict
+
+    def init_rigidity_library(self):
+        """
+        Tries to read the rigidity library from a presaved file. If file not
+        found, then we construct the library and then write it to file for
+        future use
+        """
+
         self.rigidity_library = self.read_rigidity_library()
 
         # if no rigidity library read, construct one
         if self.rigidity_library is None:
             self.rigidity_library = {}
             print(f"No rigidity library read from file. Constructing one now")
-            row_indices = range(self.num_rows)
-            col_indices = range(self.num_cols)
-            node_indices = list(itertools.product(row_indices, col_indices))
-            for num_robot in range(3, self.num_robots + 1):
-                self.rigidity_library[num_robot] = {}
-                possible_node_locs = itertools.combinations(
-                    node_indices, max_num_robots
+            for num_robot in range(3, self.max_num_robots + 1):
+                self.rigidity_library[num_robot] = self._generate_rigidity_dict(
+                    num_robot
                 )
-                write_locs_to_dict(possible_node_locs, self.rigidity_library[num_robot])
+
+        cur_num_robots = self.get_current_num_robots()
+        if cur_num_robots < self.max_num_robots:
+            for num_robots in range(cur_num_robots, self.max_num_robots + 1):
+                self.rigidity_library[num_robot] = self._generate_rigidity_dict(
+                    num_robot
+                )
 
         # write library to file so can be read in the future
         self.write_rigidity_library()

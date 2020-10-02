@@ -5,13 +5,29 @@ import math
 import string
 from typing import List, Tuple
 from abc import abstractmethod
+import itertools
 
 import kdtree
 import math_utils
+import rigidity_library
 
 
 class Roadmap:
-    def __init__(self, robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN, ROADMAP_TYPE:str=None):
+    """This object represents the probabilistic roadmap.
+
+    Important: N_SAMPLE is not the number of locations in self.sample_locs. It is len(self.sample_locs) - 2*num_robots. This offset is due to the addition of the start and goal locations
+    """
+
+    def __init__(
+        self,
+        robots,
+        env,
+        goalLocs,
+        N_SAMPLE,
+        N_KNN,
+        MAX_EDGE_LEN,
+        ROADMAP_TYPE: str = None,
+    ):
         self.robots = robots
         self.env = env
         self.start_loc_list = self.robots.get_position_list_tuples()
@@ -23,49 +39,49 @@ class Roadmap:
 
         if not self.ROADMAP_TYPE:
             self.ROADMAP_TYPE = self.__class__.__name__
-            file_id = (f"{self.env.setting}_{self.robots.startConfig}_"
-                       f"{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}"
-                       f"len_{self.robots.get_num_robots()}rob_{self.ROADMAP_TYPE}")
+            file_id = (
+                f"{self.env.setting}_{self.robots.startConfig}_"
+                f"{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}"
+                f"len_{self.robots.get_num_robots()}rob_{self.ROADMAP_TYPE}"
+            )
             cwd = os.getcwd()
             self.roadmap_filename = f"{cwd}/cached_planning/roadmap_{file_id}.txt"
             self.sample_locs_filename = (
-                f"{cwd}/cached_planning/sample_locs_{file_id}.txt")
+                f"{cwd}/cached_planning/sample_locs_{file_id}.txt"
+            )
 
-        self.init_sample_locs_and_roadmap()
+        # self.init_sample_locs_and_roadmap()
 
     def init_sample_locs_and_roadmap(self):
-        print("Building Roadmap")
+        """Initializes both the sample locs and the roadmap for the object. If there are sample_locs files already written somewhere, we will read those and try to read in corresponding roadmap files. If there are not sample_locs files written somewhere then we will generate sample_locs and a new roadmap and write both to a file."""
 
         # try to read sample locs from file. If doesn't exist then generate
         # new sample locs
         sample_locs = self.read_sample_locs()
         if sample_locs and len(sample_locs) > 0:
             self.sample_locs = sample_locs
+            self.nodeKDTree = kdtree.KDTree(self.sample_locs)
             roadmap = self.read_roadmap()
             # try to read roadmap from file. If doesn't exist then generate new
             # roadmap
             if roadmap and (len(roadmap) > 0):
-                print("Read from existing roadmap file: %s\n" %
-                      self.roadmap_filename)
+                print("Read from existing roadmap file: %s" % self.roadmap_filename)
                 self.roadmap = roadmap
             else:
-                print("%s not found.\nGenerating Roadmap" %
-                      self.roadmap_filename)
+                print("%s not found. Generating Roadmap" % self.roadmap_filename)
                 self.roadmap = self.generate_roadmap()
                 self.write_roadmap()
-                print("New roadmap written to file\n")
+                print("New roadmap written to file")
 
         else:
-            print("%s not found.\nGenerating Sample Locs" %
-                  self.sample_locs_filename)
+            print("%s not found. Generating Sample Locs" % self.sample_locs_filename)
             self.sample_locs = np.array(self.generate_sample_locs())
+            self.nodeKDTree = kdtree.KDTree(self.sample_locs)
             self.write_sample_locs()
-            print("New sample locations written to file\n")
+            print("New sample locations written to file")
             self.roadmap = self.generate_roadmap()
             self.write_roadmap()
-            print("New roadmap written to file\n")
-
-        self.nodeKDTree = kdtree.KDTree(self.sample_locs)
+            print("New roadmap written to file")
 
     @abstractmethod
     def generate_sample_locs(self) -> None:
@@ -78,10 +94,10 @@ class Roadmap:
         """
         roadmap = []
         for curLoc in self.sample_locs:
-            index, _ = self.nodeKDTree.search(np.array(curLoc).reshape(2, 1),
-                                              k=self.N_KNN)
+            index, _ = self.nodeKDTree.search(
+                np.array(curLoc).reshape(2, 1), k=self.N_KNN
+            )
             inds = index[0]
-            # print(inds)
             edge_id = []
             for ii in range(1, len(inds)):
                 connectingLoc = self.sample_locs[inds[ii]]
@@ -160,8 +176,7 @@ class Roadmap:
     def write_roadmap(self):
         with open(self.roadmap_filename, "w") as filehandle:
             for roads in self.roadmap:
-                line = str(roads).translate(
-                    str.maketrans("", "", string.punctuation))
+                line = str(roads).translate(str.maketrans("", "", string.punctuation))
                 filehandle.write("%s\n" % line)
 
     def read_sample_locs(self):
@@ -184,6 +199,7 @@ class Roadmap:
 
 class ManhattanRoadmap(Roadmap):
     """
+    # TODO finish docstring
     docstring
     """
 
@@ -204,28 +220,87 @@ class ManhattanRoadmap(Roadmap):
         self.GRID_SPACING = GRID_SPACING
         self.ROADMAP_TYPE = self.__class__.__name__
 
-        file_id = (f"{self.env.setting}_{self.robots.startConfig}_"
-                   f"{GRID_SPACING}spacing_"
-                   f"{self.N_KNN}nn_{self.robots.get_num_robots()}rob_"
-                   f"{self.ROADMAP_TYPE}")
+        super().__init__(
+            robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN, self.ROADMAP_TYPE
+        )
+
+        file_id = (
+            f"{self.env.setting}_{self.robots.startConfig}_"
+            f"{GRID_SPACING}spacing_"
+            f"{self.N_KNN}nn_{self.robots.get_num_robots()}rob_"
+            f"{self.ROADMAP_TYPE}"
+        )
         cwd = os.getcwd()
         self.roadmap_filename = f"{cwd}/cached_planning/roadmap_{file_id}.txt"
         self.sample_locs_filename = f"{cwd}/cached_planning/sample_locs_{file_id}.txt"
 
-        super().__init__(robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN, self.ROADMAP_TYPE)
+        self.rigidity_library = rigidity_library.RigidityLibrary(
+            dist_between_nodes=self.GRID_SPACING,
+            sensing_radius=self.robots.get_sensing_radius(),
+            noise_stddev=self.robots.get_noise_stddev(),
+            noise_model=self.robots.get_noise_model(),
+            num_rows=self.NUM_ROWS,
+            num_cols=self.NUM_COLS,
+            max_num_robots=self.robots.get_num_robots(),
+        )
+
+        super().init_sample_locs_and_roadmap()
+
         print(f"Init ManhattanRoadmap. FileID: {self.roadmap_filename}")
 
-    # TODO finish this function
     def generate_sample_locs(self):
+        """Generates a list of gridded points within the free space of the
+        environment and then adds the start locations and goal locations of the
+        planner to the list. Then returns the list
+
+        Returns:
+            List[List]: A list of the sample locations. Each second list is n (x,y) pair
+        """
+
         xlb, xub, ylb, yub = self.env.bounds
         sample_locs = []
         x_locs = np.arange(xlb, xub, step=self.GRID_SPACING)
         y_locs = np.arange(ylb, yub, step=self.GRID_SPACING)
+        locs = list(itertools.product(x_locs, y_locs))
         # If not within obstacle add location
-        if self.env.is_free_space(loc):
+        for loc in locs:
+            if self.env.is_free_space(loc):
+                sample_locs.append(list(loc))
+
+        # N_SAMPLE is number of locs excluding start and goal
+
+        for loc in self.start_loc_list:
+            if loc in sample_locs:
+                sample_locs.remove(loc)
+            sample_locs.append(list(loc))
+        for loc in self.goalLocs:
+            if list(loc) in sample_locs:
+                sample_locs.remove(list(loc))
             sample_locs.append(list(loc))
 
-        raise NotImplementedError
+        self.N_SAMPLE = len(sample_locs) - len(self.start_loc_list) - len(self.goalLocs)
+        return sample_locs
+
+    def get_cached_rigidity(self, loc_list: List[List]) -> bool:
+        locs = np.array(loc_list)
+        # num_robots = len(locs)
+        if (locs % self.GRID_SPACING != 0).any():
+            return None
+
+        min_x = min(locs[:, 0])
+        min_y = min(locs[:, 1])
+        locs[:, 0] -= min_x
+        locs[:, 1] -= min_y
+        locs = (locs / self.GRID_SPACING).astype(int)
+        # n_rows = max(locs[:,0])
+        # n_cols = max(locs[:,1])
+        loc_indices = (locs / self.GRID_SPACING).astype(int)
+        loc_indices = [tuple(loc_index) for loc_index in loc_indices]
+        # print(f"loc_indices: {loc_indices}")
+        # rigidity_value = self.rigidity_library.get_rigidity_value(loc_indices, n_rows, n_cols, num_robots)
+        rigidity_value = self.rigidity_library.get_rigidity_value(loc_indices)
+        return rigidity_value
+
 
 class RandomRoadmap(Roadmap):
     """
@@ -234,18 +309,30 @@ class RandomRoadmap(Roadmap):
 
     def __init__(self, robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
         self.ROADMAP_TYPE = self.__class__.__name__
-        file_id = (f"{self.env.setting}_{self.robots.startConfig}_"
-                   f"{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}"
-                   f"len_{self.robots.get_num_robots()}rob_{self.ROADMAP_TYPE}")
+        file_id = (
+            f"{self.env.setting}_{self.robots.startConfig}_"
+            f"{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}"
+            f"len_{self.robots.get_num_robots()}rob_{self.ROADMAP_TYPE}"
+        )
         cwd = os.getcwd()
         self.roadmap_filename = f"{cwd}/cached_planning/roadmap_{file_id}.txt"
         self.sample_locs_filename = f"{cwd}/cached_planning/sample_locs_{file_id}.txt"
+        self.N_SAMPLE = N_SAMPLE
 
         super().__init__(robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN)
+        super().init_sample_locs_and_roadmap()
 
         print(f"Init RandomRoadmap. FileID: {self.roadmap_filename}")
 
     def generate_sample_locs(self):
+        """Generates a list of predetermined number of randomly sampled
+        locations in free space in the environment and then adds the start
+        locations and goal locations of the planner to the list. Then returns
+        the list
+
+        Returns:
+            List[List]: A list of the sample locations. Each second list is n (x,y) pair
+        """
         xlb, xub, ylb, yub = self.env.bounds
         sample_locs = []
         while len(sample_locs) < self.N_SAMPLE:
@@ -264,8 +351,9 @@ class RandomRoadmap(Roadmap):
     def generate_sample_locs_uniform(self):
         xlb, xub, ylb, yub = self.env.bounds
         sample_locs = []
-        distribution = chaospy.J(chaospy.Uniform(xlb + 0.1, xub - 0.1),
-                                 chaospy.Uniform(ylb + 0.1, yub - 0.1))
+        distribution = chaospy.J(
+            chaospy.Uniform(xlb + 0.1, xub - 0.1), chaospy.Uniform(ylb + 0.1, yub - 0.1)
+        )
         samples = distribution.sample(self.N_SAMPLE * 10, rule="halton")
         i = 0
         while len(sample_locs) < self.N_SAMPLE and i < len(samples[0]):

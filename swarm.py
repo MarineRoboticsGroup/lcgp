@@ -72,6 +72,12 @@ class Swarm:
     def get_sensing_radius(self):
         return self.sensingRadius
 
+    def get_noise_stddev(self):
+        return self.noise_stddev
+
+    def get_noise_model(self):
+        return self.noise_model
+
     def get_robot_graph(self):
         return self.robot_graph
 

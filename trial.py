@@ -534,8 +534,8 @@ if __name__ == "__main__":
     """
     # exp = 'coupled_astar'
     # exp = 'decoupled_rrt'
-    # exp = 'priority_prm'
-    exp = "read_file"
+    exp = 'priority_prm'
+    # exp = "read_file"
 
     # timestamp = 1600223009  # RRT
     timestamp = 1600226369  # PRM

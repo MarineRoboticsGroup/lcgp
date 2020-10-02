@@ -66,6 +66,8 @@ test.py
 cached_planning/*.txt
 figures/*.png
 trajs/*.txt
+*scrap*
+rigidity_dicts/*.json
 
 
 # PyTorch #
