@@ -11,7 +11,18 @@ import time
 import os
 import json
 
-def _generate_rigidity_dict(rigidity_library, num_robots, dist_between_nodes, noise_model, noise_stddev, sensing_radius, num_rows, num_cols, all_possible_node_indices):
+
+def _generate_rigidity_dict(
+    rigidity_library,
+    num_robots,
+    dist_between_nodes,
+    noise_model,
+    noise_stddev,
+    sensing_radius,
+    num_rows,
+    num_cols,
+    all_possible_node_indices,
+):
     def check_if_locs_aligned(node_indices) -> bool:
         """This function is to check if the nodes are properly aligned in
         the checkerboard frame, as many of the possible combinations will
@@ -90,11 +101,10 @@ def _generate_rigidity_dict(rigidity_library, num_robots, dist_between_nodes, no
         f"Building Rigidity Library: {num_robots} robots, {dist_between_nodes} spacing, {num_rows} rows, {num_cols} cols"
     )
     rigidity_dict = {}
-    possible_node_locs = itertools.combinations(
-        all_possible_node_indices, num_robots
-    )
+    possible_node_locs = itertools.combinations(all_possible_node_indices, num_robots)
     write_locs_to_dict(possible_node_locs, rigidity_dict)
     rigidity_library[num_robots] = rigidity_dict
+
 
 class RigidityLibrary:
     """This class is basically holding a bunch of dictionaries of precomputed
@@ -202,7 +212,7 @@ class RigidityLibrary:
         future use
         """
 
-# def _generate_rigidity_dict(num_robots, dist_between_nodes, noise_model, noise_stddev, sensing_radius, num_rows, num_cols, all_possible_node_indices):
+        # def _generate_rigidity_dict(num_robots, dist_between_nodes, noise_model, noise_stddev, sensing_radius, num_rows, num_cols, all_possible_node_indices):
 
         self.rigidity_library = self.read_rigidity_library()
 
@@ -213,13 +223,26 @@ class RigidityLibrary:
             manager = multiprocessing.Manager()
             temp_rigidity_library = manager.dict()
             nproc = multiprocessing.cpu_count()
-            pool = multiprocessing.Pool(nproc-2)
+            pool = multiprocessing.Pool(nproc - 2)
             for num_robots in range(3, self.max_num_robots + 1):
-                #* synchronous
+                # * synchronous
                 # _generate_rigidity_dict(temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices)
 
                 # *multiprocessed
-                pool.apply_async(_generate_rigidity_dict, args = (temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices))
+                pool.apply_async(
+                    _generate_rigidity_dict,
+                    args=(
+                        temp_rigidity_library,
+                        num_robots,
+                        self.dist_between_nodes,
+                        self.noise_model,
+                        self.noise_stddev,
+                        self.sensing_radius,
+                        self.num_rows,
+                        self.num_cols,
+                        self.all_possible_node_indices,
+                    ),
+                )
 
             pool.close()
             pool.join()
@@ -231,13 +254,26 @@ class RigidityLibrary:
                 temp_rigidity_library = manager.dict(self.rigidity_library)
 
                 nproc = multiprocessing.cpu_count()
-                pool = multiprocessing.Pool(nproc-2)
+                pool = multiprocessing.Pool(nproc - 2)
                 for num_robots in range(cur_num_robots, self.max_num_robots + 1):
-                    #* synchronous
+                    # * synchronous
                     # _generate_rigidity_dict(temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices)
 
                     # *multiprocessed
-                    pool.apply_async(_generate_rigidity_dict, args = (temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices))
+                    pool.apply_async(
+                        _generate_rigidity_dict,
+                        args=(
+                            temp_rigidity_library,
+                            num_robots,
+                            self.dist_between_nodes,
+                            self.noise_model,
+                            self.noise_stddev,
+                            self.sensing_radius,
+                            self.num_rows,
+                            self.num_cols,
+                            self.all_possible_node_indices,
+                        ),
+                    )
                 pool.close()
                 pool.join()
                 self.rigidity_library = dict(temp_rigidity_library)
@@ -245,15 +281,23 @@ class RigidityLibrary:
         # write library to file so can be read in the future
         self.write_rigidity_library()
 
+
 if __name__ == "__main__":
-    """ Just a little testing of functionality 
-    """
+    """Just a little testing of functionality"""
     dist_between_nodes = 1
     sensing_radius = 6
-    noise_stddev= 0.65
-    noise_model= 'add'
-    num_rows= 4
-    num_cols= 4
-    max_num_robots= 8
+    noise_stddev = 0.65
+    noise_model = "add"
+    num_rows = 4
+    num_cols = 4
+    max_num_robots = 8
 
-    r = RigidityLibrary(dist_between_nodes, sensing_radius, noise_stddev, noise_model, num_rows, num_cols, max_num_robots)
+    r = RigidityLibrary(
+        dist_between_nodes,
+        sensing_radius,
+        noise_stddev,
+        noise_model,
+        num_rows,
+        num_cols,
+        max_num_robots,
+    )

@@ -34,8 +34,8 @@ main.pdf
 
 # virtual environment
 #############
-range_only_env/
-range_only_env/*
+# range_only_env/
+# range_only_env/*
 
 
 # debugging
