@@ -222,7 +222,7 @@ class RigidityLibrary:
 
             manager = multiprocessing.Manager()
             temp_rigidity_library = manager.dict()
-            nproc = multiprocessing.cpu_count()
+            nproc = min(multiprocessing.cpu_count(), 14)
             pool = multiprocessing.Pool(nproc - 2)
             for num_robots in range(3, self.max_num_robots + 1):
                 # * synchronous
@@ -253,7 +253,7 @@ class RigidityLibrary:
                 manager = multiprocessing.Manager()
                 temp_rigidity_library = manager.dict(self.rigidity_library)
 
-                nproc = multiprocessing.cpu_count()
+                nproc = min(multiprocessing.cpu_count(), 14)
                 pool = multiprocessing.Pool(nproc - 2)
                 for num_robots in range(cur_num_robots, self.max_num_robots + 1):
                     # * synchronous
