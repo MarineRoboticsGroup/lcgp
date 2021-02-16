@@ -97,6 +97,7 @@ build/
 *.png
 *.mp4
 *.jpg
+*.xlsx
 
 # Blender #
 ###########
