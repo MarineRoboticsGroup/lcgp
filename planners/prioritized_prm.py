@@ -34,7 +34,7 @@ class PriorityPrm:
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
         self.N_SAMPLE = 850
-        self.N_KNN = 4
+        self.N_KNN = 10
         self.MAX_EDGE_LEN = 2
         self.NUM_ROWS = 15
         self.NUM_COLS = 15
@@ -53,17 +53,29 @@ class PriorityPrm:
         self.trajs = None
         self.coordTrajs = None
         # Necessary Objects
-        self.roadmap = ManhattanRoadmap(
-            self.robots,
-            self.env,
-            self.goalLocs,
-            self.N_SAMPLE,
-            self.N_KNN,
-            self.MAX_EDGE_LEN,
-            self.NUM_ROWS,
-            self.NUM_COLS,
-            self.GRID_SPACING,
-        )
+        manhattan_map = False
+        if manhattan_map:
+            self.roadmap = ManhattanRoadmap(
+                self.robots,
+                self.env,
+                self.goalLocs,
+                self.N_SAMPLE,
+                self.N_KNN,
+                self.MAX_EDGE_LEN,
+                self.NUM_ROWS,
+                self.NUM_COLS,
+                self.GRID_SPACING,
+            )
+        else:
+            self.roadmap = RandomRoadmap(
+                self.robots,
+                self.env,
+                self.goalLocs,
+                self.N_SAMPLE,
+                self.N_KNN,
+                self.MAX_EDGE_LEN,
+            )
+
         # self.plot_roadmap()
         self.constraintSets = self.ConstraintSets(self.robots, self.env, self.roadmap)
 
@@ -490,7 +502,7 @@ class PriorityPrm:
                     occupied = self.get_occupied_states(
                         trajs, update_robot_id, timestep + 1
                     )
-                    print(f"Occupied States for Robot {update_robot_id}: {occupied}")
+                    # print(f"Occupied States for Robot {update_robot_id}: {occupied}")
 
                 # reachable(t+1) = [valid(t) + neighbors of valid(t) -
                 # conflicts(update_robot_id, t+1)] - occupied[t+1]
@@ -611,12 +623,13 @@ class PriorityPrm:
                 dx = cur_node_loc[0] - other_robot_loc[0]
                 dy = cur_node_loc[1] - other_robot_loc[1]
                 dist_to_other_robot = np.hypot(dx, dy)
-                print(f"Current Node Location: {cur_node_loc}")
-                print(f"Other Node Location: {other_robot_loc}")
-                print(f"Current Node ID: {node_id}")
-                print(f"Other Node ID: {other_robot_loc_id}")
-                print(f"Dist to Node {robot_id}: {dist_to_other_robot}")
-                print()
+                if False:
+                    print(f"Current Node Location: {cur_node_loc}")
+                    print(f"Other Node Location: {other_robot_loc}")
+                    print(f"Current Node ID: {node_id}")
+                    print(f"Other Node ID: {other_robot_loc_id}")
+                    print(f"Dist to Node {robot_id}: {dist_to_other_robot}")
+                    print()
                 if dist_to_other_robot < self.robots.get_sensing_radius():
                     num_neighbors += 1
                 if dist_to_other_robot < 1e-2:
@@ -704,7 +717,6 @@ class PriorityPrm:
                     return conn_set
 
         def get_rigid_states(self, cur_robot_id, timestep):
-            assert False, "shouldnt be using this function anymore"
             # find most recent time to avoid checking state past end of robot
             # trajectory
             maxTime = len(self.rigid_states[cur_robot_id]) - 1

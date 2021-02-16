@@ -29,6 +29,8 @@ class Swarm:
             self.robot_graph.init_test6_formation()
         elif formation.lower() == 'test8':
             self.robot_graph.init_test8_formation()
+        elif formation.lower() == 'test20':
+            self.robot_graph.init_test20_formation()
         elif formation.lower() == 'random':
             self.robot_graph.init_random_formation(env, nRobots, bounds)
         else:

@@ -184,7 +184,7 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
     graph = swarm.get_robot_graph()
 
     # show preliminary view of the planning problem
-    # plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
+    plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
 
     if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
@@ -407,7 +407,10 @@ def init_goals(robots):
     # goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
 
     # curve environment
-    goals = [(loc[0] + 24, loc[1] + 25) for loc in robots.get_position_list_tuples()]
+    if robots.get_num_robots() == 20:
+        goals = [(loc[0] + 24, loc[1] + 18) for loc in robots.get_position_list_tuples()]
+    else:
+        goals = [(loc[0] + 24, loc[1] + 25) for loc in robots.get_position_list_tuples()]
 
     loc1 = (28, 19)
     loc2 = (31, 21)
@@ -538,22 +541,23 @@ if __name__ == "__main__":
     # exp = "read_file"
 
     # timestamp = 1600223009  # RRT
-    timestamp = 1600226369  # PRM
-    # timestemp = None
+    # timestamp = 1600226369  # PRM
+    timestamp = None
 
     useTime = False
     useRelative = False
     showAnimation = True
-    profile = False
+    profile = True
 
     # swarmForm = 'square'
     # swarmForm = 'test6'
-    swarmForm = "test8"
+    # swarmForm = "test8"
+    swarmForm = "test20"
     # swarmForm = 'random'
-    nRobots = 8
+    nRobots = 20
     noise_model = "add"
     sensingRadius = 6.5
-    min_eigval = 0.25
+    min_eigval = 0.0
     noise_stddev = 0.25
 
     # setting = 'random'

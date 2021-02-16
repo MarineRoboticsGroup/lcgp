@@ -39,7 +39,10 @@ def dist_matrix_to_dict(dist_matrix):
                 dist_dict[edge] = dist
     return dist_dict
 
-def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Dict, anchor_locs:Dict, anchor_ids:List[int], init_guess=None, solver:str=None):
+def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
+                        node_anchor_dists:Dict, anchor_locs:Dict,
+                        anchor_ids:List[int],
+                        init_guess=None, solver:str=None):
     """
     Takes general inputs of sensor network localization problem
     and returns solved for locations. Note that right now it is
@@ -57,6 +60,10 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict, node_anchor_dists:Di
     :type       anchor_locs:        dict{int: float}
     :param      anchor_ids:         The anchor identifiers
     :type       anchor_ids:         list of ints
+    :param      init_guess:         An initialization for locations being estimated
+    :type       init_guess:         np.ndarray((n-3)x2)
+    :param      solver:             The solver to use
+    :type       solver:             string
 
     :returns:   Ordered array of estimated locations
     :rtype:     numpy.ndarray, shape = ((num_nodes+num_anchors), 2)

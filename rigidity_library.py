@@ -1,6 +1,8 @@
 import math_utils
 import graph
 
+import subprocess
+import flamegraph
 import multiprocessing
 from typing import Tuple, List
 import itertools
@@ -58,6 +60,20 @@ def _generate_rigidity_dict(
             node_locs.append(pos)
         return node_locs
 
+    def transpose_is_in_set(added_locs, new_loc):
+        def transpose(locs):
+            loc_list = []
+            for loc in locs:
+                loc_list.append(tuple([loc[1], loc[0]]))
+            sorted_list = sorted(loc_list, key=lambda element: (element[0], element[1]))
+            locs = tuple(sorted_list)
+            return locs
+
+        trans_locs = transpose(new_loc)
+        if trans_locs in added_locs:
+            return True, trans_locs
+        return False, None
+
     def write_locs_to_dict(combo, d):
         """Takes an iterable item containing possible locations on the checkerboard, computes corresponding rigidity values for these items, and then stores these values in a given dict
 
@@ -68,18 +84,30 @@ def _generate_rigidity_dict(
                 value
         """
         test_graph = graph.Graph(noise_model, noise_stddev)
-        for j, node_indices in enumerate(combo):
+        locs_set = set(combo)
+        locs_list = list(locs_set)
+        added_locs = set()
+        symmetry_counter = 0
+        start_time = time.time()
+        for j, node_indices in enumerate(locs_list):
 
             # check if location is aligned on row 0 and col 0
             if not check_if_locs_aligned(node_indices):
+                locs_set.remove(node_indices)
                 continue
 
-            # convert to XY style coordinates and then test the rigidity of
-            # the corresponding graph
-            node_locs = convert_indices_to_locs(node_indices)
-            test_graph.initialize_from_location_list(node_locs, sensing_radius)
-            rigidity_val = test_graph.get_nth_eigval(4)
-            d[str(node_indices)] = rigidity_val
+            is_in_set, transpose_indices = transpose_is_in_set(added_locs, node_indices)
+            if is_in_set:
+                d[str(node_indices)] = d[str(transpose_indices)]
+                symmetry_counter += 1
+            else:
+                added_locs.add(node_indices)
+                # convert to XY style coordinates and then test the rigidity of
+                # the corresponding graph
+                node_locs = convert_indices_to_locs(node_indices)
+                test_graph.initialize_from_location_list(node_locs, sensing_radius)
+                rigidity_val = test_graph.get_nth_eigval(4)
+                d[str(node_indices)] = rigidity_val
 
             if j % 2000 == 0 and False:
                 print(f"Len Dict: {len(d)}")
@@ -96,6 +124,11 @@ def _generate_rigidity_dict(
                 assert (
                     current * 1e-9 < 3
                 ), f"Overused memory. Stopping process. Current memory usage {current*1e-9} GB"
+
+        end_time = time.time()
+        print(
+            f"Used symmetry {symmetry_counter} times for length {len(locs_list)} in {end_time-start_time} secs"
+        )
 
     print(
         f"Building Rigidity Library: {num_robots} robots, {dist_between_nodes} spacing, {num_rows} rows, {num_cols} cols"
@@ -125,6 +158,7 @@ class RigidityLibrary:
         num_rows: int,
         num_cols: int,
         max_num_robots: int,
+        multiproc: True,
     ):
         assert noise_model in ["add", "lognorm",], (
             f"You passed in an invalid noise model for the"
@@ -138,6 +172,7 @@ class RigidityLibrary:
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.max_num_robots = max_num_robots
+        self.multiproc = multiproc
 
         row_indices = range(self.num_rows)
         col_indices = range(self.num_cols)
@@ -220,46 +255,16 @@ class RigidityLibrary:
         if self.rigidity_library is None:
             print(f"No rigidity library read from file. Constructing one now")
 
-            manager = multiprocessing.Manager()
-            temp_rigidity_library = manager.dict()
-            nproc = min(multiprocessing.cpu_count(), 14)
-            pool = multiprocessing.Pool(nproc - 2)
-            for num_robots in range(3, self.max_num_robots + 1):
-                # * synchronous
-                # _generate_rigidity_dict(temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices)
-
-                # *multiprocessed
-                pool.apply_async(
-                    _generate_rigidity_dict,
-                    args=(
-                        temp_rigidity_library,
-                        num_robots,
-                        self.dist_between_nodes,
-                        self.noise_model,
-                        self.noise_stddev,
-                        self.sensing_radius,
-                        self.num_rows,
-                        self.num_cols,
-                        self.all_possible_node_indices,
-                    ),
-                )
-
-            pool.close()
-            pool.join()
-            self.rigidity_library = dict(temp_rigidity_library)
-        else:
-            cur_num_robots = self.get_current_num_robots()
-            if cur_num_robots < self.max_num_robots:
+            if self.multiproc:
                 manager = multiprocessing.Manager()
-                temp_rigidity_library = manager.dict(self.rigidity_library)
-
+                temp_rigidity_library = manager.dict()
                 nproc = min(multiprocessing.cpu_count(), 14)
                 pool = multiprocessing.Pool(nproc - 2)
-                for num_robots in range(cur_num_robots, self.max_num_robots + 1):
-                    # * synchronous
-                    # _generate_rigidity_dict(temp_rigidity_library, num_robots, self.dist_between_nodes, self.noise_model, self.noise_stddev, self.sensing_radius, self.num_rows, self.num_cols, self.all_possible_node_indices)
+            else:
+                temp_rigidity_library = dict()
 
-                    # *multiprocessed
+            for num_robots in range(3, self.max_num_robots + 1):
+                if self.multiproc:
                     pool.apply_async(
                         _generate_rigidity_dict,
                         args=(
@@ -274,12 +279,73 @@ class RigidityLibrary:
                             self.all_possible_node_indices,
                         ),
                     )
+                else:
+                    _generate_rigidity_dict(
+                        temp_rigidity_library,
+                        num_robots,
+                        self.dist_between_nodes,
+                        self.noise_model,
+                        self.noise_stddev,
+                        self.sensing_radius,
+                        self.num_rows,
+                        self.num_cols,
+                        self.all_possible_node_indices,
+                    )
+
+            if self.multiproc:
                 pool.close()
                 pool.join()
+
+            self.rigidity_library = dict(temp_rigidity_library)
+        else:
+            cur_num_robots = self.get_current_num_robots()
+            if cur_num_robots < self.max_num_robots:
+
+                if self.multiproc:
+                    manager = multiprocessing.Manager()
+                    temp_rigidity_library = manager.dict()
+                    nproc = min(multiprocessing.cpu_count(), 14)
+                    pool = multiprocessing.Pool(nproc - 2)
+                else:
+                    temp_rigidity_library = dict()
+
+                for num_robots in range(cur_num_robots, self.max_num_robots + 1):
+                    if self.multiproc:
+                        pool.apply_async(
+                            _generate_rigidity_dict,
+                            args=(
+                                temp_rigidity_library,
+                                num_robots,
+                                self.dist_between_nodes,
+                                self.noise_model,
+                                self.noise_stddev,
+                                self.sensing_radius,
+                                self.num_rows,
+                                self.num_cols,
+                                self.all_possible_node_indices,
+                            ),
+                        )
+                    else:
+                        _generate_rigidity_dict(
+                            temp_rigidity_library,
+                            num_robots,
+                            self.dist_between_nodes,
+                            self.noise_model,
+                            self.noise_stddev,
+                            self.sensing_radius,
+                            self.num_rows,
+                            self.num_cols,
+                            self.all_possible_node_indices,
+                        )
+
+                if self.multiproc:
+                    pool.close()
+                    pool.join()
+
                 self.rigidity_library = dict(temp_rigidity_library)
 
         # write library to file so can be read in the future
-        self.write_rigidity_library()
+        # self.write_rigidity_library()
 
 
 if __name__ == "__main__":
@@ -288,10 +354,17 @@ if __name__ == "__main__":
     sensing_radius = 6
     noise_stddev = 0.65
     noise_model = "add"
-    num_rows = 4
-    num_cols = 4
-    max_num_robots = 8
+    num_rows = 6
+    num_cols = 6
+    max_num_robots = 5
 
+    profile = True
+    if profile:
+        cwd = os.getcwd()
+        fg_log_path = f"{cwd}/profiling/test_rigidity_library.log"
+        fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
+
+    multiproc = False
     r = RigidityLibrary(
         dist_between_nodes,
         sensing_radius,
@@ -300,4 +373,12 @@ if __name__ == "__main__":
         num_rows,
         num_cols,
         max_num_robots,
+        multiproc,
     )
+
+    if profile:
+        fg_thread.stop()
+        fg_image_path = f"{cwd}/profiling/test_rigidity_library.svg"
+        fg_script_path = f"{cwd}/flamegraph/flamegraph.pl"
+        fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
+        subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)

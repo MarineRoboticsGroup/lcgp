@@ -136,7 +136,7 @@ def build_fisher_matrix(
     """
     num_nodes = len(nodes)
     num_edges = len(edges)
-    A = np.zeros((num_edges, 2 * num_nodes))
+    # A = np.zeros((num_edges, 2 * num_nodes))
     K = np.zeros((num_nodes * 2, num_nodes * 2))
     alpha = None
     if noise_model == "add":
@@ -159,38 +159,71 @@ def build_fisher_matrix(
         dist = np.sqrt(delXij ** 2 + delYij ** 2)
 
         # If want to form matrix as A.T @ A
-        # * This is recommended as tests indicate that it is faster
-        row = np.zeros(num_nodes * 2)
-        row[2 * i] = delXij
-        row[2 * i + 1] = delYij
-        row[2 * j] = -delXij
-        row[2 * j + 1] = -delYij
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            try:
-                row = row / ((noise_stddev) * (dist ** alpha))
-            except:
-                print(f"nodes: {i, j}")
-                print(f"locs: {xi, yi, xj, yj}")
-                print(f"row: {row}")
-                print(f"dist: {dist}")
-                assert False, "failed to prevent from occupying same position"
-        A[cnt] = row
+        # * This is not recommended as tests indicate that it is slower
+        if False:
+            row = np.zeros(num_nodes * 2)
+            row[2 * i] = delXij
+            row[2 * i + 1] = delYij
+            row[2 * j] = -delXij
+            row[2 * j + 1] = -delYij
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                try:
+                    row = row / ((noise_stddev) * (dist ** alpha))
+                except:
+                    print(f"nodes: {i, j}")
+                    print(f"locs: {xi, yi, xj, yj}")
+                    print(f"row: {row}")
+                    print(f"dist: {dist}")
+                    assert False, "failed to prevent from occupying same position"
+            A[cnt] = row
+        else:
+            # If want to form matrix directly
+            # Kii = np.array([[delXij**2,         delXij*delYij   ],
+            #                 [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
+            # Kij = -Kii
+            # # Kii
+            # K[2*i:2*i+2, 2*i:2*i+2] += Kii
+            # # Kjj
+            # K[2*j:2*j+2, 2*j:2*j+2] += Kii
+            # # Kij
+            # K[2*i:2*i+2, 2*j:2*j+2] = Kij
+            # # Kji
+            # K[2*j:2*j+2, 2*i:2*i+2] = Kij
+            denom = ((noise_stddev**2) * (dist)**(2*alpha))
+            delX2 = delXij**2 / denom
+            delY2 = delYij**2 / denom
+            delXY = delXij*delYij / denom
 
-        # If want to form matrix directly
-        # Kii = np.array([[delXij**2,         delXij*delYij   ],
-        #                 [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
-        # Kij = -Kii
-        # # Kii
-        # K[2*i:2*i+2, 2*i:2*i+2] += Kii
-        # # Kjj
-        # K[2*j:2*j+2, 2*j:2*j+2] += Kii
-        # # Kij
-        # K[2*i:2*i+2, 2*j:2*j+2] = Kij
-        # # Kji
-        # K[2*j:2*j+2, 2*i:2*i+2] = Kij
+            # Block ii
+            K[2*i, 2*i] += delX2
+            K[2*i+1, 2*i+1] += delY2
+            K[2*i, 2*i+1] += delXY
+            K[2*i+1, 2*i] += delXY
 
-    K = A.T @ A
+            # Block jj
+            K[2*j, 2*j] += delX2
+            K[2*j+1, 2*j+1] += delY2
+            K[2*j, 2*j+1] += delXY
+            K[2*j+1, 2*j] += delXY
+
+            # Block ij
+            K[2*i, 2*j] = -delX2
+            K[2*i+1, 2*j+1] = -delY2
+            K[2*i, 2*j+1] = -delXY
+            K[2*i+1, 2*j] = -delXY
+
+            # Block ji
+            K[2*j, 2*i] = -delX2
+            K[2*j+1, 2*i+1] = -delY2
+            K[2*j, 2*i+1] = -delXY
+            K[2*j+1, 2*i] = -delXY
+
+
+    #! Disabled because other way is faster
+    # K = A.T @ A
+    #! Disabled because other way is faster
+
     # Testing different ways of building matrix
     # test = (A.T @ A)-K
     # print("TESTING")

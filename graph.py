@@ -6,6 +6,7 @@ from scipy.linalg import null_space, toeplitz
 from numpy import linalg as la
 import numpy as np
 import sys
+import itertools
 sys.path.insert(1, './snl')
 
 
@@ -23,6 +24,19 @@ class Graph:
         self.fisher_info_matrix = None
 
     def perform_snl(self, init_guess=None, solver: str = None):
+        """Uses different sensor network localization techniques
+
+        Args:
+            init_guess ([type], optional): [description]. Defaults to None.
+            solver (str, optional): The solver type for the SNL. Defaults to None.
+
+        Raises:
+            NotImplementedError: Not a valid noise model
+
+        Returns:
+            :returns:   Ordered array of estimated locations
+            :rtype:     numpy.ndarray, shape = ((num_nodes+num_anchors), 2)
+        """
         num_anchors = 3
         num_nodes = self.get_num_nodes() - num_anchors
         anchor_ids = [v+num_nodes for v in range(num_anchors)]
@@ -41,7 +55,7 @@ class Graph:
                 noise = np.random.normal(1, self.noise_stddev)
                 noisy_dist = dist*noise
             else:
-                raise NotImplementedError
+                raise NotImplementedError("Not a valid noise model")
 
             if i in anchor_ids and j in anchor_ids:
                 continue
@@ -210,6 +224,22 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(8, 6)
         self.add_node(8, 8)
+
+    def init_test20_formation(self):
+        x_range = np.linspace(2, 8, num=4)
+        y_range = np.linspace(2, 10, num=5)
+        locs = list(itertools.product(x_range, y_range))
+        inds = [i for i in range(len(locs))]
+        while len(inds) > 0:
+            ind = np.random.choice(inds, replace=False)
+            inds.remove(ind)
+            loc = locs[ind]
+            x = loc[0]
+            y = loc[1]
+            self.add_node(x, y)
+            print(len(inds))
+
+
 
     def init_square_formation(self):
         # self.add_node(1, 1)

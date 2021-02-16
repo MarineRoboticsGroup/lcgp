@@ -242,6 +242,7 @@ class ManhattanRoadmap(Roadmap):
             num_rows=self.NUM_ROWS,
             num_cols=self.NUM_COLS,
             max_num_robots=self.robots.get_num_robots(),
+            multiproc=True,
         )
 
         super().init_sample_locs_and_roadmap()
@@ -309,6 +310,9 @@ class RandomRoadmap(Roadmap):
 
     def __init__(self, robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN):
         self.ROADMAP_TYPE = self.__class__.__name__
+        self.N_SAMPLE = N_SAMPLE
+
+        super().__init__(robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN)
         file_id = (
             f"{self.env.setting}_{self.robots.startConfig}_"
             f"{self.N_SAMPLE}samples_{self.N_KNN}nn_{self.MAX_EDGE_LEN}"
@@ -317,38 +321,21 @@ class RandomRoadmap(Roadmap):
         cwd = os.getcwd()
         self.roadmap_filename = f"{cwd}/cached_planning/roadmap_{file_id}.txt"
         self.sample_locs_filename = f"{cwd}/cached_planning/sample_locs_{file_id}.txt"
-        self.N_SAMPLE = N_SAMPLE
 
-        super().__init__(robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN)
         super().init_sample_locs_and_roadmap()
+
 
         print(f"Init RandomRoadmap. FileID: {self.roadmap_filename}")
 
     def generate_sample_locs(self):
-        """Generates a list of predetermined number of randomly sampled
-        locations in free space in the environment and then adds the start
-        locations and goal locations of the planner to the list. Then returns
-        the list
+        """Generates a list of predetermined number of deterministic but
+        randomly sampled locations in free space according to the halton
+        distribution in the environment and then adds the start locations and
+        goal locations of the planner to the list. Then returns the list
 
-        Returns:
-            List[List]: A list of the sample locations. Each second list is n (x,y) pair
+        Returns: List[List]: A list of the sample locations. Each second list is
+            n (x,y) pair
         """
-        xlb, xub, ylb, yub = self.env.bounds
-        sample_locs = []
-        while len(sample_locs) < self.N_SAMPLE:
-            newLoc = math_utils.generate_random_loc(xlb, xub, ylb, yub)
-            # If not within obstacle add location
-            if self.env.is_free_space(newLoc):
-                sample_locs.append(list(newLoc))
-
-        # make sure start and goal locations added
-        for loc in self.start_loc_list:
-            sample_locs.append(list(loc))
-        for loc in self.goalLocs:
-            sample_locs.append(list(loc))
-        return sample_locs
-
-    def generate_sample_locs_uniform(self):
         xlb, xub, ylb, yub = self.env.bounds
         sample_locs = []
         distribution = chaospy.J(
