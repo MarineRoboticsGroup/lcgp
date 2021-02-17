@@ -190,6 +190,10 @@ class Roadmap:
         return sample_locs
 
     def write_sample_locs(self):
+        file_dir = os.path.dirname(self.sample_locs_filename)
+        if not os.path.isdir(file_dir):
+            os.mkdir(file_dir, exist_ok=True)
+
         with open(self.sample_locs_filename, "w") as filehandle:
             for sample_loc in self.sample_locs:
                 # line = str(sample_loc)[1:-1]

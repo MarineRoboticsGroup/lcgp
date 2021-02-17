@@ -60,6 +60,11 @@ def test_trajectory(
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
+
+        file_dir = os.path.dirname(traj_filepath)
+        if not os.path.isdir(file_dir):
+            os.mkdir(file_dir, exist_ok=True)
+
         with open(traj_filepath, "w") as filehandle:
             for traj in trajs:
                 filehandle.write("%s\n" % traj)
@@ -550,11 +555,11 @@ if __name__ == "__main__":
     profile = True
 
     # swarmForm = 'square'
-    # swarmForm = 'test6'
+    swarmForm = 'test6'
     # swarmForm = "test8"
-    swarmForm = "test20"
+    # swarmForm = "test20"
     # swarmForm = 'random'
-    nRobots = 20
+    nRobots = 6
     noise_model = "add"
     sensingRadius = 6.5
     min_eigval = 0.0
