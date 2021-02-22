@@ -118,7 +118,7 @@ class Roadmap:
     def get_loc(self, loc_id):
         return self.sample_locs[loc_id]
 
-    def robots_would_collide(loc_id_1, loc_id_2, robot_size):
+    def robots_would_collide(self, loc_id_1, loc_id_2, robot_size):
         loc_1 = self.get_loc(loc_id_1)
         loc_2 = self.get_loc(loc_id_2)
         x_dif = loc_1[0]-loc_2[0]
