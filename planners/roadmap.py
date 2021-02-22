@@ -65,16 +65,19 @@ class Roadmap:
             # try to read roadmap from file. If doesn't exist then generate new
             # roadmap
             if roadmap and (len(roadmap) > 0):
-                print("Read from existing roadmap file: %s" % self.roadmap_filename)
+                print("Read from existing roadmap file: %s" %
+                      self.roadmap_filename)
                 self.roadmap = roadmap
             else:
-                print("%s not found. Generating Roadmap" % self.roadmap_filename)
+                print("%s not found. Generating Roadmap" %
+                      self.roadmap_filename)
                 self.roadmap = self.generate_roadmap()
                 self.write_roadmap()
                 print("New roadmap written to file")
 
         else:
-            print("%s not found. Generating Sample Locs" % self.sample_locs_filename)
+            print("%s not found. Generating Sample Locs" %
+                  self.sample_locs_filename)
             self.sample_locs = np.array(self.generate_sample_locs())
             self.nodeKDTree = kdtree.KDTree(self.sample_locs)
             self.write_sample_locs()
@@ -84,7 +87,7 @@ class Roadmap:
             print("New roadmap written to file")
 
     @abstractmethod
-    def generate_sample_locs(self) -> None:
+    def generate_sample_locs(self) -> List[List]:
         pass
 
     def generate_roadmap(self):
@@ -114,6 +117,13 @@ class Roadmap:
 
     def get_loc(self, loc_id):
         return self.sample_locs[loc_id]
+
+    def robots_would_collide(loc_id_1, loc_id_2, robot_size):
+        loc_1 = self.get_loc(loc_id_1)
+        loc_2 = self.get_loc(loc_id_2)
+        x_dif = loc_1[0]-loc_2[0]
+        y_dif = loc_1[1]-loc_2[1]
+        return((-robot_size < x_dif < robot_size) or (-robot_size < y_dif < robot_size))
 
     def get_distance_between_loc_ids(self, loc_id_1, loc_id_2):
         loc_1 = self.get_loc(loc_id_1)
@@ -176,7 +186,8 @@ class Roadmap:
     def write_roadmap(self):
         with open(self.roadmap_filename, "w") as filehandle:
             for roads in self.roadmap:
-                line = str(roads).translate(str.maketrans("", "", string.punctuation))
+                line = str(roads).translate(
+                    str.maketrans("", "", string.punctuation))
                 filehandle.write("%s\n" % line)
 
     def read_sample_locs(self):
@@ -283,7 +294,8 @@ class ManhattanRoadmap(Roadmap):
                 sample_locs.remove(list(loc))
             sample_locs.append(list(loc))
 
-        self.N_SAMPLE = len(sample_locs) - len(self.start_loc_list) - len(self.goalLocs)
+        self.N_SAMPLE = len(sample_locs) - \
+            len(self.start_loc_list) - len(self.goalLocs)
         return sample_locs
 
     def get_cached_rigidity(self, loc_list: List[List]) -> bool:
@@ -328,10 +340,9 @@ class RandomRoadmap(Roadmap):
 
         super().init_sample_locs_and_roadmap()
 
-
         print(f"Init RandomRoadmap. FileID: {self.roadmap_filename}")
 
-    def generate_sample_locs(self):
+    def generate_sample_locs(self) -> List[List]:
         """Generates a list of predetermined number of deterministic but
         randomly sampled locations in free space according to the halton
         distribution in the environment and then adds the start locations and
@@ -343,7 +354,8 @@ class RandomRoadmap(Roadmap):
         xlb, xub, ylb, yub = self.env.bounds
         sample_locs = []
         distribution = chaospy.J(
-            chaospy.Uniform(xlb + 0.1, xub - 0.1), chaospy.Uniform(ylb + 0.1, yub - 0.1)
+            chaospy.Uniform(xlb + 0.1, xub -
+                            0.1), chaospy.Uniform(ylb + 0.1, yub - 0.1)
         )
         samples = distribution.sample(self.N_SAMPLE * 10, rule="halton")
         i = 0

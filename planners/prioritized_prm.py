@@ -279,6 +279,15 @@ class PriorityPrm:
         if not is_valid_state:
             return False
 
+        # check for collisions with other robots
+        # will treat robot as a 0.4 m x 0.4 m square
+        robot_size = 0.45
+        for i in range(0, cur_robot_id):
+            other_robot_loc_id = self.get_location_id_at_time(i, timestep)
+            if self.roadmap.robots_would_collide(other_robot_loc_id, loc_id, robot_size):
+                return False
+
+
         # * Trying heuristic tricks to get configuration to spread out more
         # if cur_robot_id == 1 :
         #     loc0 = self.get_location_at_time(0, timestep)
