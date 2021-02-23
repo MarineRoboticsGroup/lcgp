@@ -153,8 +153,8 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
 
     if init_guess is not None:
         X.value = init_guess
-    sol = problem.solve(solver=cp.MOSEK, warm_start=True)
-    # sol = problem.solve(solver=cp.SCS, warm_start=True)
+    # sol = problem.solve(solver=cp.MOSEK, warm_start=True)
+    sol = problem.solve(solver=cp.SCS, warm_start=True)
 
     if X.value is None:
         return np.zeros((num_nodes, 2))

@@ -33,6 +33,8 @@ class Swarm:
             self.robot_graph.init_test20_formation()
         elif formation.lower() == 'random':
             self.robot_graph.init_random_formation(env, nRobots, bounds)
+        elif formation.lower() == 'simple_vicon':
+            self.robot_graph.init_test_simple_vicon_formation()
         else:
             print("The given formation is not valid\n")
             raise NotImplementedError

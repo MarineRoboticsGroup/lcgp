@@ -281,10 +281,11 @@ class PriorityPrm:
 
         # check for collisions with other robots
         # will treat robot as a 0.4 m x 0.4 m square
-        robot_size = 0.45
+        robot_size = 0.4
         for i in range(0, cur_robot_id):
             other_robot_loc_id = self.get_location_id_at_time(i, timestep)
             if self.roadmap.robots_would_collide(other_robot_loc_id, loc_id, robot_size):
+                print("Robots Collided")
                 return False
 
 

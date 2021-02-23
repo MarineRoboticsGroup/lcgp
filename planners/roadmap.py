@@ -121,9 +121,10 @@ class Roadmap:
     def robots_would_collide(self, loc_id_1, loc_id_2, robot_size):
         loc_1 = self.get_loc(loc_id_1)
         loc_2 = self.get_loc(loc_id_2)
-        x_dif = loc_1[0]-loc_2[0]
-        y_dif = loc_1[1]-loc_2[1]
-        return((-robot_size < x_dif < robot_size) or (-robot_size < y_dif < robot_size))
+        x_dif = abs(loc_1[0]-loc_2[0])
+        y_dif = abs(loc_1[1]-loc_2[1])
+
+        return((x_dif < robot_size + .1*robot_size) and (y_dif < robot_size + .1*robot_size))
 
     def get_distance_between_loc_ids(self, loc_id_1, loc_id_2):
         loc_1 = self.get_loc(loc_id_1)

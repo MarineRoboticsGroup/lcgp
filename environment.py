@@ -19,6 +19,10 @@ class Environment:
             self.init_adversarial1_env()
         elif setting == 'adversarial2':
             self.init_adversarial2_env()
+        elif setting == 'simple_vicon':
+            self.init_simple_vicon_env()
+        elif setting == 'obstacle_vicon':
+            self.init_obstacle_vicon_env()
         elif not setting == 'empty':
             raise NotImplementedError
 
@@ -208,6 +212,94 @@ class Environment:
             cen = (x, yCenLower)
             obs = Obstacle(cen, radius)
             self.add_obstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
+
+    def init_simple_vicon_env(self):
+        xlb, xub, ylb, yub = self.bounds
+        radius = .1
+        increments = 65
+        # make left and right walls
+        for y in np.linspace(ylb, yub, increments):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.add_obstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, increments):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.add_obstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
+
+    def init_obstacle_vicon_env(self):
+        xlb, xub, ylb, yub = self.bounds
+        radius = .1
+        increments = 65
+        # make left and right walls
+        for y in np.linspace(ylb, yub, increments):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.add_obstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, increments):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.add_obstacle(obs)
+
+        # # left divider
+        # span = yub-ylb
+        # dividerLen = 1/3
+        # xCenLeft = xlb+(xub-xlb)/3
+        # for y in np.linspace(ylb, ylb + dividerLen*span, increments):
+        #     cen = (xCenLeft, y)
+        #     obs = Obstacle(cen, radius)
+        #     self.add_obstacle(obs)
+
+        # # right divider
+        # xCenRight = xlb+2*(xub-xlb)/3
+        # for y in np.linspace(yub-dividerLen*span, yub, increments):
+        #     cen = (xCenRight, y)
+        #     obs = Obstacle(cen, radius)
+        #     self.add_obstacle(obs)
+        
+        tote_center = (2.1, 1.2)
+        tote_width = .90
+        tote_depth = .46
+        # for x in np.linspace(tote_center[0] - tote_width/2, tote_center[0] + tote_width/2, increments):
+            # cen = (x, tote_center[1] + tote_depth)
+            # obs = Obstacle(cen, radius)
+            # self.add_obstacle(obs)
+
+            # cen = (x, tote_center[1] - tote_depth)
+            # obs = Obstacle(cen, radius)
+            # self.add_obstacle(obs)
+
+        for y in np.linspace(tote_center[1] - tote_width/2, tote_center[1] + tote_width/2, increments):
+            cen = (2.0, y)
+            obs = Obstacle(cen, radius)
+            self.add_obstacle(obs)
+
+            cen = (2.2, y)
+            obs = Obstacle(cen, radius)
+            self.add_obstacle(obs)
+
+
+
 
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 

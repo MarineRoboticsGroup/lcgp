@@ -411,11 +411,15 @@ def init_goals(robots):
     # random config
     # goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
 
+    #vicon experiment
+    goals = [(loc[0]+2, loc[1]) for loc in robots.get_position_list_tuples()]
+    goals = [(3.5, 0.9), (3.5, 1.5), (3.0, 2.1), (3.0, .3), (2.5, 0.9), (2.5, 1.5)] #difficult goals
+
     # curve environment
-    if robots.get_num_robots() == 20:
-        goals = [(loc[0] + 24, loc[1] + 18) for loc in robots.get_position_list_tuples()]
-    else:
-        goals = [(loc[0] + 24, loc[1] + 25) for loc in robots.get_position_list_tuples()]
+    # if robots.get_num_robots() == 20:
+    #     goals = [(loc[0] + 24, loc[1] + 18) for loc in robots.get_position_list_tuples()]
+    # else:
+    #     goals = [(loc[0] + 24, loc[1] + 25) for loc in robots.get_position_list_tuples()]
 
     loc1 = (28, 19)
     loc2 = (31, 21)
@@ -487,7 +491,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     ##### Perform Planning ######
     #############################
     startPlanning = time.time()
-    if profile:
+    if False:
         fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{trial_timestamp}.log"
         fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
 
@@ -552,24 +556,31 @@ if __name__ == "__main__":
     useTime = False
     useRelative = False
     showAnimation = True
-    profile = True
+    profile = False
 
     # swarmForm = 'square'
-    swarmForm = 'test6'
+    # swarmForm = 'test6'
     # swarmForm = "test8"
     # swarmForm = "test20"
     # swarmForm = 'random'
+    swarmForm = 'simple_vicon'
+
     nRobots = 6
     noise_model = "add"
     sensingRadius = 6.5
-    min_eigval = 0.0
+    min_eigval = 0.1
     noise_stddev = 0.25
 
     # setting = 'random'
-    setting = "curve_maze"
+    # setting = "curve_maze"
     # setting = 'adversarial1'
     # setting = 'adversarial2'
-    envSize = (35, 35)
+    # setting = 'simple_vicon'
+    setting = 'obstacle_vicon'
+
+    envSize = (4.2, 2.4) #vicon
+    # envSize = (35, 35) #simulation
+
     numObstacles = 30
 
     experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)

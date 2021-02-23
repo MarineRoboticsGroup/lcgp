@@ -207,6 +207,15 @@ class Graph:
 
     """ Construct Graph Formations """
 
+    def init_test_simple_vicon_formation(self):
+        self.add_node(.5, .9)
+        self.add_node(.5, 1.5)
+        self.add_node(1.0, .3)
+        self.add_node(1.0, 2.1)
+        self.add_node(1.5, .9)
+        self.add_node(1.5, 1.5)
+        
+
     def init_test6_formation(self):
         self.add_node(3, 3)
         self.add_node(4, 2)
