@@ -281,13 +281,33 @@ class PriorityPrm:
 
         # check for collisions with other robots
         # will treat robot as a 0.4 m x 0.4 m square
+        goal_id = self.roadmap.get_goal_index(cur_robot_id)
+
         robot_size = 0.4
-        for i in range(0, cur_robot_id):
-            other_robot_loc_id = self.get_location_id_at_time(i, timestep)
-            if self.roadmap.robots_would_collide(other_robot_loc_id, loc_id, robot_size):
-                print("Robots Collided")
+        for other_robot_id in range(0, cur_robot_id):
+
+            other_robot_loc_id = self.get_location_id_at_time(other_robot_id, timestep)
+            if self.roadmap.robots_would_collide(
+                other_robot_loc_id, loc_id, robot_size
+            ):
+                # print("Robots Collided")
                 return False
 
+            # iterate through all timestep/locations for robot i
+            # because the current robot will sit at this location
+            # after the planning is finished
+            if loc_id == goal_id:
+                # print("Checking goal location condition")
+                max_time = len(self.trajs[other_robot_id]) - 1
+                for _time in range(timestep, max_time + 1):
+                    other_robot_loc_id = self.get_location_id_at_time(
+                        other_robot_id, _time
+                    )
+                    if self.roadmap.robots_would_collide(
+                        other_robot_loc_id, loc_id, robot_size
+                    ):
+                        # print(f"Robot {cur_robot_id} collided with robot {other_robot_id} due to goal location condition")
+                        return False
 
         # * Trying heuristic tricks to get configuration to spread out more
         # if cur_robot_id == 1 :
