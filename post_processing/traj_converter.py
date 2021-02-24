@@ -33,9 +33,6 @@ def write_grouped_by_robot(input_file: str, output_file: str):
         if type(output[i]) != list:  # filter out newlines
             continue
         traj = output[i]
-        print(traj)
-        print(traj[-1])
-        print([traj[-1] for i in range(max_traj_length - len(traj))])
         output[i] = traj + [traj[-1] for i in range(max_traj_length - len(traj))]
 
 
@@ -121,8 +118,8 @@ def write_grouped_by_coordinates(input_file: str, output_file: str):
 
 
 if __name__ == "__main__":
-    input_file = "input_trajs.txt"
-    output_file = "output_trajs.txt"
+    input_file = "traj_4.txt"
+    output_file = "robots_traj_4.txt"
 
     grouping = "robots" # write in groupings by robot trajectories
     grouping = "coordinates" # write grouped by coordinates

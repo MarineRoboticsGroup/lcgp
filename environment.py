@@ -241,8 +241,8 @@ class Environment:
 
     def init_obstacle_vicon_env(self):
         xlb, xub, ylb, yub = self.bounds
-        radius = .1
-        increments = 65
+        radius = .2 #accounts for robot size
+        increments = 40
         # make left and right walls
         for y in np.linspace(ylb, yub, increments):
             cenLeft = (xlb, y)
@@ -260,46 +260,31 @@ class Environment:
             self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
             self.add_obstacle(obs)
-
-        # # left divider
-        # span = yub-ylb
-        # dividerLen = 1/3
-        # xCenLeft = xlb+(xub-xlb)/3
-        # for y in np.linspace(ylb, ylb + dividerLen*span, increments):
-        #     cen = (xCenLeft, y)
-        #     obs = Obstacle(cen, radius)
-        #     self.add_obstacle(obs)
-
-        # # right divider
-        # xCenRight = xlb+2*(xub-xlb)/3
-        # for y in np.linspace(yub-dividerLen*span, yub, increments):
-        #     cen = (xCenRight, y)
-        #     obs = Obstacle(cen, radius)
-        #     self.add_obstacle(obs)
         
-        tote_center = (2.1, 1.2)
-        tote_width = .90
-        tote_depth = .46
-        # for x in np.linspace(tote_center[0] - tote_width/2, tote_center[0] + tote_width/2, increments):
-            # cen = (x, tote_center[1] + tote_depth)
-            # obs = Obstacle(cen, radius)
-            # self.add_obstacle(obs)
+        all_obstacles = [((2.0, 1.4), (.40, .50)), 
+                         ((3.0, .7), (.25, .25)), 
+                         ((1.0, 1.0), (.15, .15)), 
+                         ((3.0, 2.0), (.20, .30))] #((x,y), (depth, width))
 
-            # cen = (x, tote_center[1] - tote_depth)
-            # obs = Obstacle(cen, radius)
-            # self.add_obstacle(obs)
+        for i in range(len(all_obstacles)):
+            (x_0, y_0) = all_obstacles[i][0]
+            (block_depth, block_width) = all_obstacles[i][1]
+            increments = max(int(max(block_depth, block_width)*10), 5)
 
-        for y in np.linspace(tote_center[1] - tote_width/2, tote_center[1] + tote_width/2, increments):
-            cen = (2.0, y)
-            obs = Obstacle(cen, radius)
-            self.add_obstacle(obs)
+            for y in np.linspace(y_0 - block_width/2, y_0 + block_width/2, increments):
+                for x in np.linspace(x_0 - block_depth/2, x_0 + block_depth/2, increments):
+                    cen = (x, y)
+                    obs = Obstacle(cen, radius)
+                    self.add_obstacle(obs)
 
-            cen = (2.2, y)
-            obs = Obstacle(cen, radius)
-            self.add_obstacle(obs)
-
-
-
+        # tote_center = (2.0, 2.1)
+        # tote_width = .70 #with radius, 1.10
+        # tote_depth = .46 #with radius, .86
+        # for y in np.linspace(tote_center[1] - tote_width/2, tote_center[1] + tote_width/2, increments):
+        #     for x in np.linspace(tote_center[0] - tote_depth/2, tote_center[0] + tote_depth/2, increments):
+        #         cen = (x, y)
+        #         obs = Obstacle(cen, radius)
+        #         self.add_obstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
