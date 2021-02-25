@@ -413,7 +413,9 @@ def init_goals(robots):
 
     #vicon experiment
     goals = [(loc[0]+2, loc[1]) for loc in robots.get_position_list_tuples()]
-    goals = [(3.5, 0.9), (3.5, 1.5), (3.0, 2.1), (3.0, .3), (2.5, 0.9), (2.5, 1.5)] #difficult goals
+    # goals = [(3.5, 0.9), (3.5, 1.5), 
+    #          (3.0, .3), 
+    #          (2.5, 0.9), (2.5, 1.5)] #difficult goals
 
     # curve environment
     # if robots.get_num_robots() == 20:
@@ -491,7 +493,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     ##### Perform Planning ######
     #############################
     startPlanning = time.time()
-    if False:
+    if profile:
         fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{trial_timestamp}.log"
         fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
 
@@ -551,7 +553,7 @@ if __name__ == "__main__":
 
     # timestamp = 1600223009  # RRT
     # timestamp = 1600226369  # PRM
-    timestamp = None
+    # timestamp = 1
 
     useTime = False
     useRelative = False
@@ -565,18 +567,18 @@ if __name__ == "__main__":
     # swarmForm = 'random'
     swarmForm = 'simple_vicon'
 
-    nRobots = 6
+    nRobots = 5
     noise_model = "add"
     sensingRadius = 6.5
-    min_eigval = 0.1
+    min_eigval = .1
     noise_stddev = 0.25
 
     # setting = 'random'
     # setting = "curve_maze"
     # setting = 'adversarial1'
     # setting = 'adversarial2'
-    # setting = 'simple_vicon'
-    setting = 'obstacle_vicon'
+    setting = 'simple_vicon'
+    # setting = 'obstacle_vicon'
 
     envSize = (4.2, 2.4) #vicon
     # envSize = (35, 35) #simulation
