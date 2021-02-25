@@ -260,11 +260,11 @@ class Environment:
             self.add_obstacle(obs)
             obs = Obstacle(cenTop, radius)
             self.add_obstacle(obs)
-        
-        all_obstacles = [((2.0, 1.4), (.40, .50)), 
-                         ((3.0, .7), (.25, .25)), 
-                         ((1.0, 1.0), (.15, .15)), 
-                         ((3.0, 2.0), (.20, .30))] #((x,y), (depth, width))
+
+        all_obstacles = [((3.0, 1.4), (.40, .50))]
+                        #  ((3.0, .7), (.25, .25)),
+                        #  ((1.0, 1.0), (.15, .15)),
+                        #  ((3.0, 2.0), (.20, .30))] #((x,y), (depth, width))
 
         for i in range(len(all_obstacles)):
             (x_0, y_0) = all_obstacles[i][0]
@@ -276,15 +276,6 @@ class Environment:
                     cen = (x, y)
                     obs = Obstacle(cen, radius)
                     self.add_obstacle(obs)
-
-        # tote_center = (2.0, 2.1)
-        # tote_width = .70 #with radius, 1.10
-        # tote_depth = .46 #with radius, .86
-        # for y in np.linspace(tote_center[1] - tote_width/2, tote_center[1] + tote_width/2, increments):
-        #     for x in np.linspace(tote_center[0] - tote_depth/2, tote_center[0] + tote_depth/2, increments):
-        #         cen = (x, y)
-        #         obs = Obstacle(cen, radius)
-        #         self.add_obstacle(obs)
 
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 

@@ -141,17 +141,29 @@ def write_grouped_by_coordinates(input_file: str, output_file: str):
 
 
 if __name__ == "__main__":
-    input_file = "traj_4.txt"
-    output_file = "robots_traj_4.txt"
+    #todo: support processing multiple files at once / take input file as an arg
+    input_file = "traj_1004.txt"
 
-    grouping = "robots"  # write in groupings by robot trajectories
+    # grouping = "robots"  # write in groupings by robot trajectories
     # grouping = "coordinates" # write grouped by coordinates
+    grouping = "both"
 
     if grouping == "robots":
+        output_file = "robots_"+input_file
         print("writing grouped by robot ids")
         write_grouped_by_robot(input_file, output_file)
 
     elif grouping == "coordinates":
+        output_file = "coords_"+input_file
+        print("writing grouped by coords")
+        write_grouped_by_coordinates(input_file, output_file)
+
+    elif grouping == "both":
+        output_file = "robots_"+input_file
+        print("writing grouped by robot ids")
+        write_grouped_by_robot(input_file, output_file)
+
+        output_file = "coords_"+input_file
         print("writing grouped by coords")
         write_grouped_by_coordinates(input_file, output_file)
 

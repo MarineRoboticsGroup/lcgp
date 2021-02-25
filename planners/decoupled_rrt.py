@@ -32,7 +32,7 @@ class RRT:
 
 
     def __init__(self, robot_graph, goal_locs, obstacle_list, bounds,
-                 max_move_dist=1, goal_sample_rate=5, max_iter=2000):
+                 max_move_dist=.2, goal_sample_rate=5, max_iter=2000):
         """
         Setting Parameter
 

@@ -37,6 +37,7 @@ def test_trajectory(
     delay_animation=False,
     relativeTraj=False,
     sensor_noise=0.5,
+    check_collision=False,
 ):
     """
     Takes a generic input trajectory of absolute states
@@ -52,11 +53,14 @@ def test_trajectory(
     :type       goals:                List of tuples
     :param      delay_animation:  Whether to delay the animation beginning
     :type       delay_animation:  boolean
+    :param      check_collision:      Whether to verify no inter-agent collisions occur
+    :type       check_collision:      boolean
     """
 
     total_time = 0
     nonrigid_time = 0
     assert trajs is not None
+    robot_size = .4
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
@@ -99,7 +103,7 @@ def test_trajectory(
                 show_goals=True,
                 show_graph_edges=True,
             )
-            # plot.plot(robots.get_robot_graph(), env, blocking=True, animation=False, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
+            plot.plot(robots.get_robot_graph(), env, blocking=True, animation=False, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
 
         else:
             plot.test_trajectory_plot(
@@ -116,6 +120,18 @@ def test_trajectory(
         move.clear()
         config.clear()
         for robotIndex in range(robots.get_num_robots()):
+            #Todo: move the collision checker further up the pipeline
+            for otherRobotIndex in range(robotIndex+1, robots.get_num_robots()):
+                loc_1 = trajs[robotIndex][traj_indices[robotIndex]]
+                loc_2 = trajs[otherRobotIndex][traj_indices[otherRobotIndex]]
+                x_dif = abs(loc_1[0]-loc_2[0])
+                y_dif = abs(loc_1[1]-loc_2[1])
+
+                if (x_dif < robot_size) and (y_dif < robot_size):
+                    currentIndex = max(traj_indices[robotIndex], traj_indices[otherRobotIndex])
+                    print("agents", robotIndex, "and", otherRobotIndex, "collide at index", currentIndex)
+
+
             # Increment trajectory for unfinished paths
             if traj_indices[robotIndex] != final_traj_indices[robotIndex]:
                 traj_indices[robotIndex] += 1
@@ -189,7 +205,7 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
     graph = swarm.get_robot_graph()
 
     # show preliminary view of the planning problem
-    plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
+    # plot.plot(graph, env, show_graph_edges=True, blocking=True, goals=goals, animation=False, show_goals=True)
 
     if not (env.is_free_space_loc_list_tuples(swarm.get_position_list_tuples())):
         print("\nStart Config Inside Obstacles")
@@ -390,6 +406,7 @@ def get_decoupled_rrt_path(robots, environment, goals):
     # robot_graph, goal_locs, obstacle_list, bounds,
     #              max_move_dist=3.0, goal_sample_rate=5, max_iter=500
     path = rrt_planner.planning()
+    
     return path
 
 
@@ -547,11 +564,11 @@ if __name__ == "__main__":
     Any parameters that need to be changed should be accessible from here
     """
     # exp = 'coupled_astar'
-    # exp = 'decoupled_rrt'
-    exp = 'priority_prm'
+    exp = 'decoupled_rrt'
+    # exp = 'priority_prm'
     # exp = "read_file"
 
-    # timestamp = 1600223009  # RRT
+    timestamp = 1600223009  # RRT
     # timestamp = 1600226369  # PRM
     # timestamp = 1
 
@@ -577,11 +594,13 @@ if __name__ == "__main__":
     # setting = "curve_maze"
     # setting = 'adversarial1'
     # setting = 'adversarial2'
-    setting = 'simple_vicon'
-    # setting = 'obstacle_vicon'
+    # setting = 'simple_vicon'
+    setting = 'obstacle_vicon'
 
     envSize = (4.2, 2.4) #vicon
     # envSize = (35, 35) #simulation
+
+    seed = 99999999
 
     numObstacles = 30
 
@@ -596,4 +615,13 @@ if __name__ == "__main__":
     )
     envInfo = (setting, envSize, numObstacles)
 
-    main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo)
+    main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=301)
+
+    # #rapidly checking rrt solutions for collision
+    # #to make work, have test_trajectory return False if a collision is detected and True otherwise
+    # #then have main return the result of test_trajectory
+    # for i in range(400):
+    #     if main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=i):
+    #         print("Working solution:", i)
+    #         break
+
