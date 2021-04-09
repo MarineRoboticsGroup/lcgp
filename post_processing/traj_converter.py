@@ -141,7 +141,15 @@ def write_grouped_by_coordinates(input_file: str, output_file: str):
 
 
 if __name__ == "__main__":
-    #todo: support processing multiple files at once / take input file as an arg
+    """script to convert trajectories from format cached by running trial.py to
+    a format that can be easily understood and copied into other documents. This
+    was primarily used to copy/paste trajectories into configuration files we
+    were attempting to use to drive the robots to perform path-planning experiments.
+
+    Raises:
+        NotImplementedError: attempted to convert trajectory in unsupported manner
+    """
+    # TODO: support processing multiple files at once / take input file as an arg
     input_file = "traj_1004.txt"
 
     # grouping = "robots"  # write in groupings by robot trajectories
