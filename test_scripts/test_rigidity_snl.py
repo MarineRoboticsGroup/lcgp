@@ -13,6 +13,7 @@ from scipy.optimize import curve_fit
 import sys
 sys.path.append("..")
 
+# pylint: disable=import-error
 import math_utils
 import swarm
 import plot
