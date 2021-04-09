@@ -60,7 +60,7 @@ def test_trajectory(
     total_time = 0
     nonrigid_time = 0
     assert trajs is not None
-    robot_size = .4
+    robot_size = 0.4
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
@@ -103,7 +103,16 @@ def test_trajectory(
                 show_goals=True,
                 show_graph_edges=True,
             )
-            plot.plot(robots.get_robot_graph(), env, blocking=True, animation=False, goals=goals, clear_last=True, show_goals=True, show_graph_edges=True)
+            plot.plot(
+                robots.get_robot_graph(),
+                env,
+                blocking=True,
+                animation=False,
+                goals=goals,
+                clear_last=True,
+                show_goals=True,
+                show_graph_edges=True,
+            )
 
         else:
             plot.test_trajectory_plot(
@@ -120,17 +129,25 @@ def test_trajectory(
         move.clear()
         config.clear()
         for robotIndex in range(robots.get_num_robots()):
-            #Todo: move the collision checker further up the pipeline
-            for otherRobotIndex in range(robotIndex+1, robots.get_num_robots()):
+            # Todo: move the collision checker further up the pipeline
+            for otherRobotIndex in range(robotIndex + 1, robots.get_num_robots()):
                 loc_1 = trajs[robotIndex][traj_indices[robotIndex]]
                 loc_2 = trajs[otherRobotIndex][traj_indices[otherRobotIndex]]
-                x_dif = abs(loc_1[0]-loc_2[0])
-                y_dif = abs(loc_1[1]-loc_2[1])
+                x_dif = abs(loc_1[0] - loc_2[0])
+                y_dif = abs(loc_1[1] - loc_2[1])
 
                 if (x_dif < robot_size) and (y_dif < robot_size):
-                    currentIndex = max(traj_indices[robotIndex], traj_indices[otherRobotIndex])
-                    print("agents", robotIndex, "and", otherRobotIndex, "collide at index", currentIndex)
-
+                    currentIndex = max(
+                        traj_indices[robotIndex], traj_indices[otherRobotIndex]
+                    )
+                    print(
+                        "agents",
+                        robotIndex,
+                        "and",
+                        otherRobotIndex,
+                        "collide at index",
+                        currentIndex,
+                    )
 
             # Increment trajectory for unfinished paths
             if traj_indices[robotIndex] != final_traj_indices[robotIndex]:
@@ -406,7 +423,7 @@ def get_decoupled_rrt_path(robots, environment, goals):
     # robot_graph, goal_locs, obstacle_list, bounds,
     #              max_move_dist=3.0, goal_sample_rate=5, max_iter=500
     path = rrt_planner.planning()
-    
+
     return path
 
 
@@ -428,10 +445,10 @@ def init_goals(robots):
     # random config
     # goals = [(loc[0]+18, loc[1]+20) for loc in robots.get_position_list_tuples()]
 
-    #vicon experiment
-    goals = [(loc[0]+2, loc[1]) for loc in robots.get_position_list_tuples()]
-    # goals = [(3.5, 0.9), (3.5, 1.5), 
-    #          (3.0, .3), 
+    # vicon experiment
+    goals = [(loc[0] + 2, loc[1]) for loc in robots.get_position_list_tuples()]
+    # goals = [(3.5, 0.9), (3.5, 1.5),
+    #          (3.0, .3),
     #          (2.5, 0.9), (2.5, 1.5)] #difficult goals
 
     # curve environment
@@ -564,47 +581,52 @@ if __name__ == "__main__":
     Any parameters that need to be changed should be accessible from here
     """
     # exp = 'coupled_astar'
-    exp = 'decoupled_rrt'
+    exp = "decoupled_rrt"
     # exp = 'priority_prm'
     # exp = "read_file"
 
+    # whether to use time as extra planning dimension
+    useTime = False
+
+    # whether trajectory is recorded in relative moves or absolute positions
+    useRelative = False
+
+    # whether to show an animation of the planning
+    showAnimation = True
+
+    # whether to perform code profiling
+    profile = False
+
+    # the timestamp for replaying a recorded path (only when exp=="read_file")
     timestamp = 1600223009  # RRT
     # timestamp = 1600226369  # PRM
     # timestamp = 1
 
-    useTime = False
-    useRelative = False
-    showAnimation = True
-    profile = False
+    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
 
+    # the starting formation of the network
     # swarmForm = 'square'
     # swarmForm = 'test6'
     # swarmForm = "test8"
     # swarmForm = "test20"
     # swarmForm = 'random'
-    swarmForm = 'simple_vicon'
+    swarmForm = "simple_vicon"
 
+    # the number of robots in the swarm
     nRobots = 5
+
+    # the sensor noise model (additive or multiplicative gaussian)
     noise_model = "add"
-    sensingRadius = 6.5
-    min_eigval = .1
+
+    # the noise of the range sensors
     noise_stddev = 0.25
 
-    # setting = 'random'
-    # setting = "curve_maze"
-    # setting = 'adversarial1'
-    # setting = 'adversarial2'
-    # setting = 'simple_vicon'
-    setting = 'obstacle_vicon'
+    # the sensing horizon of the range sensors
+    sensingRadius = 6.5
 
-    envSize = (4.2, 2.4) #vicon
-    # envSize = (35, 35) #simulation
+    # the rigidity constraint on the network
+    min_eigval = 0.1
 
-    seed = 99999999
-
-    numObstacles = 30
-
-    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
     swarmInfo = (
         nRobots,
         swarmForm,
@@ -613,8 +635,25 @@ if __name__ == "__main__":
         min_eigval,
         noise_stddev,
     )
+
+    # the layout of the environment to plan in
+    # setting = 'random'
+    # setting = "curve_maze"
+    # setting = 'adversarial1'
+    # setting = 'adversarial2'
+    # setting = 'simple_vicon'
+    setting = "obstacle_vicon"
+
+    # the dimensions of the environment
+    envSize = (4.2, 2.4)  # vicon
+    # envSize = (35, 35) #simulation
+
+    # number of obstacles for random environment
+    numObstacles = 30
+
     envInfo = (setting, envSize, numObstacles)
 
+    seed = 99999999 # seed the randomization
     main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=301)
 
     # #rapidly checking rrt solutions for collision
@@ -624,4 +663,3 @@ if __name__ == "__main__":
     #     if main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=i):
     #         print("Working solution:", i)
     #         break
-
