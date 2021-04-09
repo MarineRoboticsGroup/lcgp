@@ -29,4 +29,10 @@ multi-robot networks.
   - rigidity_library.py: class meant to hold pre-recorded rigidity values to
     avoid eigenvalue computations
 
+## Code Profiling
+
+to perform profiling you can just set `profile=True` in the main function of
+*trial.py* and a script will be called that does all of the post-processing for
+you. To see how this script works you can look at *profiling/flamegraph.bash*
+
 @author Alan Papalia
