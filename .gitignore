@@ -43,6 +43,13 @@ main.pdf
 profiling/*.log
 profiling/*.svg
 
+# Generated Text Files #
+########################
+post_processing/processed_inputs/*
+post_processing/outputs/*
+post_processing/input_trajs.txt
+post_processing/output_trajs.txt
+
 # VSCode #
 #############
 .history/
