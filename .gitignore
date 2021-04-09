@@ -49,6 +49,7 @@ profiling/*.svg
 .vscode/
 .history/*
 .vscode/*
+*.code-workspace
 
 # spacemacs #
 #############
