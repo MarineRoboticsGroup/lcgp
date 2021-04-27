@@ -7,8 +7,8 @@ import kdtree
 class Environment:
     def __init__(self, bounds, setting, num_obstacles):
         self.setting = setting
-        self.obstacles = []
-        self.bounds = bounds  # xlb, xub, ylb, yub
+        self._obstacles = []
+        self._bounds = bounds  # xlb, xub, ylb, yub
         self.obstacleKDTree = None
 
         if setting == 'random':
@@ -29,11 +29,11 @@ class Environment:
     """ Modify and Initialize """
 
     def add_obstacle(self, obs):
-        self.obstacles.append(obs)
+        self._obstacles.append(obs)
         return None
 
     def init_curves_obstacles_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
 
         radius = .75
         increments = 65
@@ -74,7 +74,7 @@ class Environment:
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     def init_adversarial1_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         radius = .75
         increments = 65
         # make left and right walls
@@ -114,7 +114,7 @@ class Environment:
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     def init_adversarial2_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         radius = .75
         increments = 65
         # make left and right walls
@@ -165,7 +165,7 @@ class Environment:
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     def init_adversarial_easy_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         radius = .75
         increments = 65
         # make left and right walls
@@ -216,7 +216,7 @@ class Environment:
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     def init_simple_vicon_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         radius = .1
         increments = 65
         # make left and right walls
@@ -240,7 +240,7 @@ class Environment:
         self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
 
     def init_obstacle_vicon_env(self):
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         radius = .2 #accounts for robot size
         increments = 40
         # make left and right walls
@@ -282,8 +282,8 @@ class Environment:
     def init_random_env(self, numObstacles=50):
         radius = 0.1
         for _ in range(numObstacles):
-            low = min(self.bounds)
-            upp = max(self.bounds)
+            low = min(self._bounds)
+            upp = max(self._bounds)
             radius = math_utils.generate_random_tuple(lb=.5, ub=1, size=1)
             center = math_utils.generate_random_tuple(lb=low, ub=upp, size=2)
             while not self.is_inside_bounds(center):
@@ -305,7 +305,7 @@ class Environment:
             return False
         indices, dist = self.obstacleKDTree.search(
             np.array(coords).reshape(2, 1))
-        if dist[0] <= self.obstacles[indices[0]].get_radius():
+        if dist[0] <= self._obstacles[indices[0]].get_radius():
             return False  # collision
         return True
 
@@ -333,33 +333,33 @@ class Environment:
             loc = [sx+dx, sy+dy]
             indices, dist = self.obstacleKDTree.search(
                 np.array(loc).reshape(2, 1))
-            if dist[0] <= self.obstacles[indices[0]].get_radius():
+            if dist[0] <= self._obstacles[indices[0]].get_radius():
                 return False  # collision
 
         return True
 
     def is_inside_bounds(self, coords):
         x, y = coords
-        xlb, xub, ylb, yub = self.bounds
+        xlb, xub, ylb, yub = self._bounds
         return ((xlb < x < xub) and (ylb < y < yub))
 
     """ Accessors """
 
     def get_obstacle_list(self,):
-        return self.obstacles
+        return self._obstacles
 
     def get_obstacle_centers_list(self,):
         centers = []
-        for obs in self.obstacles:
+        for obs in self._obstacles:
             cen = list(obs.get_center())
             centers.append(cen)
         return centers
 
     def get_bounds(self,):
-        return self.bounds
+        return self._bounds
 
     def get_num_obstacles(self):
-        return len(self.obstacles)
+        return len(self._obstacles)
 
 
 class Obstacle:
@@ -376,5 +376,13 @@ class Obstacle:
     def is_inside(self, coords):
         x_pos, y_pos = coords
         x_center, y_center = self.center
-        delta = np.array([x_pos-x_center, y_pos-y_center])
+        dx = x_pos-x_center
+        if dx > self.radius:
+            return False
+        dy = y_pos-y_center
+
+        if dy > self.radius:
+            return False
+
+        delta = np.array([dx, dy])
         return (np.linalg.norm(delta, 2) < self.radius)

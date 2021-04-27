@@ -7,7 +7,7 @@ import math_utils
 
 class Swarm:
     def __init__(self, sensingRadius, noise_model, noise_stddev):
-        self.sensingRadius = sensingRadius
+        self._sensing_radius = sensingRadius
 
         assert(noise_model == 'add' or noise_model == 'lognorm')
         self.noise_model = noise_model
@@ -18,30 +18,38 @@ class Swarm:
 
     def initialize_swarm(self, env, bounds, formation='square', nRobots=None, min_eigval=0.75):
         # initialize formation and edges
-        self.startConfig = formation
+        self._start_config = formation
         self.min_eigval = min_eigval
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
-        if formation.lower() == 'square':
+        init_form = formation.lower()
+        print(f"Initializing swarm formation: {init_form}")
+
+        if init_form == 'square':
             self.robot_graph.init_square_formation()
-        elif formation.lower() == 'test6':
+        elif init_form == 'test6':
             self.robot_graph.init_test6_formation()
-        elif formation.lower() == 'test8':
+        elif init_form == 'test8':
             self.robot_graph.init_test8_formation()
-        elif formation.lower() == 'test20':
+        elif init_form == 'test20':
             self.robot_graph.init_test20_formation()
-        elif formation.lower() == 'random':
+        elif init_form == 'random':
             self.robot_graph.init_random_formation(env, nRobots, bounds)
-        elif formation.lower() == 'simple_vicon':
+        elif init_form == 'simple_vicon':
             self.robot_graph.init_test_simple_vicon_formation()
+        elif init_form == 'anchor_only_test':
+            self.robot_graph.init_anchor_only_test()
+        elif init_form == 'many_robot_simple_move_test':
+            self.robot_graph.init_random_formation(env, nRobots, bounds)
+        elif init_form == 'diff_end_times_test':
+            self.robot_graph.init_random_formation(env, nRobots, bounds)
         else:
             print("The given formation is not valid\n")
             raise NotImplementedError
 
         # self.reorder_robots()
         self.update_swarm()
-        self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initialize_swarm_from_loc_list_of_tuples(self, loc_list):
         self.robot_graph.remove_all_nodes()
@@ -67,14 +75,17 @@ class Swarm:
         raise NotImplementedError
 
     def update_swarm(self):
-        self.robot_graph.update_edges_by_radius(self.sensingRadius)
-        if self.robot_graph.get_num_edges() > 0:
+        self.robot_graph.update_edges_by_radius(self._sensing_radius)
+        if self.robot_graph.get_num_edges() > 0 and self.get_num_robots() > 3:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
+        else:
+            self.fisher_info_matrix = None
+
 
     """ Accessors """
 
     def get_sensing_radius(self):
-        return self.sensingRadius
+        return self._sensing_radius
 
     def get_noise_stddev(self):
         return self.noise_stddev
@@ -98,9 +109,12 @@ class Swarm:
         return posList
 
     def get_nth_eigval(self, n):
-        eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
-        eigvals.sort()
-        return eigvals[n-1]
+        if self.get_num_robots() > 3:
+            eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
+            eigvals.sort()
+            return eigvals[n-1]
+        else:
+            return -1
 
     def get_nth_eigpair(self, n):
         eigpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
@@ -123,8 +137,8 @@ class Swarm:
         if len(loc_list) < 3:
             return False
         test_graph = graph.Graph(self.noise_model, self.noise_stddev)
-        test_graph.initialize_from_location_list(loc_list, self.sensingRadius)
-        eigval = test_graph.get_nth_eigval(4)
+        test_graph.initialize_from_location_list(loc_list, self._sensing_radius)
+        eigval = test_graph.get_nth_eigval(0)
         return (self.min_eigval <= eigval)
 
     def is_swarm_rigid(self):

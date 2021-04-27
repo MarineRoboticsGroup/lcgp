@@ -169,13 +169,13 @@ class RigidityLibrary:
         self.noise_stddev = noise_stddev
         self.noise_model = noise_model
         self.dist_between_nodes = dist_between_nodes
-        self.num_rows = num_rows
-        self.num_cols = num_cols
+        self._NUM_ROWS = num_rows
+        self._NUM_COLS = num_cols
         self.max_num_robots = max_num_robots
         self.multiproc = multiproc
 
-        row_indices = range(self.num_rows)
-        col_indices = range(self.num_cols)
+        row_indices = range(self._NUM_ROWS)
+        col_indices = range(self._NUM_COLS)
         self.all_possible_node_indices = list(
             itertools.product(row_indices, col_indices)
         )
@@ -204,8 +204,8 @@ class RigidityLibrary:
 
     def has_cached_value(self, rows, cols, n_robots):
         if (
-            rows > self.num_rows
-            or cols > self.num_cols
+            rows > self._NUM_ROWS
+            or cols > self._NUM_COLS
             or n_robots > self.max_num_robots
         ):
             return False
@@ -274,8 +274,8 @@ class RigidityLibrary:
                             self.noise_model,
                             self.noise_stddev,
                             self.sensing_radius,
-                            self.num_rows,
-                            self.num_cols,
+                            self._NUM_ROWS,
+                            self._NUM_COLS,
                             self.all_possible_node_indices,
                         ),
                     )
@@ -287,8 +287,8 @@ class RigidityLibrary:
                         self.noise_model,
                         self.noise_stddev,
                         self.sensing_radius,
-                        self.num_rows,
-                        self.num_cols,
+                        self._NUM_ROWS,
+                        self._NUM_COLS,
                         self.all_possible_node_indices,
                     )
 
@@ -320,8 +320,8 @@ class RigidityLibrary:
                                 self.noise_model,
                                 self.noise_stddev,
                                 self.sensing_radius,
-                                self.num_rows,
-                                self.num_cols,
+                                self._NUM_ROWS,
+                                self._NUM_COLS,
                                 self.all_possible_node_indices,
                             ),
                         )
@@ -333,8 +333,8 @@ class RigidityLibrary:
                             self.noise_model,
                             self.noise_stddev,
                             self.sensing_radius,
-                            self.num_rows,
-                            self.num_cols,
+                            self._NUM_ROWS,
+                            self._NUM_COLS,
                             self.all_possible_node_indices,
                         )
 

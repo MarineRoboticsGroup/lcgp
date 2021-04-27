@@ -13,22 +13,22 @@ import kdtree
 
 class CoupledAstar():
     def __init__(self, robots, env, goals, min_eigval=0.75):
-        self.robots = robots
-        self.env = env
-        self.goalLocs = goals
-        self.start_loc_list = self.robots.get_position_list_tuples()
+        self._robots = robots
+        self._env = env
+        self._goal_locs = goals
+        self._start_loc_list = self._robots.get_position_list_tuples()
         self.min_eigval = min_eigval
 
         self.num_robots = robots.get_num_robots()
 
         roadmap_sampling = "uniform"
-        self.N_SAMPLE = 200
-        self.N_KNN = 4
-        self.MAX_EDGE_LEN = 8
-        self.roadmap = self.Roadmap(self.robots, self.env, self.goalLocs, roadmap_sampling, self.N_SAMPLE, self.N_KNN, self.MAX_EDGE_LEN)
+        self._N_SAMPLE = 200
+        self._N_KNN = 4
+        self._MAX_EDGE_LEN = 8
+        self._roadmap = self._roadmap(self._robots, self._env, self._goal_locs, roadmap_sampling, self._N_SAMPLE, self._N_KNN, self._MAX_EDGE_LEN)
         self.plot_roadmap()
-        self.startIndices = self.roadmap.get_start_indexList()
-        self.goalIndices = self.roadmap.get_goal_indexList()
+        self.startIndices = self._roadmap.get_start_indexList()
+        self.goalIndices = self._roadmap.get_goal_indexList()
         print("Start Index:", self.startIndices)
         print("Goal Index:", self.goalIndices)
 
@@ -81,10 +81,10 @@ class CoupledAstar():
 
             # expand_grid search grid based on motion model
             curLocs = curNode.getIndexList()
-            connLocs = [self.roadmap.get_connections(locId) for locId in curLocs]
+            connLocs = [self._roadmap.get_connections(locId) for locId in curLocs]
             next_valid_sets = [s for s in itertools.product(*connLocs)]
 
-            coordList = [self.roadmap.get_loc(loc_ind) for loc_ind in curLocs]
+            coordList = [self._roadmap.get_loc(loc_ind) for loc_ind in curLocs]
             print("Current Locs:", coordList)
             print("Iteration:", cnt)
             print("Cost:", curNode.cost)
@@ -113,7 +113,7 @@ class CoupledAstar():
         return self.calcFinalPath(goal_node, closed_set)
 
     def calcFinalPath(self, goal_node, closed_set):
-        locPath = [[] for i in range(self.robots.get_num_robots())]
+        locPath = [[] for i in range(self._robots.get_num_robots())]
 
         locs = goal_node.getIndexList()
         for i, loc in enumerate(locs):
@@ -138,16 +138,16 @@ class CoupledAstar():
     def plot_roadmap(self):
         print("Displaying Roadmap... May take time :)")
         edges = set()
-        for i, _ in enumerate(self.roadmap.roadmap):
-            for ii in range(len(self.roadmap.roadmap[i])):
-                ind = self.roadmap.roadmap[i][ii]
+        for i, _ in enumerate(self._roadmap.roadmap):
+            for ii in range(len(self._roadmap.roadmap[i])):
+                ind = self._roadmap.roadmap[i][ii]
                 edge = (ind, i) if ind < i else (i, ind)
                 if edge in edges:
                     continue
                 else:
                     edges.add(edge)
-                    plt.plot([self.roadmap.sample_locs[i][0], self.roadmap.sample_locs[ind][0]],
-                             [self.roadmap.sample_locs[i][1], self.roadmap.sample_locs[ind][1]], "-k")
+                    plt.plot([self._roadmap.sample_locs[i][0], self._roadmap.sample_locs[ind][0]],
+                             [self._roadmap.sample_locs[i][1], self._roadmap.sample_locs[ind][1]], "-k")
         plt.show(block=True)
 
     def verify_node(self, node):
@@ -159,9 +159,9 @@ class CoupledAstar():
                 if loc == otherloc:
                     return False
         # check geometry
-        coordList = [self.roadmap.get_loc(loc_ind) for loc_ind in loc_list]
+        coordList = [self._roadmap.get_loc(loc_ind) for loc_ind in loc_list]
         g = graph.Graph()
-        g.initialize_from_location_list(coordList, self.robots.get_sensing_radius())
+        g.initialize_from_location_list(coordList, self._robots.get_sensing_radius())
         eigval = g.get_nth_eigval(4)
         # if eigval < self.min_eigval:
         #     print("\nInvalid Configuration\n")
@@ -177,8 +177,8 @@ class CoupledAstar():
         return sum(dists)
 
     def distanceBetweenLocs(self, loc1, loc2):
-        x1, y1 = self.roadmap.get_loc(loc1)
-        x2, y2 = self.roadmap.get_loc(loc2)
+        x1, y1 = self._roadmap.get_loc(loc1)
+        x2, y2 = self._roadmap.get_loc(loc2)
         delta_x = x1-x2
         delta_y = y1-y2
         return math.hypot(delta_x, delta_y)

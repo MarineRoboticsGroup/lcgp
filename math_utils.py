@@ -135,9 +135,12 @@ def build_fisher_matrix(
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
     num_nodes = len(nodes)
-    num_edges = len(edges)
-    # A = np.zeros((num_edges, 2 * num_nodes))
-    K = np.zeros((num_nodes * 2, num_nodes * 2))
+    num_variable_nodes = num_nodes - 3
+    assert (
+        num_variable_nodes > 0
+    ), f"No FIM as there are only {num_nodes} nodes in network"
+    K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
+
     alpha = None
     if noise_model == "add":
         alpha = float(1)
@@ -146,7 +149,7 @@ def build_fisher_matrix(
     else:
         raise NotImplementedError
 
-    for cnt, e in enumerate(edges):
+    for _, e in enumerate(edges):
         i, j = e
         if i == j:
             continue
@@ -158,83 +161,43 @@ def build_fisher_matrix(
         delYij = yi - yj
         dist = np.sqrt(delXij ** 2 + delYij ** 2)
 
-        # If want to form matrix as A.T @ A
-        # * This is not recommended as tests indicate that it is slower
-        if False:
-            row = np.zeros(num_nodes * 2)
-            row[2 * i] = delXij
-            row[2 * i + 1] = delYij
-            row[2 * j] = -delXij
-            row[2 * j + 1] = -delYij
-            with warnings.catch_warnings():
-                warnings.simplefilter("error")
-                try:
-                    row = row / ((noise_stddev) * (dist ** alpha))
-                except:
-                    print(f"nodes: {i, j}")
-                    print(f"locs: {xi, yi, xj, yj}")
-                    print(f"row: {row}")
-                    print(f"dist: {dist}")
-                    assert False, "failed to prevent from occupying same position"
-            A[cnt] = row
-        else:
-            # If want to form matrix directly
-            # Kii = np.array([[delXij**2,         delXij*delYij   ],
-            #                 [delXij*delYij,     delYij**2       ]]) / ((noise_stddev**2) * (dist)**(2*alpha))
-            # Kij = -Kii
-            # # Kii
-            # K[2*i:2*i+2, 2*i:2*i+2] += Kii
-            # # Kjj
-            # K[2*j:2*j+2, 2*j:2*j+2] += Kii
-            # # Kij
-            # K[2*i:2*i+2, 2*j:2*j+2] = Kij
-            # # Kji
-            # K[2*j:2*j+2, 2*i:2*i+2] = Kij
-            denom = ((noise_stddev**2) * (dist)**(2*alpha))
-            delX2 = delXij**2 / denom
-            delY2 = delYij**2 / denom
-            delXY = delXij*delYij / denom
+        # * This way of forming matrix was tested to be fastest
+        denom = (noise_stddev ** 2) * (dist) ** (2 * alpha)
+        delX2 = delXij ** 2 / denom
+        delY2 = delYij ** 2 / denom
+        delXY = delXij * delYij / denom
 
+        i -= 3
+        j -= 3
+
+        if i >= 0:
             # Block ii
-            K[2*i, 2*i] += delX2
-            K[2*i+1, 2*i+1] += delY2
-            K[2*i, 2*i+1] += delXY
-            K[2*i+1, 2*i] += delXY
+            K[2 * i, 2 * i] += delX2
+            K[2 * i + 1, 2 * i + 1] += delY2
+            K[2 * i, 2 * i + 1] += delXY
+            K[2 * i + 1, 2 * i] += delXY
 
+        if j >= 0:
             # Block jj
-            K[2*j, 2*j] += delX2
-            K[2*j+1, 2*j+1] += delY2
-            K[2*j, 2*j+1] += delXY
-            K[2*j+1, 2*j] += delXY
+            K[2 * j, 2 * j] += delX2
+            K[2 * j + 1, 2 * j + 1] += delY2
+            K[2 * j, 2 * j + 1] += delXY
+            K[2 * j + 1, 2 * j] += delXY
 
+        if i >= 0 and j >= 0:
             # Block ij
-            K[2*i, 2*j] = -delX2
-            K[2*i+1, 2*j+1] = -delY2
-            K[2*i, 2*j+1] = -delXY
-            K[2*i+1, 2*j] = -delXY
+            K[2 * i, 2 * j] = -delX2
+            K[2 * i + 1, 2 * j + 1] = -delY2
+            K[2 * i, 2 * j + 1] = -delXY
+            K[2 * i + 1, 2 * j] = -delXY
 
             # Block ji
-            K[2*j, 2*i] = -delX2
-            K[2*j+1, 2*i+1] = -delY2
-            K[2*j, 2*i+1] = -delXY
-            K[2*j+1, 2*i] = -delXY
+            K[2 * j, 2 * i] = -delX2
+            K[2 * j + 1, 2 * i + 1] = -delY2
+            K[2 * j, 2 * i + 1] = -delXY
+            K[2 * j + 1, 2 * i] = -delXY
 
-
-    #! Disabled because other way is faster
-    # K = A.T @ A
-    #! Disabled because other way is faster
-
-    # Testing different ways of building matrix
-    # test = (A.T @ A)-K
-    # print("TESTING")
-    # matprint_block(test)
-    # print()
-    # print()
     # matprint_block(K)
-    # print()
-    # print()
-    # matprint_block(A.T @ A)
-
     return K
 
 
@@ -346,6 +309,7 @@ def calc_dist_between_locations(loc1, loc2):
     gx, gy = loc2
     dx = gx - nx
     dy = gy - ny
+    # print(dx, dy)
     return math.hypot(dx, dy)
 
 
@@ -390,6 +354,8 @@ def generate_random_loc(xlb: float, xub: float, ylb: float, yub: float) -> Tuple
 
 
 def calc_localization_error(gnd_truth, est_locs):
+    print("Ground Truth Locs", gnd_truth)
+    print("Estimated Locs", est_locs)
     if not (gnd_truth.shape == est_locs.shape):
         print("Ground Truth Locs", gnd_truth)
         print("Estimated Locs", est_locs)
