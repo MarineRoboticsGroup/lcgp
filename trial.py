@@ -22,6 +22,7 @@ import plot
 from planners import decoupled_rrt
 from planners import coupled_lazysp
 from planners import coupled_astar
+from planners import potential_field
 from planners.prioritized_planning import prioritized_prm
 from planners.prioritized_planning import prioritized_prm
 
@@ -505,6 +506,11 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     traj = priority_prm.planning(useTime=useTime)
     return traj
 
+def get_potential_field_path(robots, environment, goals):
+    field = potential_field.PotentialField(robots=robots, env=environment, goals=goals)
+    traj = field.planning()
+    return traj
+
 
 def init_goals(
     swarmForm: str, setting: str, robots, bounds=None, shuffle_goals: bool = False
@@ -643,6 +649,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         trajs = get_coupled_lazysp_path(robots, env, goals)
     elif expName == "priority_prm":
         trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
+    elif expName == "potential_field":
+        trajs = get_potential_field_path(robots, env, goals)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -870,7 +878,8 @@ if __name__ == "__main__":
         # exp = 'coupled_astar'
         # exp = "decoupled_rrt"
         # exp = "priority_prm"
-        exp = "coupled_lazysp"
+        # exp = "coupled_lazysp"
+        exp = "potential_field"
         # exp = "read_file"
 
         # whether to use time as extra planning dimension
@@ -883,7 +892,7 @@ if __name__ == "__main__":
         showAnimation = False
 
         # whether to perform code profiling
-        profile = True
+        profile = False
 
         # the timestamp for replaying a recorded path (only when exp=="read_file")
         timestamp = 1600223009  # RRT
