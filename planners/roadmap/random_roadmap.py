@@ -17,7 +17,7 @@ class RandomRoadmap(Roadmap):
 
         super().__init__(robots, env, goalLocs, N_SAMPLE, N_KNN, MAX_EDGE_LEN)
         file_id = (
-            f"{self._env.setting}_{self._robots.start_config}_"
+            f"{self._env.setting}_{self._robots._start_config}_"
             f"{self._N_SAMPLE}samples_{self._N_KNN}nn_{self._MAX_EDGE_LEN}"
             f"len_{self._robots.get_num_robots()}rob_{self._ROADMAP_TYPE}"
         )

@@ -36,7 +36,7 @@ class ManhattanRoadmap(Roadmap):
         )
 
         file_id = (
-            f"{self._env.setting}_{self._robots.start_config}_"
+            f"{self._env.setting}_{self._robots._start_config}_"
             f"{GRID_SPACING}spacing_"
             f"{self._N_KNN}nn_{self._robots.get_num_robots()}rob_"
             f"{self._ROADMAP_TYPE}"
