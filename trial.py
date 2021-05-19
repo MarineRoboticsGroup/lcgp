@@ -660,6 +660,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     else:
         raise AssertionError
 
+    print("trajectories:", trajs)
     endPlanning = time.time()
     print("Time Planning:", endPlanning - startPlanning)
 
@@ -889,7 +890,7 @@ if __name__ == "__main__":
         useRelative = False
 
         # whether to show an animation of the planning
-        showAnimation = False
+        showAnimation = True
 
         # whether to perform code profiling
         profile = False

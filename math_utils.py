@@ -269,7 +269,19 @@ def get_partial_deriv_of_matrix(K, index, graph):
     xi, yi = graph.get_node_loc_tuple(i)
 
     node_i_connections = graph.get_node_connection_list(i)
+
+    #ensure i & j are within range of the matrix
+    n = K.shape[0]/2
+    if i >= n:
+        return K
+    valid_connections = []
+    for node in node_i_connections:
+        if node < n:
+            valid_connections.append(node)
+    node_i_connections = valid_connections
+
     for j in node_i_connections:
+
         xj, yj = graph.get_node_loc_tuple(j)
 
         dKii_di = np.zeros((2, 2))
