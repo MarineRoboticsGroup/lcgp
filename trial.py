@@ -306,28 +306,29 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
                     feasible = False
 
     else:
-        start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list)
-        goal_is_rigid = swarm.test_rigidity_from_loc_list(goals)
-        if not start_is_rigid:
-            print("\nStarting Config Insufficiently Rigid")
-            print()
-            graph = swarm.get_robot_graph()
-            plot.plot_nth_eigvec(swarm, 4)
-            plot.plot(
-                graph, env, goals=goals, show_goals=True, blocking=True, animation=False
-            )
-            return False
-        if not goal_is_rigid:
-            print("\nGoal Config Insufficiently Rigid")
-            print()
-            swarm.move_swarm(goalLoc, is_relative_move=False)
-            swarm.update_swarm()
-            graph = swarm.get_robot_graph()
-            plot.plot_nth_eigvec(swarm, 4)
-            plot.plot(
-                graph, env, goals=goals, show_goals=True, blocking=True, animation=False
-            )
-            return False
+        if swarm.get_num_robots() > 3:
+            start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list)
+            goal_is_rigid = swarm.test_rigidity_from_loc_list(goals)
+            if not start_is_rigid:
+                print("\nStarting Config Insufficiently Rigid")
+                print()
+                graph = swarm.get_robot_graph()
+                plot.plot_nth_eigvec(swarm, 4)
+                plot.plot(
+                    graph, env, goals=goals, show_goals=True, blocking=True, animation=False
+                )
+                return False
+            if not goal_is_rigid:
+                print("\nGoal Config Insufficiently Rigid")
+                print()
+                swarm.move_swarm(goalLoc, is_relative_move=False)
+                swarm.update_swarm()
+                graph = swarm.get_robot_graph()
+                plot.plot_nth_eigvec(swarm, 4)
+                plot.plot(
+                    graph, env, goals=goals, show_goals=True, blocking=True, animation=False
+                )
+                return False
 
     # hasn't failed any checks so is a valid config and returning true
     return True
@@ -688,11 +689,12 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         )
 
 
-def many_robot_simple_move_test():
+def many_robot_simple_move_test(exp):
     """Test function for planning for many robots but only moving one space to
     the right.
     """
-    exp = "priority_prm"
+    print("Running Many Robots Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -746,11 +748,12 @@ def many_robot_simple_move_test():
     main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
 
 
-def plan_anchor_only_test():
+def plan_anchor_only_test(exp):
     """Test function for planning only the first 3 robots, which are assumed to
     all be anchor nodes (just enforces connectivity)
     """
-    exp = "priority_prm"
+    print("Running Anchor Only Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -804,11 +807,12 @@ def plan_anchor_only_test():
     main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
 
 
-def different_end_times_test():
+def different_end_times_test(exp):
     """Test function for planning for many robots but only moving one space to
     the right.
     """
-    exp = "priority_prm"
+    print("Running End Time Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -868,21 +872,20 @@ if __name__ == "__main__":
     Any parameters that need to be changed should be accessible from here
     """
     run_tests = False
+    # exp = 'coupled_astar'
+    # exp = "decoupled_rrt"
+    # exp = "priority_prm"
+    # exp = "coupled_lazysp"
+    exp = "potential_field"
+    # exp = "read_file"
 
     if run_tests:
         print("Running simple test cases for planner")
-        plan_anchor_only_test()
-        many_robot_simple_move_test()
-        different_end_times_test()
+        plan_anchor_only_test(exp)
+        many_robot_simple_move_test(exp)
+        different_end_times_test(exp)
 
     else:
-        # exp = 'coupled_astar'
-        # exp = "decoupled_rrt"
-        # exp = "priority_prm"
-        # exp = "coupled_lazysp"
-        exp = "potential_field"
-        # exp = "read_file"
-
         # whether to use time as extra planning dimension
         useTime = False
 
