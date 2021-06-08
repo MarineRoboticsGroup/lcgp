@@ -111,7 +111,7 @@ class PotentialField:
             if self.allRobotsFoundGoal():
                 return self._trajs
         print("Not enough iterations")
-        return None
+        return self._trajs
 
     def getDistanceToGoal(self, index):
         x, y = self._trajs[index][-1]
@@ -121,10 +121,13 @@ class PotentialField:
         return math.hypot(dx, dy)
 
     def hasFoundGoal(self, index):
-        self._curr_dist_to_goal[index] = self.getDistanceToGoal(index)
+        # if this is true then the robot will stop moving so we don't need to
+        # check the distance in future timesteps
         if self._curr_dist_to_goal[index] < self._target_dist_to_goal:
             return True
-        return False
+
+        self._curr_dist_to_goal[index] = self.getDistanceToGoal(index)
+        return self._curr_dist_to_goal[index] < self._target_dist_to_goal
 
     def allRobotsFoundGoal(self):
         for curr_dist in self._curr_dist_to_goal:

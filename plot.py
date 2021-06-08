@@ -68,10 +68,13 @@ def plot(
 
 
 def test_trajectory_plot(
-    graph, env, goals: List[Tuple], min_eigvals: List, threshold_eigval: float
+    graph,
+    env,
+    goals: List[Tuple],
+    min_eigvals: List,
+    threshold_eigval: float,
+    num_total_timesteps: int,
 ):
-
-    timestep_end = 35
 
     axs1 = plt.subplot(211)
     axs2 = plt.subplot(212)
@@ -82,8 +85,8 @@ def test_trajectory_plot(
     ylb, yub = (env.get_bounds()[2], env.get_bounds()[3])
     axs1.set_xlim(xlb, xub)
     axs1.set_ylim(ylb, yub)
-    axs2.set_xlim(0, timestep_end)
-    axs2.set_ylim(-1, 10)
+    axs2.set_xlim(0, num_total_timesteps)
+    axs2.set_ylim(-1, 15)
 
     # plot goals
     for i, goalLoc in enumerate(goals):
@@ -105,9 +108,10 @@ def test_trajectory_plot(
 
     # plot obstacles
     obstacles = env.get_obstacle_list()
-    for obs in obstacles:
-        circ = plt.Circle(obs.get_center(), obs.get_radius(), color="r")
-        axs1.add_artist(circ)
+    for i, obs in enumerate(obstacles):
+        if i%3 == 0:
+            circ = plt.Circle(obs.get_center(), obs.get_radius(), color="r")
+            axs1.add_artist(circ)
 
     # plot rigidity eigenvals
     timesteps = [i for i in range(len(min_eigvals))]
@@ -130,12 +134,14 @@ def test_trajectory_plot(
 
     # plot
     line = axs2.add_collection(lc)
-    axs2.hlines([threshold_eigval], 0, timestep_end)
+    axs2.hlines([threshold_eigval], 0, num_total_timesteps)
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(14, 8)
+
     axs2.set_ylabel("Rigidity")
 
-    plt.pause(0.001)
+    # pause such that will play in 10s
+    plt.pause(10.0/float(num_total_timesteps))
     plt.show(block=False)
 
 

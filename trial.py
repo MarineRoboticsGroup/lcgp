@@ -19,6 +19,7 @@ import environment
 import plot
 
 # planners
+# pylint: disable=import-error
 from planners import decoupled_rrt
 from planners import coupled_lazysp
 from planners import coupled_astar
@@ -63,6 +64,7 @@ def test_trajectory(
     total_time = 0
     nonrigid_time = 0
     assert trajs is not None
+
     robot_size = 0.4
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
@@ -78,6 +80,7 @@ def test_trajectory(
 
     traj_indices = [-1 for traj in trajs]
     final_traj_indices = [len(traj) - 1 for traj in trajs]
+    num_total_timesteps = max(final_traj_indices)+1
     move = []
     config = []
     min_eigvals = []
@@ -94,7 +97,7 @@ def test_trajectory(
         mean_error = sum(error_list) / len(error_list)
         mean_error_list.append(mean_error)
 
-        # Plotting options
+        # if true does not show rigidity plot on bottom
         if only_plot_trajectories:
             plot.plot(
                 robots.get_robot_graph(),
@@ -119,7 +122,7 @@ def test_trajectory(
 
         else:
             plot.test_trajectory_plot(
-                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval
+                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
             )
 
         trajectory_img_path = (
@@ -179,52 +182,45 @@ def test_trajectory(
         if delay_animation and total_time == 1:
             plt.pause(10)
 
+    # plot the last timestep in the trajectory
     plot.test_trajectory_plot(
-        robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval
+        robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
     )
-    # plot.plot(
-    #     robots.get_robot_graph(),
-    #     env,
-    #     blocking=False,
-    #     animation=True,
-    #     goals=goals,
-    #     clear_last=True,
-    #     show_goals=True,
-    #     show_graph_edges=True,
-    # )
     plt.pause(1)
     trajectory_img_path = (
         f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
     )
     plt.savefig(trajectory_img_path)
+    plt.close()
 
+    # print out some basic statistics on the trajectory
     worst_error = max(mean_error_list)
     avg_error = sum(mean_error_list) / float(len(mean_error_list))
     print("Avg Localization Error:", avg_error)
     print("Max Localization Error:", worst_error)
 
-    plt.close()
+    print("Total Timesteps:", total_time)
+    print("Number of Nonrigid Timesteps:", nonrigid_time)
 
-    plt.plot(min_eigvals)
-    # plt.plot(loc_error)
-    plt.hlines([robots.min_eigval], 0, len(min_eigvals))
+
+    #* some plotting to compare the eigenvalue with the localization error
+    # eigval_plt, = plt.plot(min_eigvals, label="Eigval")
+    # error_plt, = plt.plot(mean_error_list, label="Mean Error")
+    # plt.hlines([robots.min_eigval], 0, len(min_eigvals))
     # plt.title("Minimum Eigenvalue over Time")
-    plt.ylabel("Eigenvalue")
-    plt.xlabel("time")
-    plt.legend(["Eigvals", "Error"])
-    plt.show()
+    # plt.ylabel("Eigenvalue")
+    # plt.xlabel("time")
+    # plt.legend(handles=[eigval_plt, error_plt])
+    # plt.show()
 
-    figure_path = (
-        f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
-    )
-    plt.savefig(figure_path)
+    # figure_path = (
+    #     f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
+    # )
+    # plt.savefig(figure_path)
 
-    print("Total Time:", total_time)
-    print("Bad Time:", nonrigid_time)
 
 
 def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
-    feasible = True
     start_loc_list = swarm.get_position_list_tuples()
     graph = swarm.get_robot_graph()
 
@@ -257,12 +253,16 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
 
                     # check that is connected to one of previous locs
                     is_connected = False
-                    for prev_robot_id, prev_robot_loc_id in enumerate(range(0, num_robots)):
+                    for prev_robot_id, prev_robot_loc_id in enumerate(
+                        range(0, num_robots)
+                    ):
                         prev_robot_loc = np.array(start_locs[prev_robot_loc_id])
                         dist_between = math_utils.calc_dist_between_locations(
                             cur_robot_loc, prev_robot_loc
                         )
-                        print(f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}")
+                        print(
+                            f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}"
+                        )
                         if dist_between < swarm.get_sensing_radius():
                             is_connected = True
 
@@ -276,13 +276,17 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
 
                     # check that is connected to one of previous locs
                     is_connected = False
-                    for prev_robot_id, prev_robot_loc_id in enumerate(range(0, num_robots)):
+                    for prev_robot_id, prev_robot_loc_id in enumerate(
+                        range(0, num_robots)
+                    ):
                         prev_robot_loc = goal_locs[prev_robot_loc_id]
                         dist_between = math_utils.calc_dist_between_locations(
                             cur_robot_loc, prev_robot_loc
                         )
 
-                        print(f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}")
+                        print(
+                            f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}"
+                        )
                         if dist_between < swarm.get_sensing_radius():
                             is_connected = True
 
@@ -315,7 +319,12 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
                 graph = swarm.get_robot_graph()
                 plot.plot_nth_eigvec(swarm, 4)
                 plot.plot(
-                    graph, env, goals=goals, show_goals=True, blocking=True, animation=False
+                    graph,
+                    env,
+                    goals=goals,
+                    show_goals=True,
+                    blocking=True,
+                    animation=False,
                 )
                 return False
             if not goal_is_rigid:
@@ -326,7 +335,12 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
                 graph = swarm.get_robot_graph()
                 plot.plot_nth_eigvec(swarm, 4)
                 plot.plot(
-                    graph, env, goals=goals, show_goals=True, blocking=True, animation=False
+                    graph,
+                    env,
+                    goals=goals,
+                    show_goals=True,
+                    blocking=True,
+                    animation=False,
                 )
                 return False
 
@@ -481,17 +495,14 @@ def get_decoupled_rrt_path(robots, environment, goals):
 
     return path
 
+
 def get_coupled_lazysp_path(robots, environment, goals):
 
-    lazysp_planner = coupled_lazysp.LazySp(
-        robots=robots, env=environment, goals=goals
-    )
+    lazysp_planner = coupled_lazysp.LazySp(robots=robots, env=environment, goals=goals)
 
     traj = lazysp_planner.perform_planning()
 
     return traj
-
-
 
 
 def get_coupled_astar_path(robots, environment, goals):
@@ -506,6 +517,7 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     )
     traj = priority_prm.planning(useTime=useTime)
     return traj
+
 
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(robots=robots, env=environment, goals=goals)
@@ -661,7 +673,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     else:
         raise AssertionError
 
-    print("trajectories:", trajs)
     endPlanning = time.time()
     print("Time Planning:", endPlanning - startPlanning)
 
@@ -907,14 +918,14 @@ if __name__ == "__main__":
 
         # the starting formation of the network
         # swarmForm = 'square'
-        # swarmForm = "test6"
+        swarmForm = "test6"
         # swarmForm = "test8"
         # swarmForm = "test20"
         # swarmForm = 'random'
-        swarmForm = "simple_vicon"
+        # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 5
+        nRobots = 6
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -939,15 +950,15 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        setting = 'simple_vicon'
+        # setting = "simple_vicon"
         # setting = "obstacle_vicon"
 
         # the dimensions of the environment
-        envSize = (4.2, 2.4)  # vicon
-        # envSize = (35, 35)  # simulation
+        # envSize = (4.2, 2.4)  # vicon
+        envSize = (35, 35)  # simulation
 
         # number of obstacles for random environment
         numObstacles = 10
