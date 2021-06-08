@@ -23,7 +23,7 @@ class PotentialField:
         env,
         goals,
         target_dist_to_goal: float = 0.05,
-        max_move_dist: float = 0.2,
+        max_move_dist: float = 0.05,
         max_iter: int = 2000,
     ):
         self._robots = robots
@@ -51,16 +51,16 @@ class PotentialField:
         """Returns trajectory
         """
         #DEBUGGING HELPERS
-        print("Start Positions:", [
-            [round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
+        # print("Start Positions:", [
+        #     [round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
         recent_positions = []
         ##################
 
         #! relative weights aren't given in the paper, so these are guesses
-        w_task = .95
-        w_loc = .0
+        w_task = 1.0
+        w_loc = .1
         w_avoid_obstacles = .0
-        w_avoid_robots = .05
+        w_avoid_robots = .01
 
         # attempt at organizing the potential functions
         # weight, function, current value
@@ -121,18 +121,19 @@ class PotentialField:
             )
 
             # DEBUGGING HELPERS
-            if [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)] in recent_positions:
-                print("STUCK IN A LOOP")
-                print("Current positions:", [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
-                print("Recent positions:", recent_positions)
-                return
+            # if [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)] in recent_positions:
+            #     print("STUCK IN A LOOP")
+            #     print("Current positions:", [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
+            #     print("Recent positions:", recent_positions)
+            #     print("Potentials:", potentials)
+            #     return
 
             recent_positions += [[[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)]]
             if len(recent_positions) > 4:
                 recent_positions = recent_positions[1:]
 
-            print("Current Positions:", [
-                [round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
+            # print("Current Positions:", [
+            #     [round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
             ###################
 
         # End conditions
@@ -188,9 +189,10 @@ class PotentialField:
             dx = xend - x
             dy = yend - y
             hypot = math.hypot(dx, dy)
+            move_list += [dx, dy]
 
             # normalize
-            move_list += [dx / hypot, dy / hypot]
+            # move_list += [dx / hypot, dy / hypot]
         return move_list
 
     def f_loc(self):
@@ -216,11 +218,11 @@ class PotentialField:
             fim, (eigvals[i], eigvecs[i]), graph
         )
 
-        # normalize
-        for i in range(int(len(move_list) / 2)):
-            hypot = math.hypot(move_list[i], move_list[i + 1])
-            move_list[i] /= hypot
-            move_list[i + 1] /= hypot
+        # # normalize
+        # for i in range(int(len(move_list) / 2)):
+        #     hypot = math.hypot(move_list[i], move_list[i + 1])
+        #     move_list[i] /= hypot
+        #     move_list[i + 1] /= hypot
         return move_list
 
     def f_avoid_obstacles(self):
@@ -260,9 +262,9 @@ class PotentialField:
             # negate the sum
             move_list += [-total_vec[0], -total_vec[1]]
 
-        # normalize
-        for i in range(int(len(move_list)/2)):
-            hypot = math.hypot(move_list[i], move_list[i+1])
-            move_list[i] /= hypot
-            move_list[i+1] /= hypot
+        # # normalize
+        # for i in range(int(len(move_list)/2)):
+        #     hypot = math.hypot(move_list[i], move_list[i+1])
+        #     move_list[i] /= hypot
+        #     move_list[i+1] /= hypot
         return move_list
