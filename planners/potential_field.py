@@ -8,14 +8,24 @@ Nicole Thumma
 """
 
 import numpy as np
+import math
+
+# pylint: disable=import-error
 import graph
 import swarm
 import math_utils
-import math
 
 
-class PotentialField():
-    def __init__(self, robots, env, goals, max_move_dist=0.2, max_iter=100):
+class PotentialField:
+    def __init__(
+        self,
+        robots,
+        env,
+        goals,
+        target_dist_to_goal: float = 0.05,
+        max_move_dist: float = 0.2,
+        max_iter: int = 2000,
+    ):
         self._robots = robots
         self._env = env
         self._goal_locs = goals
@@ -23,12 +33,19 @@ class PotentialField():
 
         self.num_robots = robots.get_num_robots()
         self.found_goal = [False for i in range(self.num_robots)]
-        self._trajs = [[self._start_loc_list[i]]
-                       for i in range(self.num_robots)]  # list containing a list for each robot with tuples of postions
+        self._trajs = [
+            [self._start_loc_list[i]] for i in range(self.num_robots)
+        ]  # list containing a list for each robot with tuples of postions
+
+        # keep track of each robots distance to its goal
+        self._curr_dist_to_goal = [
+            self.getDistanceToGoal(idx) for idx in range(self.num_robots)
+        ]
         self._current_robots = self._robots
 
-        self.max_move_dist = max_move_dist
-        self.max_iter = max_iter
+        self._target_dist_to_goal = target_dist_to_goal
+        self._max_move_dist = max_move_dist
+        self._max_iter = max_iter
 
     def planning(self):
         """Returns trajectory
@@ -39,7 +56,7 @@ class PotentialField():
         recent_positions = []
         ##################
 
-        # relative weights aren't given in the paper, so these are guesses
+        #! relative weights aren't given in the paper, so these are guesses
         w_task = .95
         w_loc = .0
         w_avoid_obstacles = .0
@@ -56,7 +73,7 @@ class PotentialField():
         if self.num_robots > 3:
             potentials["loc"] = [w_loc, self.f_loc, []]
 
-        for iteration in range(self.max_iter):
+        for _ in range(self._max_iter):
             move_list = [[0.0, 0.0] for i in range(self.num_robots)]
 
             # get potential function values
@@ -78,27 +95,30 @@ class PotentialField():
 
                     # weight to move at max speed, might need to tune
                     hypot = math.hypot(
-                        move_list[robotIndex][0], move_list[robotIndex][1])
-                    move_list[robotIndex][0] *= self.max_move_dist/hypot
-                    move_list[robotIndex][1] *= self.max_move_dist/hypot
+                        move_list[robotIndex][0], move_list[robotIndex][1]
+                    )
+                    move_list[robotIndex][0] *= self._max_move_dist / hypot
+                    move_list[robotIndex][1] *= self._max_move_dist / hypot
 
                 # stay at goal
                 else:
                     move_list[robotIndex] = [0.0, 0.0]
 
                 # Add movement to current position
-                new_x = self._trajs[robotIndex][-1][0] + \
-                    move_list[robotIndex][0]
-                new_y = self._trajs[robotIndex][-1][1] + \
-                    move_list[robotIndex][1]
+                new_x = self._trajs[robotIndex][-1][0] + move_list[robotIndex][0]
+                new_y = self._trajs[robotIndex][-1][1] + move_list[robotIndex][1]
 
                 self._trajs[robotIndex].append(tuple([new_x, new_y]))
 
             # update for next timestep
             self._current_robots = swarm.Swarm(
-                self._robots._sensing_radius, self._robots.noise_model, self._robots.noise_stddev)
+                self._robots._sensing_radius,
+                self._robots.noise_model,
+                self._robots.noise_stddev,
+            )
             self._current_robots.initialize_swarm_from_loc_list_of_tuples(
-                [self._trajs[i][-1] for i in range(self.num_robots)])
+                [self._trajs[i][-1] for i in range(self.num_robots)]
+            )
 
             # DEBUGGING HELPERS
             if [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)] in recent_positions:
@@ -119,7 +139,7 @@ class PotentialField():
             if self.allRobotsFoundGoal():
                 return self._trajs
         print("Not enough iterations")
-        return None
+        return self._trajs
 
 
 ####################
@@ -134,14 +154,17 @@ class PotentialField():
         return math.hypot(dx, dy)
 
     def hasFoundGoal(self, index):
-        if (self.getDistanceToGoal(index) < self.max_move_dist):
-            self.found_goal[index] = True
+        # if this is true then the robot will stop moving so we don't need to
+        # check the distance in future timesteps
+        if self._curr_dist_to_goal[index] < self._target_dist_to_goal:
             return True
-        return False
+
+        self._curr_dist_to_goal[index] = self.getDistanceToGoal(index)
+        return self._curr_dist_to_goal[index] < self._target_dist_to_goal
 
     def allRobotsFoundGoal(self):
-        for res in self.found_goal:
-            if not res:
+        for curr_dist in self._curr_dist_to_goal:
+            if curr_dist > self._target_dist_to_goal:
                 return False
         return True
 
@@ -167,14 +190,15 @@ class PotentialField():
             hypot = math.hypot(dx, dy)
 
             # normalize
-            move_list += [dx/hypot, dy/hypot]
+            move_list += [dx / hypot, dy / hypot]
         return move_list
 
     def f_loc(self):
         # Get FIM
         graph = self._current_robots.get_robot_graph()
         fim = math_utils.build_fisher_matrix(
-            graph.edges, graph.nodes, graph.noise_model, graph.noise_stddev)
+            graph.edges, graph.nodes, graph.noise_model, graph.noise_stddev
+        )
 
         # Get all eigval pairs
         eigvals = []
@@ -184,18 +208,19 @@ class PotentialField():
             eigvals.append(eigpair[0])
             eigvecs.append(eigpair[1])
 
-        # Get min eigenval pair
+        # Get min eigpair
         i = eigvals.index(min(eigvals))
 
         # Get gradient
         move_list = math_utils.get_gradient_of_eigpair(
-            fim, (eigvals[i], eigvecs[i]), graph)
+            fim, (eigvals[i], eigvecs[i]), graph
+        )
 
         # normalize
-        for i in range(int(len(move_list)/2)):
-            hypot = math.hypot(move_list[i], move_list[i+1])
+        for i in range(int(len(move_list) / 2)):
+            hypot = math.hypot(move_list[i], move_list[i + 1])
             move_list[i] /= hypot
-            move_list[i+1] /= hypot
+            move_list[i + 1] /= hypot
         return move_list
 
     def f_avoid_obstacles(self):
