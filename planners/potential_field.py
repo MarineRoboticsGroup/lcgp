@@ -22,8 +22,8 @@ class PotentialField:
         robots,
         env,
         goals,
-        target_dist_to_goal: float = 0.05,
-        max_move_dist: float = 0.05,
+        target_dist_to_goal: float = 1,
+        max_move_dist: float = 1,
         max_iter: int = 2000,
     ):
         self._robots = robots
@@ -57,16 +57,24 @@ class PotentialField:
         ##################
 
         #! relative weights aren't given in the paper, so these are guesses
-        w_task = 1.0
-        w_loc = .1
-        w_avoid_obstacles = .0
-        w_avoid_robots = .01
+        # normalize = False
+        # w_task = 100.0
+        # w_loc = 10.0
+        # w_avoid_obstacles = 1.0
+        # w_avoid_robots = 1.0
+
+        normalize = True
+        w_task = 1
+        w_loc = 1
+        w_avoid_obstacles = 1
+        w_avoid_robots = 1
+
 
         # attempt at organizing the potential functions
         # weight, function, current value
         potentials = {
             "task": [w_task, self.f_task, []],
-            # "avoid_obstacles": [w_avoid_obstacles, self.f_avoid_obstacles, []],
+            "avoid_obstacles": [w_avoid_obstacles, self.f_avoid_obstacles, []],
             "avoid_robots": [w_avoid_robots, self.f_avoid_robots, []]
         }
 
@@ -78,13 +86,16 @@ class PotentialField:
 
             # get potential function values
             for name in potentials:
-                potentials[name][2] = potentials[name][1]()
+                potentials[name][2] = potentials[name][1](normalize)
 
             for robotIndex in range(self.num_robots):
                 # Move towards goal
                 if not self.hasFoundGoal(robotIndex):
                     # add potential functions together
                     for name in potentials:
+                        # print("\nCurrent robot:", robotIndex)
+                        # print("Current potential:", name)
+                        # print("Current x value:", move_list[robotIndex][0])
                         #special case for anchors
                         if name == "loc" and robotIndex >= self.num_robots-3:
                             continue
@@ -92,6 +103,8 @@ class PotentialField:
                             potentials[name][2][2*robotIndex]
                         move_list[robotIndex][1] += potentials[name][0] * \
                             potentials[name][2][2*robotIndex+1]
+                        # print("Print weighted addition:", potentials[name][0] * \
+                        #     potentials[name][2][2*robotIndex])
 
                     # weight to move at max speed, might need to tune
                     hypot = math.hypot(
@@ -121,9 +134,9 @@ class PotentialField:
             )
 
             # DEBUGGING HELPERS
-            # if [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)] in recent_positions:
+            # if [[round(self._trajs[i][-1][0], 5), round(self._trajs[i][-1][1], 5)] for i in range(self.num_robots)] in recent_positions:
             #     print("STUCK IN A LOOP")
-            #     print("Current positions:", [[round(self._trajs[i][-1][0], 3), round(self._trajs[i][-1][1], 3)] for i in range(self.num_robots)])
+            #     print("Current positions:", [[round(self._trajs[i][-1][0], 5), round(self._trajs[i][-1][1], 5)] for i in range(self.num_robots)])
             #     print("Recent positions:", recent_positions)
             #     print("Potentials:", potentials)
             #     return
@@ -180,7 +193,7 @@ class PotentialField:
 
     # gradient of 1/2*sum_{i=1->n}(x_{i,current}-x_{i,goal})^2
     # => sum{i=1->n}((x_{i,current}-x_{i,goal}))
-    def f_task(self):
+    def f_task(self, normalize):
         move_list = []
         for i in range(self.num_robots):
             # get unit vector towards goal
@@ -189,13 +202,14 @@ class PotentialField:
             dx = xend - x
             dy = yend - y
             hypot = math.hypot(dx, dy)
-            move_list += [dx, dy]
 
-            # normalize
-            # move_list += [dx / hypot, dy / hypot]
+            # if normalize:
+            move_list += [dx / hypot, dy / hypot]
+            # else:
+            #     move_list += [dx, dy]
         return move_list
 
-    def f_loc(self):
+    def f_loc(self, normalize):
         # Get FIM
         graph = self._current_robots.get_robot_graph()
         fim = math_utils.build_fisher_matrix(
@@ -219,21 +233,42 @@ class PotentialField:
         )
 
         # # normalize
-        # for i in range(int(len(move_list) / 2)):
-        #     hypot = math.hypot(move_list[i], move_list[i + 1])
-        #     move_list[i] /= hypot
-        #     move_list[i + 1] /= hypot
+        if normalize:
+            for i in range(int(len(move_list) / 2)):
+                hypot = math.hypot(move_list[i], move_list[i + 1])
+                move_list[i] /= hypot
+                move_list[i + 1] /= hypot
         return move_list
 
-    def f_avoid_obstacles(self):
-        # get all obstacles (modeled as points with collision radii)
-        # get 1/(dist^2) to all obstacles
-        # get normal vector to all obstacles
-        # negate sum of weighted vectors
-        # normalize
-        pass
+    def f_avoid_obstacles(self, normalize):
+        robot_radius = 0.0 #! need to connect to actual parameter
 
-    def f_avoid_robots(self):
+        obstacle_list = self._env.get_obstacle_list()
+        move_list = []
+        for robotIndex in range(self.num_robots):
+            x_r, y_r = self._trajs[robotIndex][-1]
+            vec = [0.0, 0.0]
+            for obstacle in obstacle_list:
+                x_o, y_o = obstacle.get_center()
+                obstacle_radius = obstacle.get_radius()
+                dist = ((x_o - x_r)**2 + (y_o - y_r)**2)**1/2 - obstacle_radius - robot_radius
+                if dist < 0.0:
+                    dist = .0001
+                vec[0] -= (x_o - x_r)/dist**3
+                vec[1] -= (y_o - y_r)/dist**3
+            move_list += [vec[0]/len(obstacle_list), vec[1]/len(obstacle_list)] #avg vec
+
+        # normalize
+        if normalize:
+            for i in range(int(len(move_list)/2)):
+                hypot = math.hypot(move_list[i], move_list[i+1])
+                move_list[i] /= hypot
+                move_list[i+1] /= hypot
+        return move_list
+
+    def f_avoid_robots(self, normalize):
+        robot_radius = 0.0 #! need to connect to actual parameter
+
         # get 1/(dist^2) between all robots
         # get weighted, normalized vector between all robots
         robot_vecs = [[[0.0, 0.0]
@@ -244,7 +279,9 @@ class PotentialField:
                 x_i, y_i = self._trajs[i][-1]
                 x_j, y_j = self._trajs[j][-1]
 
-                dist = ((x_j - x_i)**2 + (y_j - y_i)**2)**1/2
+                dist = ((x_j - x_i)**2 + (y_j - y_i)**2)**1/2 - 2*robot_radius
+                if dist < 0:
+                    dist = .0001
                 vec = ((x_j - x_i)/dist**3, (y_j - y_i)/dist**3)
 
                 robot_vecs[i][j] = (vec[0], vec[1])
@@ -256,15 +293,16 @@ class PotentialField:
 
             # sum of weighted vectors
             for j in range(self.num_robots):
-                total_vec[0] += robot_vecs[i][j][0]
-                total_vec[1] += robot_vecs[i][j][1]
+                total_vec[0] -= robot_vecs[i][j][0]
+                total_vec[1] -= robot_vecs[i][j][1]
 
             # negate the sum
-            move_list += [-total_vec[0], -total_vec[1]]
+            move_list += [total_vec[0]/self.num_robots, total_vec[1]/self.num_robots] #avg vec
 
-        # # normalize
-        # for i in range(int(len(move_list)/2)):
-        #     hypot = math.hypot(move_list[i], move_list[i+1])
-        #     move_list[i] /= hypot
-        #     move_list[i+1] /= hypot
+        # normalize
+        if normalize:
+            for i in range(int(len(move_list)/2)):
+                hypot = math.hypot(move_list[i], move_list[i+1])
+                move_list[i] /= hypot
+                move_list[i+1] /= hypot
         return move_list

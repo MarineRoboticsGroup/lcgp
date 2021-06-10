@@ -918,14 +918,14 @@ if __name__ == "__main__":
 
         # the starting formation of the network
         # swarmForm = 'square'
-        # swarmForm = "test6"
+        swarmForm = "test6"
         # swarmForm = "test8"
         # swarmForm = "test20"
         # swarmForm = 'random'
-        swarmForm = "simple_vicon"
+        # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 5
+        nRobots = 6
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -950,15 +950,15 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        setting = "simple_vicon"
+        # setting = "simple_vicon"
         # setting = "obstacle_vicon"
 
         # the dimensions of the environment
-        envSize = (4.2, 2.4)  # vicon
-        # envSize = (35, 35)  # simulation
+        # envSize = (4.2, 2.4)  # vicon
+        envSize = (35, 35)  # simulation
 
         # number of obstacles for random environment
         numObstacles = 10
