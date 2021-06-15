@@ -884,13 +884,13 @@ if __name__ == "__main__":
         # the starting formation of the network
         # swarmForm = 'square'
         # swarmForm = "test6"
-        swarmForm = "test8"
-        # swarmForm = "test20"
+        # swarmForm = "test8"
+        swarmForm = "test20"
         # swarmForm = 'random'
         # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 8
+        nRobots = 20
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"

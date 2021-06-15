@@ -176,9 +176,8 @@ class Graph:
         return self.nEdges
 
     def get_nth_eigval(self, n):
-        eigvals = math_utils.get_list_all_eigvals(self.get_fisher_matrix())
-        eigvals.sort()
-        return eigvals[n - 1]
+        eigval = math_utils.get_nth_eigval(self.get_fisher_matrix(), n)
+        return eigval[0]
 
     def get_fisher_matrix(
         self,

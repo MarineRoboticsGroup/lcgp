@@ -1,9 +1,11 @@
 import numpy as np
 import warnings
 import math
-from numpy import linalg as la
+# from numpy import linalg as la
+from scipy import linalg as la
 from typing import List, Tuple
 import numba
+from numba import prange
 
 # from scipy import linalg as la
 
@@ -56,20 +58,45 @@ def get_list_all_eigvals(mat):
     assert is_square_matrix(mat)
 
     try:
-        val = la.eigvalsh(mat)
+        val = la.eigh(mat, eigvals_only=True)
+        # val = la.eigvalsh(mat, eigvals_only=True, subset_by_index=[0,0])
         val[np.abs(val) < eps] = 0
         val = np.real(val)
     except:
         val = np.zeros(mat.shape[0])
     return val
 
+def get_least_eigval(mat):
+    try:
+        val = la.eigh(mat, eigvals_only=True, subset_by_index=[0,0])
+        return val
+    except:
+        return 0
+
+def get_nth_eigval(mat, n):
+    """Note: n is 1-indexed
+
+    Args:
+        mat ([type]): [description]
+        n ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    index = n - 1
+    try:
+        val = la.eigh(mat, eigvals_only=True, subset_by_index=[index,index])
+        return val
+    except:
+        return 0
 
 def get_nth_eigpair(mat, n):
     assert is_square_matrix(mat)
     index = n - 1
 
     try:
-        eigvals, eigvecs = la.eigh(mat)
+        eigval, eigvec = la.eigh(mat, subset_by_index=[index,index])
+        return eigval, eigvec
     except np.linalg.LinAlgError:
         print("Failed to converge on matrix computation")
         print(mat)
@@ -135,11 +162,12 @@ def build_fisher_matrix(
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
+    print(nodes)
     num_nodes = len(nodes)
     num_variable_nodes = num_nodes - 3
     assert (
         num_variable_nodes > 0
-    ), f"No FIM as there are only {num_nodes} nodes in network"
+    )
     K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
 
     alpha = None
@@ -200,6 +228,100 @@ def build_fisher_matrix(
 
     # matprint_block(K)
     return K
+
+
+
+@numba.njit()
+def build_fim_from_loc_list(
+    nodes_: List[Tuple[float, float]], sensing_radius:float, noise_model: str, noise_stddev: float
+):
+    """
+    Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
+    """
+    # np_nodes = np.array(nodes_)
+    num_nodes = len(nodes_)
+    num_variable_nodes = num_nodes - 3
+    assert (
+        num_variable_nodes > 0
+    )
+    K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
+
+    def get_edges(nodes, sensing_radius):
+        edges = []
+        n_nodes = len(nodes)
+        for id1 in prange(n_nodes):
+            for id2 in prange(id1 + 1, n_nodes):
+                loc1 = nodes[id1]
+                loc2 = nodes[id2]
+                dist = np.linalg.norm(loc1-loc2)
+                if dist < sensing_radius:
+                    edges.append((id1, id2))
+        return edges
+
+    edges = get_edges(nodes_, sensing_radius)
+    alpha = None
+    if noise_model == "add":
+        alpha = float(1)
+    elif noise_model == "lognorm":
+        alpha = float(2)
+    else:
+        raise NotImplementedError
+
+
+    std_dev_squared = (noise_stddev ** 2)
+    for ii in prange(len(edges)):
+        e = edges[ii]
+        i = e[0]
+        j = e[1]
+        if i == j:
+            continue
+        node_i = nodes_[i]
+        node_j = nodes_[j]
+        diff = node_i - node_j
+        dist = np.linalg.norm(diff)
+
+        # * This way of forming matrix was tested to be fastest
+        denom = std_dev_squared * (dist) ** (2 * alpha)
+        delX2, delY2 = np.square(diff)/denom
+        # delX2 = delXij ** 2 / denom
+        # delY2 = delYij ** 2 / denom
+        # delXij = diff[0]
+        # delYij = diff[1]
+        delXY = diff[0] * diff[1] / denom
+
+        i -= 3
+        j -= 3
+
+        if i >= 0:
+            # Block ii
+            K[2 * i, 2 * i] += delX2
+            K[2 * i + 1, 2 * i + 1] += delY2
+            K[2 * i, 2 * i + 1] += delXY
+            K[2 * i + 1, 2 * i] += delXY
+
+        if j >= 0:
+            # Block jj
+            K[2 * j, 2 * j] += delX2
+            K[2 * j + 1, 2 * j + 1] += delY2
+            K[2 * j, 2 * j + 1] += delXY
+            K[2 * j + 1, 2 * j] += delXY
+
+        if i >= 0 and j >= 0:
+            # Block ij
+            K[2 * i, 2 * j] = -delX2
+            K[2 * i + 1, 2 * j + 1] = -delY2
+            K[2 * i, 2 * j + 1] = -delXY
+            K[2 * i + 1, 2 * j] = -delXY
+
+            # Block ji
+            K[2 * j, 2 * i] = -delX2
+            K[2 * j + 1, 2 * i + 1] = -delY2
+            K[2 * j, 2 * i + 1] = -delXY
+            K[2 * j + 1, 2 * i] = -delXY
+
+    # matprint_block(K)
+    return K
+
 
 
 def ground_nodes_in_matrix(A, n, nodes):

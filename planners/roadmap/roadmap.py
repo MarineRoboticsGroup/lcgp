@@ -6,7 +6,6 @@ from typing import List, Tuple
 from abc import abstractmethod
 
 # pylint: disable=import-error
-import faiss
 import kdtree
 import math_utils
 
