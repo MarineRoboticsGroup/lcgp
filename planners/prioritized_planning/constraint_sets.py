@@ -82,7 +82,7 @@ class ConstraintSets:
                 for timestep, loc_id in enumerate(trajs[robot_id]):
                     loc = self._roadmap.get_loc(loc_id)
                     neighbors = self._roadmap.get_neighbors_within_radius(
-                        loc, self._robots.sensingRadius
+                        loc, self._robots._sensing_radius
                     )
                     for loc_id in neighbors:
                         already_conn_state = self.is_connected_state(
@@ -106,7 +106,7 @@ class ConstraintSets:
             for timestep, loc_id in enumerate(trajs[cur_robot_id]):
                 loc = self._roadmap.get_loc(loc_id)
                 neighbors = self._roadmap.get_neighbors_within_radius(
-                    loc, self._robots.sensingRadius
+                    loc, self._robots._sensing_radius
                 )
                 for loc_id in neighbors:
                     already_conn_state = self.is_connected_state(
@@ -293,7 +293,7 @@ class ConstraintSets:
 
         # if using a manhattan roadmap we will check if it is a cached value
         # first
-        if self._roadmap.ROADMAP_TYPE == "ManhattanRoadmap":
+        if self._roadmap._ROADMAP_TYPE == "ManhattanRoadmap":
             rigidity = self._roadmap.get_cached_rigidity(loc_list)
             print(f"Loc List: {loc_list}, Cached Rigidity: {rigidity}")
             if rigidity is not None:

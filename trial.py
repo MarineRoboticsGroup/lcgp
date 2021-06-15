@@ -869,8 +869,8 @@ if __name__ == "__main__":
     else:
         # exp = 'coupled_astar'
         # exp = "decoupled_rrt"
-        # exp = "priority_prm"
-        exp = "coupled_lazysp"
+        exp = "priority_prm"
+        # exp = "coupled_lazysp"
         # exp = "read_file"
 
         # whether to use time as extra planning dimension
@@ -883,7 +883,7 @@ if __name__ == "__main__":
         showAnimation = False
 
         # whether to perform code profiling
-        profile = True
+        profile = False
 
         # the timestamp for replaying a recorded path (only when exp=="read_file")
         timestamp = 1600223009  # RRT
@@ -895,13 +895,13 @@ if __name__ == "__main__":
         # the starting formation of the network
         # swarmForm = 'square'
         # swarmForm = "test6"
-        # swarmForm = "test8"
+        swarmForm = "test8"
         # swarmForm = "test20"
         # swarmForm = 'random'
-        swarmForm = "simple_vicon"
+        # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 5
+        nRobots = 8
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -926,15 +926,15 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        setting = 'simple_vicon'
+        # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
 
         # the dimensions of the environment
-        envSize = (4.2, 2.4)  # vicon
-        # envSize = (35, 35)  # simulation
+        # envSize = (4.2, 2.4)  # vicon
+        envSize = (35, 35)  # simulation
 
         # number of obstacles for random environment
         numObstacles = 10
@@ -948,11 +948,3 @@ if __name__ == "__main__":
             envInfo=envInfo,
             seed=301,
         )
-
-        # #rapidly checking rrt solutions for collision
-        # #to make work, have test_trajectory return False if a collision is detected and True otherwise
-        # #then have main return the result of test_trajectory
-        # for i in range(400):
-        #     if main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=i):
-        #         print("Working solution:", i)
-        #         break

@@ -41,7 +41,7 @@ class PriorityPrm:
         self._robots = robots
         self._sensing_radius = robots.get_sensing_radius()
         self._start_loc_list = self._robots.get_position_list_tuples()
-        self._start_config = self._robots.start_config
+        self._start_config = self._robots._start_config
         # environment
         self._env = env
         self._obstacles = env.get_obstacle_list()
