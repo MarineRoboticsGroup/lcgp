@@ -140,7 +140,6 @@ class Swarm:
 
     def test_rigidity_from_loc_list(self, loc_list):
         assert isinstance(loc_list, list)
-        print(loc_list)
         if len(loc_list) < 3:
             return False
 

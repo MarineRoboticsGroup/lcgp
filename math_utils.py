@@ -160,14 +160,13 @@ def sort_eigpairs(eigvals, eigvecs):
     return (srtVal, srtVec)
 
 
-# @numba.njit()
+@numba.njit()
 def build_fisher_matrix(
-    edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float
+    edges: np.ndarray, nodes: np.ndarray, noise_model: str, noise_stddev: float
 ):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
-    # print(nodes)
     num_nodes = len(nodes)
     num_variable_nodes = num_nodes - 3
     assert num_variable_nodes > 0
@@ -181,23 +180,22 @@ def build_fisher_matrix(
     else:
         raise NotImplementedError
 
-    for _, e in enumerate(edges):
-        i, j = e
+    std_dev_squared = noise_stddev ** 2
+    for ii in range(len(edges)):
+        e = edges[ii]
+        i = e[0]
+        j = e[1]
         if i == j:
             continue
         node_i = nodes[i]
         node_j = nodes[j]
-        xi, yi = node_i.get_loc_tuple()
-        xj, yj = node_j.get_loc_tuple()
-        delXij = xi - xj
-        delYij = yi - yj
-        dist = np.sqrt(delXij ** 2 + delYij ** 2)
+        diff = node_i - node_j
+        dist = np.linalg.norm(diff)
 
         # * This way of forming matrix was tested to be fastest
-        denom = (noise_stddev ** 2) * (dist) ** (2 * alpha)
-        delX2 = delXij ** 2 / denom
-        delY2 = delYij ** 2 / denom
-        delXY = delXij * delYij / denom
+        denom = std_dev_squared * (dist) ** (2 * alpha)
+        delX2, delY2 = np.square(diff) / denom
+        delXY = diff[0] * diff[1] / denom
 
         i -= 3
         j -= 3
@@ -443,7 +441,6 @@ def calc_dist_between_locations(loc1, loc2):
     gx, gy = loc2
     dx = gx - nx
     dy = gy - ny
-    # print(dx, dy)
     return math.hypot(dx, dy)
 
 

@@ -226,9 +226,7 @@ class PotentialField:
     def f_loc(self, normalize):
         # Get FIM
         graph = self._current_robots.get_robot_graph()
-        fim = math_utils.build_fisher_matrix(
-            graph.edges, graph.nodes, graph.noise_model, graph.noise_stddev
-        )
+        fim = graph.get_fisher_matrix()
 
         # Get all eigval pairs
         eigvals = []
