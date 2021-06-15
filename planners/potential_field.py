@@ -234,7 +234,7 @@ class PotentialField:
         eigvals = []
         eigvecs = []
         for i in range(fim.shape[0]):
-            eigpair = math_utils.get_nth_eigpair(fim, i)
+            eigpair = math_utils.get_nth_eigpair(fim, i+1)
             eigvals.append(eigpair[0])
             eigvecs.append(eigpair[1])
 

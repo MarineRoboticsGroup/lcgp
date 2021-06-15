@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 import math
+
 # from numpy import linalg as la
 from scipy import linalg as la
 from typing import List, Tuple
@@ -66,12 +67,14 @@ def get_list_all_eigvals(mat):
         val = np.zeros(mat.shape[0])
     return val
 
+
 def get_least_eigval(mat):
     try:
-        val = la.eigh(mat, eigvals_only=True, subset_by_index=[0,0])
+        val = la.eigh(mat, eigvals_only=True, subset_by_index=[0, 0])
         return val
     except:
         return 0
+
 
 def get_nth_eigval(mat, n):
     """Note: n is 1-indexed
@@ -85,17 +88,18 @@ def get_nth_eigval(mat, n):
     """
     index = n - 1
     try:
-        val = la.eigh(mat, eigvals_only=True, subset_by_index=[index,index])
+        val = la.eigh(mat, eigvals_only=True, subset_by_index=[index, index])
         return val
     except:
         return 0
+
 
 def get_nth_eigpair(mat, n):
     assert is_square_matrix(mat)
     index = n - 1
 
     try:
-        eigval, eigvec = la.eigh(mat, subset_by_index=[index,index])
+        eigval, eigvec = la.eigh(mat, subset_by_index=[index, index])
         return eigval, eigvec
     except np.linalg.LinAlgError:
         print("Failed to converge on matrix computation")
@@ -156,6 +160,7 @@ def sort_eigpairs(eigvals, eigvecs):
     return (srtVal, srtVec)
 
 
+# @numba.njit()
 def build_fisher_matrix(
     edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float
 ):
@@ -165,9 +170,7 @@ def build_fisher_matrix(
     print(nodes)
     num_nodes = len(nodes)
     num_variable_nodes = num_nodes - 3
-    assert (
-        num_variable_nodes > 0
-    )
+    assert num_variable_nodes > 0
     K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
 
     alpha = None
@@ -230,30 +233,32 @@ def build_fisher_matrix(
     return K
 
 
-
 @numba.njit()
 def build_fim_from_loc_list(
-    nodes_: List[Tuple[float, float]], sensing_radius:float, noise_model: str, noise_stddev: float
+    nodes_: np.ndarray, sensing_radius: float, noise_model: str, noise_stddev: float
 ):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
-    # np_nodes = np.array(nodes_)
     num_nodes = len(nodes_)
     num_variable_nodes = num_nodes - 3
-    assert (
-        num_variable_nodes > 0
-    )
+    assert num_variable_nodes > 0
     K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
 
     def get_edges(nodes, sensing_radius):
         edges = []
         n_nodes = len(nodes)
-        for id1 in prange(n_nodes):
-            for id2 in prange(id1 + 1, n_nodes):
+        for id1 in range(n_nodes):
+            for id2 in range(id1 + 1, n_nodes):
                 loc1 = nodes[id1]
                 loc2 = nodes[id2]
-                dist = np.linalg.norm(loc1-loc2)
+                assert loc1.size == 2
+                assert loc2.size == 2
+                print(loc1)
+                print(loc2)
+                print(loc1 - loc2)
+                print(loc1 - loc2)
+                dist = np.linalg.norm(loc1 - loc2)
                 if dist < sensing_radius:
                     edges.append((id1, id2))
         return edges
@@ -267,9 +272,8 @@ def build_fim_from_loc_list(
     else:
         raise NotImplementedError
 
-
-    std_dev_squared = (noise_stddev ** 2)
-    for ii in prange(len(edges)):
+    std_dev_squared = noise_stddev ** 2
+    for ii in range(len(edges)):
         e = edges[ii]
         i = e[0]
         j = e[1]
@@ -282,7 +286,7 @@ def build_fim_from_loc_list(
 
         # * This way of forming matrix was tested to be fastest
         denom = std_dev_squared * (dist) ** (2 * alpha)
-        delX2, delY2 = np.square(diff)/denom
+        delX2, delY2 = np.square(diff) / denom
         # delX2 = delXij ** 2 / denom
         # delY2 = delYij ** 2 / denom
         # delXij = diff[0]
@@ -321,7 +325,6 @@ def build_fim_from_loc_list(
 
     # matprint_block(K)
     return K
-
 
 
 def ground_nodes_in_matrix(A, n, nodes):
@@ -411,12 +414,12 @@ def get_partial_deriv_of_matrix(K, index, graph):
         dKjj_di = np.zeros((2, 2))
         dKij_di = np.zeros((2, 2))
         dKji_di = np.zeros((2, 2))
-        if v is "x":
+        if v == "x":
             dKii_di = np.array([[2 * (xi - xj), yi - yj], [yi - yj, 0]])
             dKij_di = np.array([[2 * (xj - xi), yj - yi], [yj - yi, 0]])
             dKjj_di = dKii_di
             dKji_di = dKij_di
-        elif v is "y":
+        elif v == "y":
             dKii_di = np.array([[0, xi - xj], [xi - xj, 2 * (yi - yj)]])
             dKij_di = np.array([[0, xj - xi], [xj - xi, 2 * (yj - yi)]])
             dKjj_di = dKii_di

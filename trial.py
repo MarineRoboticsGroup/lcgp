@@ -908,7 +908,7 @@ if __name__ == "__main__":
     # exp = "decoupled_rrt"
     exp = "priority_prm"
     # exp = "coupled_lazysp"
-    # exp = "potential_field"
+    exp = "potential_field"
     # exp = "read_file"
 
     if run_tests:
@@ -941,13 +941,13 @@ if __name__ == "__main__":
         # the starting formation of the network
         # swarmForm = 'square'
         # swarmForm = "test6"
-        # swarmForm = "test8"
-        swarmForm = "test20"
+        swarmForm = "test8"
+        # swarmForm = "test20"
         # swarmForm = 'random'
         # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 20
+        nRobots = 8
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"

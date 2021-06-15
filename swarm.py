@@ -137,11 +137,13 @@ class Swarm:
     """ Checks """
 
     def test_rigidity_from_loc_list(self, loc_list):
+        assert isinstance(loc_list, list)
+        print(loc_list)
         if len(loc_list) < 3:
             return False
 
         fim = math_utils.build_fim_from_loc_list(
-            np.array(loc_list), self._sensing_radius, self.noise_model, self.noise_stddev
+            np.array(loc_list, dtype=np.float), self._sensing_radius, self.noise_model, self.noise_stddev
         )
         eigval = math_utils.get_least_eigval(fim)
         return self.min_eigval <= eigval
