@@ -91,6 +91,7 @@ def test_trajectory(
         min_eigvals.append(min_eigval)
         graph = robots.get_robot_graph()
         est_locs = graph.perform_snl()
+        # est_locs = graph.perform_snl(solver="sdp_with_spring")
         config = robots.get_position_list_tuples()
         error_list = math_utils.calc_localization_error(
             np.array(config), est_locs)
@@ -905,10 +906,10 @@ if __name__ == "__main__":
     """
     run_tests = False
     # exp = 'coupled_astar'
-    # exp = "decoupled_rrt"
-    exp = "priority_prm"
+    exp = "decoupled_rrt"
+    # exp = "priority_prm"
     # exp = "coupled_lazysp"
-    exp = "potential_field"
+    # exp = "potential_field"
     # exp = "read_file"
 
     if run_tests:
@@ -925,7 +926,7 @@ if __name__ == "__main__":
         useRelative = False
 
         # whether to show an animation of the planning
-        showAnimation = False
+        showAnimation = True
 
         # whether to perform code profiling
         profile = False
@@ -941,13 +942,14 @@ if __name__ == "__main__":
         # the starting formation of the network
         # swarmForm = 'square'
         # swarmForm = "test6"
-        swarmForm = "test8"
+        # swarmForm = "test8"
+        swarmForm = "test12"
         # swarmForm = "test20"
         # swarmForm = 'random'
         # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 8
+        nRobots = 12
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -972,12 +974,12 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        setting = "curve_maze"
+        # setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
         # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
-        # setting = "rectangle"
+        setting = "rectangle"
 
         # the dimensions of the environment
         # envSize = (4.2, 2.4)  # vicon

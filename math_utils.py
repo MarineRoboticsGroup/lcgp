@@ -167,7 +167,7 @@ def build_fisher_matrix(
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
-    print(nodes)
+    # print(nodes)
     num_nodes = len(nodes)
     num_variable_nodes = num_nodes - 3
     assert num_variable_nodes > 0
@@ -254,10 +254,6 @@ def build_fim_from_loc_list(
                 loc2 = nodes[id2]
                 assert loc1.size == 2
                 assert loc2.size == 2
-                print(loc1)
-                print(loc2)
-                print(loc1 - loc2)
-                print(loc1 - loc2)
                 dist = np.linalg.norm(loc1 - loc2)
                 if dist < sensing_radius:
                     edges.append((id1, id2))

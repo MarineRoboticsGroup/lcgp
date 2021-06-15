@@ -35,6 +35,8 @@ class Swarm:
             self.robot_graph.init_test6_formation()
         elif init_form == "test8":
             self.robot_graph.init_test8_formation()
+        elif init_form == "test12":
+            self.robot_graph.init_test12_formation()
         elif init_form == "test20":
             self.robot_graph.init_test20_formation()
         elif init_form == "random":
