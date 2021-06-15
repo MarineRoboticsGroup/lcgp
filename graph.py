@@ -77,7 +77,9 @@ class Graph:
             )
             return loc_est
         else:
-            anchor_locs = np.array([self.get_node_loc_tuple(i) for i in range(num_anchors)])
+            anchor_locs = np.array(
+                [self.get_node_loc_tuple(i) for i in range(num_anchors)]
+            )
             return anchor_locs
 
     """ Initialize and Format Graph """
@@ -175,16 +177,19 @@ class Graph:
     ):
         return self.nEdges
 
-    def get_nth_eigval(self, n):
-        eigvals = math_utils.get_list_all_eigvals(self.get_fisher_matrix())
+    def get_nth_eigval(self, n, num_anchors):
+        eigvals = math_utils.get_list_all_eigvals(self.get_fisher_matrix(num_anchors))
         eigvals.sort()
         return eigvals[n - 1]
 
-    def get_fisher_matrix(
-        self,
-    ):
-        return math_utils.build_fisher_matrix(
-            self.edges, self.nodes, self.noise_model, self.noise_stddev
+    def get_fisher_matrix(self, num_anchors):
+        return math_utils.build_fisher_matrix_ungrounded(
+            self.edges, self.nodes, self.noise_model, self.noise_stddev, num_anchors
+        )
+
+    def get_fisher_matrix_ungrounded(self, num_anchors: int):
+        return math_utils.build_fisher_matrix_ungrounded(
+            self.edges, self.nodes, self.noise_model, self.noise_stddev, num_anchors
         )
 
     def get_node_loc_list(
@@ -268,8 +273,7 @@ class Graph:
         self.add_node(8, 8)
 
     def init_test20_formation(self):
-        """Randomly chooses the ordering from a gridded up set of locations
-        """
+        """Randomly chooses the ordering from a gridded up set of locations"""
         x_range = np.linspace(2, 8, num=4)
         y_range = np.linspace(2, 10, num=5)
         locs = list(itertools.product(x_range, y_range))

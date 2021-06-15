@@ -5,22 +5,25 @@ import scipy
 
 import matplotlib.pyplot as plt
 
+
 def get_exclusion_vector(n, index):
     vec = np.zeros(n)
     vec[index] = 1
     return vec
 
+
 def get_dist_between_locs(loc1, loc2):
-    delta_x = loc1[0]-loc2[0]
-    delta_y = loc1[1]-loc2[1]
-    dist = np.sqrt(delta_x**2 + delta_y**2)
+    delta_x = loc1[0] - loc2[0]
+    delta_y = loc1[1] - loc2[1]
+    dist = np.sqrt(delta_x ** 2 + delta_y ** 2)
     return dist
+
 
 def node_locs_to_dist_matrix(node_locs):
     n = len(node_locs)
-    mat = np.zeros((n,n))
+    mat = np.zeros((n, n))
     for i in range(n):
-        for j in range(i+1,n):
+        for j in range(i + 1, n):
             loc_i = node_locs[i]
             loc_j = node_locs[j]
             d = get_dist_between_locs(loc_i, loc_j)
@@ -28,21 +31,28 @@ def node_locs_to_dist_matrix(node_locs):
             mat[j][i] = d
     return mat
 
+
 def dist_matrix_to_dict(dist_matrix):
     dist_dict = dict()
     n = len(dist_matrix)
     for i in range(n):
-        for j in range(i+1,n):
-            edge = (i,j)
-            dist = dist_matrix[i,j]
+        for j in range(i + 1, n):
+            edge = (i, j)
+            dist = dist_matrix[i, j]
             if dist > 0:
                 dist_dict[edge] = dist
     return dist_dict
 
-def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
-                        node_anchor_dists:Dict, anchor_locs:Dict,
-                        anchor_ids:List[int],
-                        init_guess=None, solver:str=None):
+
+def solve_snl_with_sdp(
+    num_nodes: int,
+    node_node_dists: Dict,
+    node_anchor_dists: Dict,
+    anchor_locs: Dict,
+    anchor_ids: List[int],
+    init_guess=None,
+    solver: str = None,
+):
     """
     Takes general inputs of sensor network localization problem
     and returns solved for locations. Note that right now it is
@@ -104,8 +114,10 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
         constraints += [vec.T @ D_ji[edge] @ vec == eps_ji[edge]]
 
         # Constraint 3
-        vec = np.zeros(num_nodes+2)
-        vec[2:] = get_exclusion_vector(num_nodes, i) - get_exclusion_vector(num_nodes, j)
+        vec = np.zeros(num_nodes + 2)
+        vec[2:] = get_exclusion_vector(num_nodes, i) - get_exclusion_vector(
+            num_nodes, j
+        )
         constraints += [vec.T @ Z @ vec == v_ji[edge]]
 
         # Constraint 5
@@ -141,7 +153,7 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
         vec = np.array([-dist, 1])
         constraints += [vec.T @ D_jk[edge] @ vec == eps_jk[edge]]
         # Constraint 4
-        vec = np.zeros(num_nodes+2)
+        vec = np.zeros(num_nodes + 2)
         vec[0:2] = anchor_locs[k]
         vec[2:] = -get_exclusion_vector(num_nodes, j)
         constraints += [vec.T @ Z @ vec == v_jk[edge]]
@@ -173,10 +185,11 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
 
     return locs
 
+
 def spring_solver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dists):
     num_nodes = len(estimated_locs)
     n = len(estimated_locs) + len(anchor_locs)
-    spring_model_params = (5*n, 0.2, 0.05, False)
+    spring_model_params = (5 * n, 0.2, 0.05, False)
 
     anchor_loc_arr = None
     for key in anchor_locs:
@@ -194,10 +207,10 @@ def spring_solver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dist
     for iteration in range(max_iterations):
         sum_force = 0
         for i in range(num_nodes):
-            total_force = np.array([0,0])
+            total_force = np.array([0, 0])
             for j in range(n):
                 if j != i:
-                    edge = (min(i,j), max(i,j))
+                    edge = (min(i, j), max(i, j))
                     if edge in node_anchor_dists:
                         dist_meas = node_anchor_dists[edge]
                         j_loc = np.array(anchor_locs[j])
@@ -205,29 +218,33 @@ def spring_solver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dist
                         i_to_j = np.subtract(j_loc, i_loc)
                     elif edge in node_node_dists:
                         dist_meas = node_node_dists[edge]
-                        i_to_j = np.subtract(estimated_locs[j],estimated_locs[i])
+                        i_to_j = np.subtract(estimated_locs[j], estimated_locs[i])
                     else:
                         continue
 
                     dist_est = np.linalg.norm(i_to_j)
-                    e = (dist_est-dist_meas)
-                    # magnitude of force applied by a pair is the error in our current estimate,
-                    # weighted by how likely the RSS measurement is to be accurate
-                    force = (e)*(i_to_j/dist_est)
-                    total_force = np.add(total_force,force)
+                    e = dist_est - dist_meas
+                    # magnitude of force applied by a pair is the error in our
+                    # current estimate, weighted by how likely the RSS
+                    # measurement is to be accurate
+                    force = (e) * (i_to_j / dist_est)
+                    total_force = np.add(total_force, force)
 
-            estimated_locs[i] = np.add(estimated_locs[i],step_size*total_force)
-            sum_force+=np.linalg.norm(total_force)
+            estimated_locs[i] = np.add(estimated_locs[i], step_size * total_force)
+            sum_force += np.linalg.norm(total_force)
 
         if epsilon:
-            if sum_force/n < epsilon:
+            if sum_force / n < epsilon:
                 break
 
-        if show_visualization: # visualize the algorithm's progress
-            plt.scatter(estimated_locs[:,0],estimated_locs[:,1],c=list(range(num_nodes)))
-            plt.scatter(anchor_loc_arr[:,0],anchor_loc_arr[:,1],c=list(range(num_nodes, n)))
+        if show_visualization:  # visualize the algorithm's progress
+            plt.scatter(
+                estimated_locs[:, 0], estimated_locs[:, 1], c=list(range(num_nodes))
+            )
+            plt.scatter(
+                anchor_loc_arr[:, 0], anchor_loc_arr[:, 1], c=list(range(num_nodes, n))
+            )
             plt.pause(0.01)
 
     plt.clf()
     return estimated_locs
-

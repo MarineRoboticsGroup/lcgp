@@ -77,6 +77,8 @@ def get_nth_eigpair(mat, n):
     eigvals[np.abs(eigvals) < eps] = 0
     eigvecs = np.real(eigvecs)
 
+    assert 0 <= index < len(eigvals)
+
     # join eigenvectors and eigenvalues for sorting
     a = np.vstack([eigvecs, eigvals])
 
@@ -129,13 +131,13 @@ def sort_eigpairs(eigvals, eigvecs):
 
 
 def build_fisher_matrix(
-    edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float
+    edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float, num_anchors: int
 ):
     """
     Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
     """
     num_nodes = len(nodes)
-    num_variable_nodes = num_nodes - 3
+    num_variable_nodes = num_nodes - num_anchors
     assert (
         num_variable_nodes > 0
     ), f"No FIM as there are only {num_nodes} nodes in network"
@@ -167,8 +169,8 @@ def build_fisher_matrix(
         delY2 = delYij ** 2 / denom
         delXY = delXij * delYij / denom
 
-        i -= 3
-        j -= 3
+        i -= num_anchors
+        j -= num_anchors
 
         if i >= 0:
             # Block ii
@@ -201,6 +203,78 @@ def build_fisher_matrix(
     return K
 
 
+def build_fisher_matrix_ungrounded(
+    edges: List[Tuple[int, int]], nodes: List, noise_model: str, noise_stddev: float, num_anchors: int
+):
+    """
+    Stiffness matrix is actually FIM as derived in (J. Le Ny, ACC 2018)
+    """
+    num_nodes = len(nodes)
+    num_variable_nodes = num_nodes - num_anchors
+    assert (
+        num_variable_nodes > 0
+    ), f"No FIM as there are only {num_nodes} nodes in network"
+    K = np.zeros((num_variable_nodes * 2, num_variable_nodes * 2))
+
+    alpha = None
+    if noise_model == "add":
+        alpha = float(1)
+    elif noise_model == "lognorm":
+        alpha = float(2)
+    else:
+        raise NotImplementedError
+
+    for _, e in enumerate(edges):
+        i, j = e
+        if i == j:
+            continue
+        node_i = nodes[i]
+        node_j = nodes[j]
+        xi, yi = node_i.get_loc_tuple()
+        xj, yj = node_j.get_loc_tuple()
+        delXij = xi - xj
+        delYij = yi - yj
+        dist = np.sqrt(delXij ** 2 + delYij ** 2)
+
+        # * This way of forming matrix was tested to be fastest
+        denom = (noise_stddev ** 2) * (dist) ** (2 * alpha)
+        delX2 = delXij ** 2 / denom
+        delY2 = delYij ** 2 / denom
+        delXY = delXij * delYij / denom
+
+        i -= num_anchors
+        j -= num_anchors
+
+        if i >= 0:
+            # Block ii
+            K[2 * i, 2 * i] += delX2
+            K[2 * i + 1, 2 * i + 1] += delY2
+            K[2 * i, 2 * i + 1] += delXY
+            K[2 * i + 1, 2 * i] += delXY
+
+        if j >= 0:
+            # Block jj
+            K[2 * j, 2 * j] += delX2
+            K[2 * j + 1, 2 * j + 1] += delY2
+            K[2 * j, 2 * j + 1] += delXY
+            K[2 * j + 1, 2 * j] += delXY
+
+        if i >= 0 and j >= 0:
+            # Block ij
+            K[2 * i, 2 * j] = -delX2
+            K[2 * i + 1, 2 * j + 1] = -delY2
+            K[2 * i, 2 * j + 1] = -delXY
+            K[2 * i + 1, 2 * j] = -delXY
+
+            # Block ji
+            K[2 * j, 2 * i] = -delX2
+            K[2 * j + 1, 2 * i + 1] = -delY2
+            K[2 * j, 2 * i + 1] = -delXY
+            K[2 * j + 1, 2 * i] = -delXY
+
+    return K
+
+
 def ground_nodes_in_matrix(A, n, nodes):
     l = list(nodes)
     l.sort()
@@ -208,6 +282,42 @@ def ground_nodes_in_matrix(A, n, nodes):
         l.append(i + n)
     B = np.delete(A, l, axis=1)
     return B
+
+
+def get_A_optimal_cost(mat: np.ndarray):
+    """
+    returns the trace of the inverse of this matrix
+    """
+    assert is_square_matrix(mat)
+    assert isinstance(mat, np.ndarray)
+
+    eigvals = get_list_all_eigvals(mat)
+    cost = 0
+    for v in eigvals:
+        if v < eps:
+            continue
+
+        cost += 1 / v
+    return cost
+
+
+def get_D_optimal_cost(mat: np.ndarray):
+    """
+    returns the determinant of this matrix
+    """
+    assert is_square_matrix(mat)
+    assert isinstance(mat, np.ndarray)
+    return la.det(mat)
+
+
+def get_E_optimal_cost(mat: np.ndarray):
+    """
+    returns the trace of the inverse of this matrix
+    """
+    assert is_square_matrix(mat)
+    assert isinstance(mat, np.ndarray)
+    eigvals = get_list_all_eigvals(mat)
+    return min(eigvals)
 
 
 """ Matrix Calculus """

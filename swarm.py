@@ -6,8 +6,9 @@ import math_utils
 
 
 class Swarm:
-    def __init__(self, sensingRadius, noise_model, noise_stddev):
+    def __init__(self, sensingRadius, noise_model, noise_stddev, num_anchors):
         self._sensing_radius = sensingRadius
+        self._num_anchors = num_anchors
 
         assert(noise_model == 'add' or noise_model == 'lognorm')
         self.noise_model = noise_model
@@ -57,8 +58,8 @@ class Swarm:
         for loc in loc_list:
             self.robot_graph.add_node(loc[0], loc[1])
         self.update_swarm()
-        if self.robot_graph.get_num_edges() > 0 and self.get_num_robots() > 3:
-            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
+        if self.robot_graph.get_num_edges() > 0 and self.get_num_robots()-self._num_anchors > 0:
+            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix(self._num_anchors)
 
     def initialize_swarm_from_loc_list(self, loc_list):
         assert(len(loc_list) % 2 == 0)
@@ -69,7 +70,7 @@ class Swarm:
             self.robot_graph.add_node(loc_list[2*i], loc_list[2*i+1])
 
         self.update_swarm()
-        self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
+        self.fisher_info_matrix = self.robot_graph.get_fisher_matrix(self._num_anchors)
 
     def reorder_robots(self):
         raise NotImplementedError
@@ -77,7 +78,7 @@ class Swarm:
     def update_swarm(self):
         self.robot_graph.update_edges_by_radius(self._sensing_radius)
         if self.robot_graph.get_num_edges() > 0 and self.get_num_robots() > 3:
-            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
+            self.fisher_info_matrix = self.robot_graph.get_fisher_matrix(self._num_anchors)
         else:
             self.fisher_info_matrix = None
 
@@ -120,6 +121,14 @@ class Swarm:
         eigpair = math_utils.get_nth_eigpair(self.fisher_info_matrix, n)
         return eigpair
 
+    def get_fisher_matrix(self, num_anchors: int = None):
+        assert self.fisher_info_matrix is not None
+
+        if num_anchors is not None:
+            return self.robot_graph.get_fisher_matrix_ungrounded(num_anchors)
+
+        return self.fisher_info_matrix
+
     """ Computation """
 
     def get_gradient_nth_eigval(self, n):
@@ -138,7 +147,7 @@ class Swarm:
             return False
         test_graph = graph.Graph(self.noise_model, self.noise_stddev)
         test_graph.initialize_from_location_list(loc_list, self._sensing_radius)
-        eigval = test_graph.get_nth_eigval(0)
+        eigval = test_graph.get_nth_eigval(0, self._num_anchors)
         return (self.min_eigval <= eigval)
 
     def is_swarm_rigid(self):
@@ -158,12 +167,13 @@ class Swarm:
     def print_all_eigvals(self):
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
+        print("All Eigvals")
         print(eigvals)
 
     def print_nth_eigvals(self, n):
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
-        print(eigvals[n-1])
+        print(f"n-th eigval: {eigvals[n-1]}")
 
     def show_swarm(self):
         raise NotImplementedError
