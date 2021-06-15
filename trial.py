@@ -14,9 +14,6 @@ import flamegraph
 import math_utils
 import plot
 import swarm
-from planners import (coupled_astar, coupled_lazysp, decoupled_rrt,
-                      potential_field)
-from planners.prioritized_planning import prioritized_prm
 
 warnings.filterwarnings("ignore")
 
@@ -24,6 +21,9 @@ warnings.filterwarnings("ignore")
 
 # planners
 # pylint: disable=import-error
+from planners import decoupled_rrt
+from planners import coupled_lazysp
+from planners.prioritized_planning import prioritized_prm
 
 priority_planners = ["decoupled_rrt", "priority_prm"]
 trial_timestamp = int(time.time())
@@ -508,13 +508,6 @@ def get_coupled_lazysp_path(robots, environment, goals):
     return traj
 
 
-def get_coupled_astar_path(robots, environment, goals):
-    a_star = coupled_astar.CoupledAstar(
-        robots=robots, env=environment, goals=goals)
-    traj = a_star.planning()
-    return traj
-
-
 def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(
         robots=robots, env=environment, goals=goals
@@ -679,8 +672,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         expName == "decoupled_rrt"
     ):  # generate trajectories via naive fully decoupled rrt
         trajs = get_decoupled_rrt_path(robots, env, goals)
-    elif expName == "coupled_astar":
-        trajs = get_coupled_astar_path(robots, env, goals)
     elif expName == "coupled_lazysp":
         trajs = get_coupled_lazysp_path(robots, env, goals)
     elif expName == "priority_prm":
@@ -980,10 +971,10 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        # setting = "simple_vicon"
+        # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
         setting = "rectangle"
 
@@ -1003,11 +994,3 @@ if __name__ == "__main__":
             envInfo=envInfo,
             seed=301,
         )
-
-        # #rapidly checking rrt solutions for collision
-        # #to make work, have test_trajectory return False if a collision is detected and True otherwise
-        # #then have main return the result of test_trajectory
-        # for i in range(400):
-        #     if main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=i):
-        #         print("Working solution:", i)
-        #         break

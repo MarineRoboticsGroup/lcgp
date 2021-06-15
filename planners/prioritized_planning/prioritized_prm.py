@@ -219,6 +219,7 @@ class PriorityPrm:
                     print()
                     return True
                 else:
+
                     # * update connected and rigid sets for next robot
                     self.constraintSets.update_base_sets_from_robot_traj(
                         self._trajs, cur_robot_id
@@ -231,6 +232,7 @@ class PriorityPrm:
                     ) = self.constraintSets.construct_valid_sets(
                         cur_robot_id + 1, self._trajs
                     )
+
 
                     if hasConflict:
                         print(

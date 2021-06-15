@@ -359,7 +359,7 @@ class Environment:
         if (not self.is_inside_bounds(coords)):
             return False
         indices, dist = self.obstacleKDTree.search(
-            np.array(coords).reshape(2, 1))
+            np.array(coords).reshape(1, 2))
         if dist[0] <= self._obstacles[indices[0]].get_radius():
             return False  # collision
         return True
