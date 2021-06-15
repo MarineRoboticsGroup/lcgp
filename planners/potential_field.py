@@ -22,8 +22,8 @@ class PotentialField:
         robots,
         env,
         goals,
-        target_dist_to_goal: float = 1,
-        max_move_dist: float = 1,
+        target_dist_to_goal: float = .5,
+        max_move_dist: float = 1.0,
         max_iter: int = 2000,
     ):
         self._robots = robots
@@ -58,16 +58,22 @@ class PotentialField:
 
         #! relative weights aren't given in the paper, so these are guesses
         # normalize = False
-        # w_task = 100.0
-        # w_loc = 10.0
-        # w_avoid_obstacles = 1.0
-        # w_avoid_robots = 1.0
+        # w_task = 1000.0
+        # w_loc = 100.0
+        # w_avoid_obstacles = .001 #still causing trouble
+        # w_avoid_robots = 0.0 #in line with how the others assume robot size of 0.0
 
-        normalize = True
-        w_task = 1
-        w_loc = 1
-        w_avoid_obstacles = 1
-        w_avoid_robots = 1
+        normalize = False
+        w_task = 100.0
+        w_loc = 10.0
+        w_avoid_obstacles = .001 #still causing trouble
+        w_avoid_robots = 0.0 #in line with how the others assume robot size of 0.0
+
+        # normalize = True #probably not the right approach, but not confirmed, so it's still an option
+        # w_task = 1
+        # w_loc = 1
+        # w_avoid_obstacles = 1
+        # w_avoid_robots = 1
 
 
         # attempt at organizing the potential functions
@@ -83,6 +89,7 @@ class PotentialField:
 
         for _ in range(self._max_iter):
             move_list = [[0.0, 0.0] for i in range(self.num_robots)]
+            # potentials["task"][0] *= 1.1
 
             # get potential function values
             for name in potentials:
@@ -91,27 +98,34 @@ class PotentialField:
             for robotIndex in range(self.num_robots):
                 # Move towards goal
                 if not self.hasFoundGoal(robotIndex):
-                    # add potential functions together
-                    for name in potentials:
-                        # print("\nCurrent robot:", robotIndex)
-                        # print("Current potential:", name)
-                        # print("Current x value:", move_list[robotIndex][0])
-                        #special case for anchors
-                        if name == "loc" and robotIndex >= self.num_robots-3:
-                            continue
-                        move_list[robotIndex][0] += potentials[name][0] * \
-                            potentials[name][2][2*robotIndex]
-                        move_list[robotIndex][1] += potentials[name][0] * \
-                            potentials[name][2][2*robotIndex+1]
-                        # print("Print weighted addition:", potentials[name][0] * \
-                        #     potentials[name][2][2*robotIndex])
+                    # go to goal if within a step
+                    if self.getDistanceToGoal(robotIndex) < self._max_move_dist:
+                        #move_list[i] = goal - current pos
+                        move_list[robotIndex][0] = self._goal_locs[robotIndex][0] - self._trajs[robotIndex][-1][0]
+                        move_list[robotIndex][1] = self._goal_locs[robotIndex][1] - self._trajs[robotIndex][-1][1]
 
-                    # weight to move at max speed, might need to tune
-                    hypot = math.hypot(
-                        move_list[robotIndex][0], move_list[robotIndex][1]
-                    )
-                    move_list[robotIndex][0] *= self._max_move_dist / hypot
-                    move_list[robotIndex][1] *= self._max_move_dist / hypot
+                    else:
+                        # add potential functions together
+                        for name in potentials:
+                            print("\nCurrent robot:", robotIndex)
+                            print("Current potential:", name)
+                            # print("Current x value:", move_list[robotIndex][0])
+                            #special case for anchors
+                            if name == "loc" and robotIndex >= self.num_robots-3:
+                                continue
+                            move_list[robotIndex][0] += potentials[name][0] * \
+                                potentials[name][2][2*robotIndex]
+                            move_list[robotIndex][1] += potentials[name][0] * \
+                                potentials[name][2][2*robotIndex+1]
+                            # print("Print weighted addition:", potentials[name][0] * \
+                            #     potentials[name][2][2*robotIndex])
+
+                        # weight to move at max speed, might need to tune
+                        hypot = math.hypot(
+                            move_list[robotIndex][0], move_list[robotIndex][1]
+                        )
+                        move_list[robotIndex][0] *= self._max_move_dist / hypot
+                        move_list[robotIndex][1] *= self._max_move_dist / hypot
 
                 # stay at goal
                 else:
@@ -204,7 +218,7 @@ class PotentialField:
             hypot = math.hypot(dx, dy)
 
             # if normalize:
-            move_list += [dx / hypot, dy / hypot]
+            move_list += [dx / hypot, dy / hypot] #needed to avoid incentive decreasing as goal approaches
             # else:
             #     move_list += [dx, dy]
         return move_list
@@ -252,10 +266,10 @@ class PotentialField:
                 x_o, y_o = obstacle.get_center()
                 obstacle_radius = obstacle.get_radius()
                 dist = ((x_o - x_r)**2 + (y_o - y_r)**2)**1/2 - obstacle_radius - robot_radius
-                if dist < 0.0:
-                    dist = .0001
-                vec[0] -= (x_o - x_r)/dist**3
-                vec[1] -= (y_o - y_r)/dist**3
+                if dist < 0.0001:
+                    dist = 0.0001
+                vec[0] -= (x_o - x_r)/dist**2
+                vec[1] -= (y_o - y_r)/dist**2
             move_list += [vec[0]/len(obstacle_list), vec[1]/len(obstacle_list)] #avg vec
 
         # normalize

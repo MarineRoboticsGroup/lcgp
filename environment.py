@@ -23,6 +23,8 @@ class Environment:
             self.init_simple_vicon_env()
         elif setting == 'obstacle_vicon':
             self.init_obstacle_vicon_env()
+        elif setting == 'rectangle':
+            self.init_rect_no_obstacle_env()
         elif not setting == 'empty':
             raise NotImplementedError
 
@@ -295,6 +297,59 @@ class Environment:
         if numObstacles > 0:
             self.obstacleKDTree = kdtree.KDTree(
                 self.get_obstacle_centers_list())
+
+    def init_rect_no_obstacle_env(self):
+        xlb, xub, ylb, yub = self._bounds
+        radius = .75
+        # make left and right walls
+        for y in np.linspace(ylb, yub, int(yub-ylb)*2):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.add_obstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, int(xub-xlb)*2):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.add_obstacle(obs)
+
+        self.obstacleKDTree = kdtree.KDTree(self.get_obstacle_centers_list())
+
+    def init_rect_one_obstacle_env(self):
+        xlb, xub, ylb, yub = self._bounds
+        radius = .75
+        # make left and right walls
+        for y in np.linspace(ylb, yub, int(yub-ylb)*2):
+            cenLeft = (xlb, y)
+            cenRight = (xub, y)
+            obs = Obstacle(cenLeft, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenRight, radius)
+            self.add_obstacle(obs)
+
+        # make top and bottom walls
+        for x in np.linspace(xlb, xub, int(xub-xlb)*2):
+            cenBot = (x, ylb)
+            cenTop = (x, yub)
+            obs = Obstacle(cenBot, radius)
+            self.add_obstacle(obs)
+            obs = Obstacle(cenTop, radius)
+            self.add_obstacle(obs)
+
+        # left divider
+        span = yub-ylb
+        dividerLen = 1/2
+        xCen = xlb+(xub-xlb)/2
+        for y in np.linspace(ylb, ylb + dividerLen*span, increments):
+            cen = (xCen, y)
+            obs = Obstacle(cen, radius)
+            self.add_obstacle(obs)
 
     """ Check Status """
 
