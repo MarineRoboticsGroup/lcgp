@@ -182,8 +182,9 @@ class Graph:
     def get_fisher_matrix(
         self,
     ):
+        node_locs = np.array(self.get_node_loc_list(), dtype=np.float)
         return math_utils.build_fisher_matrix(
-            self.edges, self.nodes, self.noise_model, self.noise_stddev
+            np.array(self.edges), node_locs, self.noise_model, self.noise_stddev
         )
 
     def get_node_loc_list(
