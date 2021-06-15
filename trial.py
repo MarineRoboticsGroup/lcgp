@@ -23,6 +23,7 @@ warnings.filterwarnings("ignore")
 # pylint: disable=import-error
 from planners import decoupled_rrt
 from planners import coupled_lazysp
+from planners import potential_field
 from planners.prioritized_planning import prioritized_prm
 
 priority_planners = ["decoupled_rrt", "priority_prm"]
@@ -924,7 +925,7 @@ if __name__ == "__main__":
         useRelative = False
 
         # whether to show an animation of the planning
-        showAnimation = True
+        showAnimation = False
 
         # whether to perform code profiling
         profile = False
@@ -976,7 +977,7 @@ if __name__ == "__main__":
         # setting = 'adversarial2'
         # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
-        setting = "rectangle"
+        # setting = "rectangle"
 
         # the dimensions of the environment
         # envSize = (4.2, 2.4)  # vicon

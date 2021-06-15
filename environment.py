@@ -386,9 +386,8 @@ class Environment:
             dx = (i+1)/num_steps*move[0]
             dy = (i+1)/num_steps*move[1]
             loc = [sx+dx, sy+dy]
-            indices, dist = self.obstacleKDTree.search(
-                np.array(loc).reshape(2, 1))
-            if dist[0] <= self._obstacles[indices[0]].get_radius():
+            indices, dist = self.obstacleKDTree.search(loc)
+            if dist <= self._obstacles[indices].get_radius():
                 return False  # collision
 
         return True

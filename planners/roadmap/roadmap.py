@@ -94,10 +94,9 @@ class Roadmap:
         """
         roadmap = []
         for curLoc in self.sample_locs:
-            index, _ = self.nodeKDTree.search(
-                np.array(curLoc).reshape(2, 1), k=self._N_KNN
+            inds, _ = self.nodeKDTree.search(
+                curLoc, k=self._N_KNN
             )
-            inds = index[0]
             edge_id = []
             for ii in range(1, len(inds)):
                 connectingLoc = self.sample_locs[inds[ii]]
