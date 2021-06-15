@@ -3,6 +3,25 @@
 This repo contains code for path-planning of 2-dimensional range-only
 multi-robot networks.
 
+## Getting started
+
+To run some sample code:
+
+``` Bash
+# setup the environment
+conda create -y --name rigidity_planning python=3.6 numpy scipy matplotlib
+conda activate rigidity_planning
+conda install numba
+pip install -r requirements.txt
+
+# faiss install depends on hardware available
+# see link for further detail: https://github.com/facebookresearch/faiss/blob/master/INSTALL.md
+conda install -c pytorch faiss-gpu cudatoolkit=10.2
+
+# run the sample code from the base directory of this repository
+python trial.py
+```
+
 ## Files and Folders
 
 - trial.py: main script from which path planning experiments are run

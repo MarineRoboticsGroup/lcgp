@@ -883,7 +883,7 @@ if __name__ == "__main__":
         showAnimation = False
 
         # whether to perform code profiling
-        profile = False
+        profile = True
 
         # the timestamp for replaying a recorded path (only when exp=="read_file")
         timestamp = 1600223009  # RRT
