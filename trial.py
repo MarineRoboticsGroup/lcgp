@@ -1,27 +1,28 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import copy
 import os
-import flamegraph
-import time
 import random
 import subprocess
+import time
+import warnings
 from typing import List, Tuple
 
-import warnings
+import matplotlib.pyplot as plt
+import numpy as np
+
+import environment
+import flamegraph
+import math_utils
+import plot
+import swarm
 
 warnings.filterwarnings("ignore")
 
 # custom libraries
-import math_utils
-import swarm
-import environment
-import plot
 
 # planners
+# pylint: disable=import-error
 from planners import decoupled_rrt
 from planners import coupled_lazysp
-from planners.prioritized_planning import prioritized_prm
 from planners.prioritized_planning import prioritized_prm
 
 priority_planners = ["decoupled_rrt", "priority_prm"]
@@ -61,6 +62,7 @@ def test_trajectory(
     total_time = 0
     nonrigid_time = 0
     assert trajs is not None
+
     robot_size = 0.4
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
@@ -76,6 +78,7 @@ def test_trajectory(
 
     traj_indices = [-1 for traj in trajs]
     final_traj_indices = [len(traj) - 1 for traj in trajs]
+    num_total_timesteps = max(final_traj_indices)+1
     move = []
     config = []
     min_eigvals = []
@@ -88,11 +91,12 @@ def test_trajectory(
         graph = robots.get_robot_graph()
         est_locs = graph.perform_snl()
         config = robots.get_position_list_tuples()
-        error_list = math_utils.calc_localization_error(np.array(config), est_locs)
+        error_list = math_utils.calc_localization_error(
+            np.array(config), est_locs)
         mean_error = sum(error_list) / len(error_list)
         mean_error_list.append(mean_error)
 
-        # Plotting options
+        # if true does not show rigidity plot on bottom
         if only_plot_trajectories:
             plot.plot(
                 robots.get_robot_graph(),
@@ -117,7 +121,7 @@ def test_trajectory(
 
         else:
             plot.test_trajectory_plot(
-                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval
+                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
             )
 
         trajectory_img_path = (
@@ -131,24 +135,25 @@ def test_trajectory(
         config.clear()
         for robotIndex in range(robots.get_num_robots()):
             # Todo: move the collision checker further up the pipeline
-            for otherRobotIndex in range(robotIndex + 1, robots.get_num_robots()):
-                loc_1 = trajs[robotIndex][traj_indices[robotIndex]]
-                loc_2 = trajs[otherRobotIndex][traj_indices[otherRobotIndex]]
-                x_dif = abs(loc_1[0] - loc_2[0])
-                y_dif = abs(loc_1[1] - loc_2[1])
+            if False:
+                for otherRobotIndex in range(robotIndex + 1, robots.get_num_robots()):
+                    loc_1 = trajs[robotIndex][traj_indices[robotIndex]]
+                    loc_2 = trajs[otherRobotIndex][traj_indices[otherRobotIndex]]
+                    x_dif = abs(loc_1[0] - loc_2[0])
+                    y_dif = abs(loc_1[1] - loc_2[1])
 
-                if (x_dif < robot_size) and (y_dif < robot_size):
-                    currentIndex = max(
-                        traj_indices[robotIndex], traj_indices[otherRobotIndex]
-                    )
-                    print(
-                        "agents",
-                        robotIndex,
-                        "and",
-                        otherRobotIndex,
-                        "collide at index",
-                        currentIndex,
-                    )
+                    if (x_dif < robot_size) and (y_dif < robot_size):
+                        currentIndex = max(
+                            traj_indices[robotIndex], traj_indices[otherRobotIndex]
+                        )
+                        print(
+                            "agents",
+                            robotIndex,
+                            "and",
+                            otherRobotIndex,
+                            "collide at index",
+                            currentIndex,
+                        )
 
             # Increment trajectory for unfinished paths
             if traj_indices[robotIndex] != final_traj_indices[robotIndex]:
@@ -174,55 +179,46 @@ def test_trajectory(
             print(f"{min_eigval} < {robots.min_eigval} at time {total_time}")
             # plot.plot_nth_eigvec(robots, 4)
             # plt.pause (5)
-        if delay_animation and total_time == 1:
-            plt.pause(10)
+        # if delay_animation and total_time == 1:
+        #     plt.pause(10)
 
+    # plot the last timestep in the trajectory
     plot.test_trajectory_plot(
-        robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval
+        robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
     )
-    # plot.plot(
-    #     robots.get_robot_graph(),
-    #     env,
-    #     blocking=False,
-    #     animation=True,
-    #     goals=goals,
-    #     clear_last=True,
-    #     show_goals=True,
-    #     show_graph_edges=True,
-    # )
     plt.pause(1)
     trajectory_img_path = (
         f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
     )
     plt.savefig(trajectory_img_path)
+    plt.close()
 
+    # print out some basic statistics on the trajectory
     worst_error = max(mean_error_list)
     avg_error = sum(mean_error_list) / float(len(mean_error_list))
     print("Avg Localization Error:", avg_error)
     print("Max Localization Error:", worst_error)
 
-    plt.close()
+    print("Total Timesteps:", total_time)
+    print("Number of Nonrigid Timesteps:", nonrigid_time)
 
-    plt.plot(min_eigvals)
-    # plt.plot(loc_error)
+    # * some plotting to compare the eigenvalue with the localization error
+    eigval_plt, = plt.plot(min_eigvals, label="Eigval")
+    error_plt, = plt.plot(mean_error_list, label="Mean Error")
     plt.hlines([robots.min_eigval], 0, len(min_eigvals))
-    # plt.title("Minimum Eigenvalue over Time")
+    plt.title("Minimum Eigenvalue over Time")
     plt.ylabel("Eigenvalue")
     plt.xlabel("time")
-    plt.legend(["Eigvals", "Error"])
+    plt.legend(handles=[eigval_plt, error_plt])
     plt.show()
 
-    figure_path = (
-        f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
-    )
-    plt.savefig(figure_path)
-
-    print("Total Time:", total_time)
-    print("Bad Time:", nonrigid_time)
+    # figure_path = (
+    #     f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
+    # )
+    # plt.savefig(figure_path)
 
 
 def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
-    feasible = True
     start_loc_list = swarm.get_position_list_tuples()
     graph = swarm.get_robot_graph()
 
@@ -255,12 +251,17 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
 
                     # check that is connected to one of previous locs
                     is_connected = False
-                    for prev_robot_id, prev_robot_loc_id in enumerate(range(0, num_robots)):
-                        prev_robot_loc = np.array(start_locs[prev_robot_loc_id])
+                    for prev_robot_id, prev_robot_loc_id in enumerate(
+                        range(0, num_robots)
+                    ):
+                        prev_robot_loc = np.array(
+                            start_locs[prev_robot_loc_id])
                         dist_between = math_utils.calc_dist_between_locations(
                             cur_robot_loc, prev_robot_loc
                         )
-                        print(f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}")
+                        print(
+                            f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}"
+                        )
                         if dist_between < swarm.get_sensing_radius():
                             is_connected = True
 
@@ -274,13 +275,17 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
 
                     # check that is connected to one of previous locs
                     is_connected = False
-                    for prev_robot_id, prev_robot_loc_id in enumerate(range(0, num_robots)):
+                    for prev_robot_id, prev_robot_loc_id in enumerate(
+                        range(0, num_robots)
+                    ):
                         prev_robot_loc = goal_locs[prev_robot_loc_id]
                         dist_between = math_utils.calc_dist_between_locations(
                             cur_robot_loc, prev_robot_loc
                         )
 
-                        print(f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}")
+                        print(
+                            f"Dist Between robot {cur_robot_id} and {prev_robot_id}: {dist_between}"
+                        )
                         if dist_between < swarm.get_sensing_radius():
                             is_connected = True
 
@@ -293,39 +298,52 @@ def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
                 start_is_rigid = swarm.test_rigidity_from_loc_list(
                     start_loc_list[:num_robots]
                 )
-                goal_is_rigid = swarm.test_rigidity_from_loc_list(goals[:num_robots])
+                goal_is_rigid = swarm.test_rigidity_from_loc_list(
+                    goals[:num_robots])
                 if not start_is_rigid:
                     print(
                         f"\nStarting Config Insufficiently Rigid at Robot {num_robots-1}"
                     )
                     feasible = False
                 if not goal_is_rigid:
-                    print(f"\nGoal Config Insufficiently Rigid at Robot {num_robots-1}")
+                    print(
+                        f"\nGoal Config Insufficiently Rigid at Robot {num_robots-1}")
                     feasible = False
 
     else:
-        start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list)
-        goal_is_rigid = swarm.test_rigidity_from_loc_list(goals)
-        if not start_is_rigid:
-            print("\nStarting Config Insufficiently Rigid")
-            print()
-            graph = swarm.get_robot_graph()
-            plot.plot_nth_eigvec(swarm, 4)
-            plot.plot(
-                graph, env, goals=goals, show_goals=True, blocking=True, animation=False
-            )
-            return False
-        if not goal_is_rigid:
-            print("\nGoal Config Insufficiently Rigid")
-            print()
-            swarm.move_swarm(goalLoc, is_relative_move=False)
-            swarm.update_swarm()
-            graph = swarm.get_robot_graph()
-            plot.plot_nth_eigvec(swarm, 4)
-            plot.plot(
-                graph, env, goals=goals, show_goals=True, blocking=True, animation=False
-            )
-            return False
+        if swarm.get_num_robots() > 3:
+            start_is_rigid = swarm.test_rigidity_from_loc_list(start_loc_list)
+            goal_is_rigid = swarm.test_rigidity_from_loc_list(goals)
+            if not start_is_rigid:
+                print("\nStarting Config Insufficiently Rigid")
+                print()
+                graph = swarm.get_robot_graph()
+                plot.plot_nth_eigvec(swarm, 4)
+                plot.plot(
+                    graph,
+                    env,
+                    goals=goals,
+                    show_goals=True,
+                    blocking=True,
+                    animation=False,
+                )
+                return False
+            if not goal_is_rigid:
+                print("\nGoal Config Insufficiently Rigid")
+                print()
+                swarm.move_swarm(goalLoc, is_relative_move=False)
+                swarm.update_swarm()
+                graph = swarm.get_robot_graph()
+                plot.plot_nth_eigvec(swarm, 4)
+                plot.plot(
+                    graph,
+                    env,
+                    goals=goals,
+                    show_goals=True,
+                    blocking=True,
+                    animation=False,
+                )
+                return False
 
     # hasn't failed any checks so is a valid config and returning true
     return True
@@ -345,14 +363,14 @@ def read_traj_from_file(filename):
             endInd = line.find(")")
 
             while startInd != -1:
-                sect = line[startInd + 1 : endInd]
+                sect = line[startInd + 1: endInd]
                 commaInd = sect.find(",")
                 x_coord = float(sect[:commaInd])
-                y_coord = float(sect[commaInd + 1 :])
+                y_coord = float(sect[commaInd + 1:])
                 coords = (x_coord, y_coord)
                 traj.append(coords)
 
-                line = line[endInd + 1 :]
+                line = line[endInd + 1:]
                 startInd = line.find("(")
                 endInd = line.find(")")
 
@@ -403,7 +421,8 @@ def make_sensitivity_plots_random_motions(robots, environment):
                 # robots.show_swarm()
                 break
             else:
-                dirVector = math_utils.generate_random_vec(len(grad), vectorLength)
+                dirVector = math_utils.generate_random_vec(
+                    len(grad), vectorLength)
                 predChange = np.dot(grad, dirVector)
                 if origEigval < 1:
                     while predChange < vectorLength * 0.8:
@@ -478,16 +497,15 @@ def get_decoupled_rrt_path(robots, environment, goals):
 
     return path
 
+
 def get_coupled_lazysp_path(robots, environment, goals):
 
     lazysp_planner = coupled_lazysp.LazySp(
-        robots=robots, env=environment, goals=goals
-    )
+        robots=robots, env=environment, goals=goals)
 
     traj = lazysp_planner.perform_planning()
 
     return traj
-
 
 
 def get_priority_prm_path(robots, environment, goals, useTime):
@@ -495,6 +513,13 @@ def get_priority_prm_path(robots, environment, goals, useTime):
         robots=robots, env=environment, goals=goals
     )
     traj = priority_prm.planning(useTime=useTime)
+    return traj
+
+
+def get_potential_field_path(robots, environment, goals):
+    field = potential_field.PotentialField(
+        robots=robots, env=environment, goals=goals)
+    traj = field.planning()
     return traj
 
 
@@ -513,6 +538,21 @@ def init_goals(
             ]
         if shuffle_goals:
             random.shuffle(goals)
+        return goals
+    elif setting == "rectangle":
+        if robots.get_num_robots() == 20:
+            goals = [
+                (loc[0] + 24, loc[1] + 18) for loc in robots.get_position_list_tuples()
+            ]
+            mid = int(len(goals)/2)
+            goals = goals[-6:]+goals[:-6]
+        else:
+            goals = [
+                (loc[0] + 24, loc[1] + 25) for loc in robots.get_position_list_tuples()
+            ]
+            mid = int(len(goals)/2)
+            goals = goals[mid+2:]+goals[:mid+2]
+        print(goals)
         return goals
     elif setting == "random":
         assert bounds is not None, "need bounds for randomized setting"
@@ -536,14 +576,16 @@ def init_goals(
     elif swarmForm == "simple_vicon":
         if shuffle_goals:
             random.shuffle(goals)
-        goals = [(loc[0] + 2, loc[1]) for loc in robots.get_position_list_tuples()]
+        goals = [(loc[0] + 2, loc[1])
+                 for loc in robots.get_position_list_tuples()]
         # goals = [(3.5, 0.9), (3.5, 1.5),
         #          (3.0, .3),
         #          (2.5, 0.9), (2.5, 1.5)] #difficult goals
         return goals
 
     elif swarmForm == "many_robot_simple_move_test":
-        goals = [(loc[0] + 1, loc[1]) for loc in robots.get_position_list_tuples()]
+        goals = [(loc[0] + 1, loc[1])
+                 for loc in robots.get_position_list_tuples()]
         return goals
     elif swarmForm == "diff_end_times_test":
         goals = [
@@ -575,7 +617,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     envBounds = (0, bounds[0], 0, bounds[1])
 
     # Initialize Environment
-    env = environment.Environment(envBounds, setting=setting, num_obstacles=n_obstacles)
+    env = environment.Environment(
+        envBounds, setting=setting, num_obstacles=n_obstacles)
 
     # Initialize Robots
     robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
@@ -633,6 +676,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         trajs = get_coupled_lazysp_path(robots, env, goals)
     elif expName == "priority_prm":
         trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
+    elif expName == "potential_field":
+        trajs = get_potential_field_path(robots, env, goals)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -669,11 +714,12 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         )
 
 
-def many_robot_simple_move_test():
+def many_robot_simple_move_test(exp):
     """Test function for planning for many robots but only moving one space to
     the right.
     """
-    exp = "priority_prm"
+    print("Running Many Robots Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -683,7 +729,8 @@ def many_robot_simple_move_test():
     # whether to perform code profiling
     profile = False
     timestamp = None
-    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
+    experimentInfo = (exp, useTime, useRelative,
+                      showAnimation, profile, timestamp)
 
     # the starting formation of the network
     swarmForm = "many_robot_simple_move_test"
@@ -724,14 +771,16 @@ def many_robot_simple_move_test():
     envInfo = (setting, envSize, numObstacles)
 
     seed = 99999999  # seed the randomization
-    main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
+    main(experimentInfo=experimentInfo,
+         swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
 
 
-def plan_anchor_only_test():
+def plan_anchor_only_test(exp):
     """Test function for planning only the first 3 robots, which are assumed to
     all be anchor nodes (just enforces connectivity)
     """
-    exp = "priority_prm"
+    print("Running Anchor Only Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -741,7 +790,8 @@ def plan_anchor_only_test():
     # whether to perform code profiling
     profile = False
     timestamp = None
-    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
+    experimentInfo = (exp, useTime, useRelative,
+                      showAnimation, profile, timestamp)
 
     # the starting formation of the network
     swarmForm = "anchor_only_test"
@@ -782,14 +832,16 @@ def plan_anchor_only_test():
     envInfo = (setting, envSize, numObstacles)
 
     seed = 99999999  # seed the randomization
-    main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
+    main(experimentInfo=experimentInfo,
+         swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
 
 
-def different_end_times_test():
+def different_end_times_test(exp):
     """Test function for planning for many robots but only moving one space to
     the right.
     """
-    exp = "priority_prm"
+    print("Running End Time Test...")
+    # exp = "priority_prm"
     useTime = False
     useRelative = False
 
@@ -799,7 +851,8 @@ def different_end_times_test():
     # whether to perform code profiling
     profile = False
     timestamp = None
-    experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
+    experimentInfo = (exp, useTime, useRelative,
+                      showAnimation, profile, timestamp)
 
     # the starting formation of the network
     swarmForm = "diff_end_times_test"
@@ -840,7 +893,8 @@ def different_end_times_test():
     envInfo = (setting, envSize, numObstacles)
 
     seed = 99999999  # seed the randomization
-    main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
+    main(experimentInfo=experimentInfo,
+         swarmInfo=swarmInfo, envInfo=envInfo, seed=seed)
 
 
 if __name__ == "__main__":
@@ -849,19 +903,20 @@ if __name__ == "__main__":
     Any parameters that need to be changed should be accessible from here
     """
     run_tests = False
+    # exp = 'coupled_astar'
+    # exp = "decoupled_rrt"
+    exp = "priority_prm"
+    # exp = "coupled_lazysp"
+    # exp = "potential_field"
+    # exp = "read_file"
 
     if run_tests:
         print("Running simple test cases for planner")
-        plan_anchor_only_test()
-        many_robot_simple_move_test()
-        different_end_times_test()
+        plan_anchor_only_test(exp)
+        many_robot_simple_move_test(exp)
+        different_end_times_test(exp)
 
     else:
-        # exp = "decoupled_rrt"
-        exp = "priority_prm"
-        # exp = "coupled_lazysp"
-        # exp = "read_file"
-
         # whether to use time as extra planning dimension
         useTime = False
 
@@ -869,17 +924,18 @@ if __name__ == "__main__":
         useRelative = False
 
         # whether to show an animation of the planning
-        showAnimation = False
+        showAnimation = True
 
         # whether to perform code profiling
-        profile = True
+        profile = False
 
         # the timestamp for replaying a recorded path (only when exp=="read_file")
         timestamp = 1600223009  # RRT
         # timestamp = 1600226369  # PRM
         # timestamp = 1
 
-        experimentInfo = (exp, useTime, useRelative, showAnimation, profile, timestamp)
+        experimentInfo = (exp, useTime, useRelative,
+                          showAnimation, profile, timestamp)
 
         # the starting formation of the network
         # swarmForm = 'square'
@@ -920,6 +976,7 @@ if __name__ == "__main__":
         # setting = 'adversarial2'
         # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
+        setting = "rectangle"
 
         # the dimensions of the environment
         # envSize = (4.2, 2.4)  # vicon
@@ -930,7 +987,7 @@ if __name__ == "__main__":
 
         envInfo = (setting, envSize, numObstacles)
 
-        seed = 99999999  # seed the randomization
+        seed = 1  # seed the randomization
         main(
             experimentInfo=experimentInfo,
             swarmInfo=swarmInfo,

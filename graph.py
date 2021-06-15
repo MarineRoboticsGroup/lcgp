@@ -255,6 +255,7 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(5, 3)
         self.add_node(2, 6)
+        print("test6")
 
     def init_test8_formation(self):
         self.add_node(2, 2)

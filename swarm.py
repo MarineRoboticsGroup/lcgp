@@ -60,7 +60,7 @@ class Swarm:
         for loc in loc_list:
             self.robot_graph.add_node(loc[0], loc[1])
         self.update_swarm()
-        if self.robot_graph.get_num_edges() > 0:
+        if self.robot_graph.get_num_edges() > 0 and self.get_num_robots() > 3:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initialize_swarm_from_loc_list(self, loc_list):

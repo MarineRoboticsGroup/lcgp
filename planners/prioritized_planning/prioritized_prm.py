@@ -31,12 +31,12 @@ import kdtree
 class PriorityPrm:
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
-        self._N_SAMPLE = 850
+        self._N_SAMPLE = 4*850
         self._N_KNN = 10
-        self._MAX_EDGE_LEN = 2
+        self._MAX_EDGE_LEN = 1.0
         self._NUM_ROWS = 15
         self._NUM_COLS = 15
-        self._GRID_SPACING = 0.5
+        self._GRID_SPACING = 0.25
         # Swarm Parameters
         self._robots = robots
         self._sensing_radius = robots.get_sensing_radius()
@@ -385,9 +385,9 @@ class PriorityPrm:
     def plot_roadmap(self):
         print("Displaying Roadmap... May take time :)")
         edges = set()
-        for i, _ in enumerate(self._roadmap.roadmap):
-            for ii in range(len(self._roadmap.roadmap[i])):
-                ind = self._roadmap.roadmap[i][ii]
+        for i, _ in enumerate(self._roadmap._roadmap):
+            for ii in range(len(self._roadmap._roadmap[i])):
+                ind = self._roadmap._roadmap[i][ii]
                 edge = (ind, i) if ind < i else (i, ind)
                 if edge in edges:
                     continue

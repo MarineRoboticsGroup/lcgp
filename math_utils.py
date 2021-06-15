@@ -392,7 +392,19 @@ def get_partial_deriv_of_matrix(K, index, graph):
     xi, yi = graph.get_node_loc_tuple(i)
 
     node_i_connections = graph.get_node_connection_list(i)
+
+    # ensure i & j are within range of the matrix
+    n = K.shape[0] / 2
+    if i >= n:
+        return K
+    valid_connections = []
+    for node in node_i_connections:
+        if node < n:
+            valid_connections.append(node)
+    node_i_connections = valid_connections
+
     for j in node_i_connections:
+
         xj, yj = graph.get_node_loc_tuple(j)
 
         dKii_di = np.zeros((2, 2))
@@ -477,12 +489,14 @@ def generate_random_loc(xlb: float, xub: float, ylb: float, yub: float) -> Tuple
 
 
 def calc_localization_error(gnd_truth, est_locs):
-    print("Ground Truth Locs", gnd_truth)
-    print("Estimated Locs", est_locs)
     if not (gnd_truth.shape == est_locs.shape):
         print("Ground Truth Locs", gnd_truth)
         print("Estimated Locs", est_locs)
-        assert gnd_truth.shape == est_locs.shape
+        print(f"Gnd Truth Shape: {gnd_truth.shape}")
+        print(f"Est Locs Shape: {est_locs.shape}")
+        assert (
+            gnd_truth.shape == est_locs.shape
+        ), "The shape of the set of estimated positions did not match the expected shape"
     num_rows = gnd_truth.shape[0]
     errors = []
     diff = gnd_truth - est_locs
