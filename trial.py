@@ -21,7 +21,6 @@ import plot
 # planners
 from planners import decoupled_rrt
 from planners import coupled_lazysp
-from planners import coupled_astar
 from planners.prioritized_planning import prioritized_prm
 from planners.prioritized_planning import prioritized_prm
 
@@ -491,13 +490,6 @@ def get_coupled_lazysp_path(robots, environment, goals):
 
 
 
-
-def get_coupled_astar_path(robots, environment, goals):
-    a_star = coupled_astar.CoupledAstar(robots=robots, env=environment, goals=goals)
-    traj = a_star.planning()
-    return traj
-
-
 def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(
         robots=robots, env=environment, goals=goals
@@ -637,8 +629,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         expName == "decoupled_rrt"
     ):  # generate trajectories via naive fully decoupled rrt
         trajs = get_decoupled_rrt_path(robots, env, goals)
-    elif expName == "coupled_astar":
-        trajs = get_coupled_astar_path(robots, env, goals)
     elif expName == "coupled_lazysp":
         trajs = get_coupled_lazysp_path(robots, env, goals)
     elif expName == "priority_prm":
@@ -867,7 +857,6 @@ if __name__ == "__main__":
         different_end_times_test()
 
     else:
-        # exp = 'coupled_astar'
         # exp = "decoupled_rrt"
         exp = "priority_prm"
         # exp = "coupled_lazysp"
