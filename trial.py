@@ -21,7 +21,6 @@ import plot
 # planners
 from planners import decoupled_rrt
 from planners import coupled_lazysp
-from planners import coupled_astar
 from planners.prioritized_planning import prioritized_prm
 from planners.prioritized_planning import prioritized_prm
 
@@ -491,13 +490,6 @@ def get_coupled_lazysp_path(robots, environment, goals):
 
 
 
-
-def get_coupled_astar_path(robots, environment, goals):
-    a_star = coupled_astar.CoupledAstar(robots=robots, env=environment, goals=goals)
-    traj = a_star.planning()
-    return traj
-
-
 def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(
         robots=robots, env=environment, goals=goals
@@ -637,8 +629,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         expName == "decoupled_rrt"
     ):  # generate trajectories via naive fully decoupled rrt
         trajs = get_decoupled_rrt_path(robots, env, goals)
-    elif expName == "coupled_astar":
-        trajs = get_coupled_astar_path(robots, env, goals)
     elif expName == "coupled_lazysp":
         trajs = get_coupled_lazysp_path(robots, env, goals)
     elif expName == "priority_prm":
@@ -867,10 +857,9 @@ if __name__ == "__main__":
         different_end_times_test()
 
     else:
-        # exp = 'coupled_astar'
         # exp = "decoupled_rrt"
-        # exp = "priority_prm"
-        exp = "coupled_lazysp"
+        exp = "priority_prm"
+        # exp = "coupled_lazysp"
         # exp = "read_file"
 
         # whether to use time as extra planning dimension
@@ -896,12 +885,12 @@ if __name__ == "__main__":
         # swarmForm = 'square'
         # swarmForm = "test6"
         # swarmForm = "test8"
-        # swarmForm = "test20"
+        swarmForm = "test20"
         # swarmForm = 'random'
-        swarmForm = "simple_vicon"
+        # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 5
+        nRobots = 20
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -926,15 +915,15 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        setting = 'simple_vicon'
+        # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
 
         # the dimensions of the environment
-        envSize = (4.2, 2.4)  # vicon
-        # envSize = (35, 35)  # simulation
+        # envSize = (4.2, 2.4)  # vicon
+        envSize = (35, 35)  # simulation
 
         # number of obstacles for random environment
         numObstacles = 10
@@ -948,11 +937,3 @@ if __name__ == "__main__":
             envInfo=envInfo,
             seed=301,
         )
-
-        # #rapidly checking rrt solutions for collision
-        # #to make work, have test_trajectory return False if a collision is detected and True otherwise
-        # #then have main return the result of test_trajectory
-        # for i in range(400):
-        #     if main(experimentInfo=experimentInfo, swarmInfo=swarmInfo, envInfo=envInfo, seed=i):
-        #         print("Working solution:", i)
-        #         break

@@ -9,14 +9,17 @@ class Swarm:
     def __init__(self, sensingRadius, noise_model, noise_stddev):
         self._sensing_radius = sensingRadius
 
-        assert(noise_model == 'add' or noise_model == 'lognorm')
+        assert noise_model == "add" or noise_model == "lognorm"
         self.noise_model = noise_model
         self.noise_stddev = noise_stddev
         self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
+        self.time_fim_build = 0
 
     """ Swarm Utils """
 
-    def initialize_swarm(self, env, bounds, formation='square', nRobots=None, min_eigval=0.75):
+    def initialize_swarm(
+        self, env, bounds, formation="square", nRobots=None, min_eigval=0.75
+    ):
         # initialize formation and edges
         self._start_config = formation
         self.min_eigval = min_eigval
@@ -26,23 +29,23 @@ class Swarm:
         init_form = formation.lower()
         print(f"Initializing swarm formation: {init_form}")
 
-        if init_form == 'square':
+        if init_form == "square":
             self.robot_graph.init_square_formation()
-        elif init_form == 'test6':
+        elif init_form == "test6":
             self.robot_graph.init_test6_formation()
-        elif init_form == 'test8':
+        elif init_form == "test8":
             self.robot_graph.init_test8_formation()
-        elif init_form == 'test20':
+        elif init_form == "test20":
             self.robot_graph.init_test20_formation()
-        elif init_form == 'random':
+        elif init_form == "random":
             self.robot_graph.init_random_formation(env, nRobots, bounds)
-        elif init_form == 'simple_vicon':
+        elif init_form == "simple_vicon":
             self.robot_graph.init_test_simple_vicon_formation()
-        elif init_form == 'anchor_only_test':
+        elif init_form == "anchor_only_test":
             self.robot_graph.init_anchor_only_test()
-        elif init_form == 'many_robot_simple_move_test':
+        elif init_form == "many_robot_simple_move_test":
             self.robot_graph.init_random_formation(env, nRobots, bounds)
-        elif init_form == 'diff_end_times_test':
+        elif init_form == "diff_end_times_test":
             self.robot_graph.init_random_formation(env, nRobots, bounds)
         else:
             print("The given formation is not valid\n")
@@ -61,12 +64,12 @@ class Swarm:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def initialize_swarm_from_loc_list(self, loc_list):
-        assert(len(loc_list) % 2 == 0)
+        assert len(loc_list) % 2 == 0
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
-        for i in range(int(len(loc_list)/2)):
-            self.robot_graph.add_node(loc_list[2*i], loc_list[2*i+1])
+        for i in range(int(len(loc_list) / 2)):
+            self.robot_graph.add_node(loc_list[2 * i], loc_list[2 * i + 1])
 
         self.update_swarm()
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
@@ -80,7 +83,6 @@ class Swarm:
             self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
         else:
             self.fisher_info_matrix = None
-
 
     """ Accessors """
 
@@ -112,7 +114,7 @@ class Swarm:
         if self.get_num_robots() > 3:
             eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
             eigvals.sort()
-            return eigvals[n-1]
+            return eigvals[n - 1]
         else:
             return -1
 
@@ -128,7 +130,8 @@ class Swarm:
             return False
 
         gradient = math_utils.get_gradient_of_eigpair(
-            self.fisher_info_matrix, nthEigenpair, self.robot_graph)
+            self.fisher_info_matrix, nthEigenpair, self.robot_graph
+        )
         return gradient
 
     """ Checks """
@@ -136,14 +139,16 @@ class Swarm:
     def test_rigidity_from_loc_list(self, loc_list):
         if len(loc_list) < 3:
             return False
-        test_graph = graph.Graph(self.noise_model, self.noise_stddev)
-        test_graph.initialize_from_location_list(loc_list, self._sensing_radius)
-        eigval = test_graph.get_nth_eigval(0)
-        return (self.min_eigval <= eigval)
+
+        fim = math_utils.build_fim_from_loc_list(
+            np.array(loc_list), self._sensing_radius, self.noise_model, self.noise_stddev
+        )
+        eigval = math_utils.get_least_eigval(fim)
+        return self.min_eigval <= eigval
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
-        return (not (eigval == 0))
+        return not (eigval == 0)
 
     """ Control """
 
@@ -163,7 +168,7 @@ class Swarm:
     def print_nth_eigvals(self, n):
         eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
         eigvals.sort()
-        print(eigvals[n-1])
+        print(eigvals[n - 1])
 
     def show_swarm(self):
         raise NotImplementedError

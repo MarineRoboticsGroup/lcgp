@@ -41,7 +41,7 @@ class PriorityPrm:
         self._robots = robots
         self._sensing_radius = robots.get_sensing_radius()
         self._start_loc_list = self._robots.get_position_list_tuples()
-        self._start_config = self._robots.start_config
+        self._start_config = self._robots._start_config
         # environment
         self._env = env
         self._obstacles = env.get_obstacle_list()
@@ -219,6 +219,7 @@ class PriorityPrm:
                     print()
                     return True
                 else:
+
                     # * update connected and rigid sets for next robot
                     self.constraintSets.update_base_sets_from_robot_traj(
                         self._trajs, cur_robot_id
@@ -231,6 +232,7 @@ class PriorityPrm:
                     ) = self.constraintSets.construct_valid_sets(
                         cur_robot_id + 1, self._trajs
                     )
+
 
                     if hasConflict:
                         print(

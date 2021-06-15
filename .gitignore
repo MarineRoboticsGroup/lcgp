@@ -15,6 +15,7 @@ ehthumbs.db
 # Binaries #
 ############
 *.pyc
+*/bin/
 
 # Latex #
 #########
@@ -34,7 +35,7 @@ main.pdf
 
 # virtual environment
 #############
-# range_only_env/
+range_only_env/
 # range_only_env/*
 
 
