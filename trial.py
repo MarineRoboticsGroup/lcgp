@@ -1,3 +1,7 @@
+from planners.prioritized_planning import prioritized_prm
+from planners import potential_field
+from planners import coupled_lazysp
+from planners import decoupled_rrt
 import copy
 import os
 import random
@@ -21,10 +25,6 @@ warnings.filterwarnings("ignore")
 
 # planners
 # pylint: disable=import-error
-from planners import decoupled_rrt
-from planners import coupled_lazysp
-from planners import potential_field
-from planners.prioritized_planning import prioritized_prm
 
 priority_planners = ["decoupled_rrt", "priority_prm"]
 trial_timestamp = int(time.time())
@@ -85,8 +85,11 @@ def test_trajectory(
     min_eigvals = []
     mean_error_list = []
     only_plot_trajectories = False
+    dist_moved = [0.0 for i in range(robots.get_num_robots())]
 
+    print("Total timesteps:", num_total_timesteps)
     while not (traj_indices == final_traj_indices):
+        print("Current timestep:", total_time)
         min_eigval = robots.get_nth_eigval(1)
         min_eigvals.append(min_eigval)
         graph = robots.get_robot_graph()
@@ -132,10 +135,10 @@ def test_trajectory(
         trajectory_img_path = f"{cwd}/figures/animations/image-{total_time}.png"
         plt.savefig(trajectory_img_path)
 
-        total_time += 1
         move.clear()
         config.clear()
         for robotIndex in range(robots.get_num_robots()):
+
             # Todo: move the collision checker further up the pipeline
             if False:
                 for otherRobotIndex in range(robotIndex + 1, robots.get_num_robots()):
@@ -160,6 +163,14 @@ def test_trajectory(
             # Increment trajectory for unfinished paths
             if traj_indices[robotIndex] != final_traj_indices[robotIndex]:
                 traj_indices[robotIndex] += 1
+
+                # update distance
+                if total_time >= 1:
+                    newLoc = trajs[robotIndex][traj_indices[robotIndex]]
+                    prevLoc = trajs[robotIndex][traj_indices[robotIndex]-1]
+                    dist_moved[robotIndex] += math_utils.calc_dist_between_locations(
+                        newLoc, prevLoc)
+
             # Get next step on paths
             newLoc = trajs[robotIndex][traj_indices[robotIndex]]
             config.append(newLoc)
@@ -167,6 +178,7 @@ def test_trajectory(
 
         robots.move_swarm(move, is_relative_move=relativeTraj)
         robots.update_swarm()
+        total_time += 1
 
         if min_eigval == 0 and False:
             print("Flexible Loc Est")
@@ -203,6 +215,8 @@ def test_trajectory(
 
     print("Total Timesteps:", total_time)
     print("Number of Nonrigid Timesteps:", nonrigid_time)
+
+    print("Total distance moved:", sum(dist_moved))
 
     # * some plotting to compare the eigenvalue with the localization error
     eigval_plt, = plt.plot(min_eigvals, label="Eigval")
@@ -529,7 +543,7 @@ def init_goals(
     swarmForm: str, setting: str, robots, bounds=None, shuffle_goals: bool = False
 ):
 
-    if setting == "curve_maze":
+    if setting == "curve_maze" or setting == "adversarial1":
         if robots.get_num_robots() == 20:
             goals = [
                 (loc[0] + 24, loc[1] + 18) for loc in robots.get_position_list_tuples()
@@ -942,14 +956,14 @@ if __name__ == "__main__":
         # the starting formation of the network
         # swarmForm = 'square'
         # swarmForm = "test6"
-        # swarmForm = "test8"
-        swarmForm = "test12"
+        swarmForm = "test8"
+        # swarmForm = "test12"
         # swarmForm = "test20"
         # swarmForm = 'random'
         # swarmForm = "simple_vicon"
 
         # the number of robots in the swarm
-        nRobots = 12
+        nRobots = 8
 
         # the sensor noise model (additive or multiplicative gaussian)
         noise_model = "add"
@@ -974,12 +988,12 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        # setting = "curve_maze"
+        setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
         # setting = 'simple_vicon'
         # setting = "obstacle_vicon"
-        setting = "rectangle"
+        # setting = "rectangle"
 
         # the dimensions of the environment
         # envSize = (4.2, 2.4)  # vicon
@@ -995,5 +1009,5 @@ if __name__ == "__main__":
             experimentInfo=experimentInfo,
             swarmInfo=swarmInfo,
             envInfo=envInfo,
-            seed=301,
+            seed=seed,
         )

@@ -31,12 +31,12 @@ import kdtree
 class PriorityPrm:
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
-        self._N_SAMPLE = 4*850
+        self._N_SAMPLE = 850
         self._N_KNN = 10
-        self._MAX_EDGE_LEN = 1.0
+        self._MAX_EDGE_LEN = 2.0
         self._NUM_ROWS = 15
         self._NUM_COLS = 15
-        self._GRID_SPACING = 0.25
+        self._GRID_SPACING = 0.5
         # Swarm Parameters
         self._robots = robots
         self._sensing_radius = robots.get_sensing_radius()

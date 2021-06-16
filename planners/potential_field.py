@@ -23,7 +23,7 @@ class PotentialField:
         env,
         goals,
         target_dist_to_goal: float = .5,
-        max_move_dist: float = 1.0,
+        max_move_dist: float = 2.0,
         max_iter: int = 2000,
     ):
         self._robots = robots
@@ -107,8 +107,8 @@ class PotentialField:
                     else:
                         # add potential functions together
                         for name in potentials:
-                            print("\nCurrent robot:", robotIndex)
-                            print("Current potential:", name)
+                            # print("\nCurrent robot:", robotIndex)
+                            # print("Current potential:", name)
                             # print("Current x value:", move_list[robotIndex][0])
                             #special case for anchors
                             if name == "loc" and robotIndex >= self.num_robots-3:
