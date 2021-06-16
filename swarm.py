@@ -145,7 +145,7 @@ class Swarm:
             np.array(loc_list, dtype=np.float), self._sensing_radius, self.noise_model, self.noise_stddev
         )
         eigval = math_utils.get_least_eigval(fim)
-        return self.min_eigval <= eigval
+        return self.min_eigval <= eigval, 2*self.min_eigval <= eigval
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)

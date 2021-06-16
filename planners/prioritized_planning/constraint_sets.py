@@ -30,6 +30,8 @@ class ConstraintSets:
         self.reachable_states = [[set()] for x in range(robots.get_num_robots())]
         self.valid_states = [[set()] for x in range(robots.get_num_robots())]
         self.last_timesteps = [[] for x in range(robots.get_num_robots())]
+        self.updated_state = [False for _ in range(robots.get_num_robots())]
+        self.updated_state[0] = True # first robot never needs to update constraints
 
         # initialize first robot valid set
         self.construct_valid_sets(0, None)
@@ -53,9 +55,11 @@ class ConstraintSets:
         assert (
             False
         ), "temporary assertion to make sure that constraint sets aren't being incorrectly cleared"
+        self.updated_state[cur_robot_id] = False
         self.connected_states[cur_robot_id] = [set()]
         self.rigid_states[cur_robot_id] = [set()]
 
+    #! this is where magic happens
     def update_base_sets_from_robot_traj(self, trajs, cur_robot_id):
         assert trajs[cur_robot_id], "Tried to update based on nonexisting trajectory"
 
@@ -71,9 +75,7 @@ class ConstraintSets:
             self.connected_states[cur_robot_id]
         )
 
-        self.rigid_states[update_robot_id] = copy.deepcopy(
-            self.rigid_states[cur_robot_id]
-        )
+        self.rigid_states[update_robot_id] = [set()]
 
         # for robot 3 we have to check rigidity for all the neighbors of the
         # previous trajectories, as we couldn't check rigidity until now
@@ -90,7 +92,7 @@ class ConstraintSets:
                         )
                         if already_conn_state and update_robot_id > 2:
                             already_rigid_state = self.is_rigid_state(
-                                cur_robot_id, timestep, loc_id
+                                update_robot_id, timestep, loc_id
                             )
                             if not already_rigid_state:
                                 if self.state_would_be_rigid(
@@ -114,7 +116,7 @@ class ConstraintSets:
                     )
                     if already_conn_state and update_robot_id > 2:
                         already_rigid_state = self.is_rigid_state(
-                            cur_robot_id, timestep, loc_id
+                            update_robot_id, timestep, loc_id
                         )
                         if not already_rigid_state:
                             if self.state_would_be_rigid(
@@ -123,6 +125,8 @@ class ConstraintSets:
                                 self.add_rigid_state(update_robot_id, timestep, loc_id)
                     else:
                         self.add_connected_state(update_robot_id, timestep, loc_id)
+
+        self.updated_state[update_robot_id] = True
 
     #! this is where magic happens
     def construct_valid_sets(
@@ -145,7 +149,7 @@ class ConstraintSets:
                 bool: true if has conflict, false if not
                 int: timestep of conflict, None if no conflict
         """
-        # TODO add test to require that rigid and connected states were already updated
+        assert self.updated_state[update_robot_id] == True
         assert update_robot_id >= 0
         start_id = self._roadmap.get_start_index(update_robot_id)
         goal_id = self._roadmap.get_goal_index(update_robot_id)
@@ -153,7 +157,7 @@ class ConstraintSets:
         valid_sets_ = [set([start_id])]
         timestep = 0
         wait_for_valid_growth_cntr = 5
-        time_past_goal_cntr = 5
+        time_past_goal_cntr = 4
         has_conflict = False
         while time_past_goal_cntr:
 
@@ -172,6 +176,7 @@ class ConstraintSets:
             # the time of the empty valid set
             if not valid_sets_[timestep]:
                 print("valid set is empty")
+                assert False, "If this is happening we should evaluate it"
                 has_conflict = True
                 return has_conflict, timestep
 
@@ -198,6 +203,8 @@ class ConstraintSets:
                     trajs, update_robot_id, timestep + 1
                 )
 
+            # reachable points for next timestep are any currently valid points
+            # + their neighbors - conflicts - occupied points
             reachable_sets_[timestep + 1] = (
                 valid_sets_[timestep]
                 .union(neighbors)
@@ -215,19 +222,10 @@ class ConstraintSets:
                     reachable_sets_[timestep + 1]
                 )
             else:
-                # TODO review this code
-                #! I think this needs to be corrected
                 rigid_states = self.get_rigid_states(update_robot_id, timestep + 1)
                 valid_sets_[timestep + 1] = rigid_states.intersection(
                     reachable_sets_[timestep + 1]
                 )
-
-                # valid_sets_[timestep + 1] = self.get_rigid_subset(
-                #     trajs,
-                #     update_robot_id,
-                #     timestep + 1,
-                #     reachable_sets_[timestep + 1],
-                # )
 
             timestep += 1
 
@@ -245,7 +243,6 @@ class ConstraintSets:
         return has_conflict, None
 
     ###### Check Status #######
-    # TODO review the use of this function
     def state_would_be_rigid(self, trajs, cur_robot_id, cur_timestep, node_id) -> bool:
         """Checks a given node to see if it would be rigid given all of the already existing trajectories
 
@@ -383,16 +380,6 @@ class ConstraintSets:
             else:
                 return rig_set
 
-    def get_rigid_subset(self, trajs, cur_robot_id, timestep, original_set):
-        rigid_subset = set(
-            [
-                loc_id
-                for loc_id in original_set
-                if self.state_would_be_rigid(trajs, cur_robot_id, timestep, loc_id)
-            ]
-        )
-        return rigid_subset
-
     def get_reachable_states(self, cur_robot_id, timestep):
         maxTime = len(self.reachable_states[cur_robot_id]) - 1
         time = min(maxTime, timestep)
@@ -416,42 +403,27 @@ class ConstraintSets:
 
         prev_robot_id = cur_robot_id - 1
 
-        max_time_prev_robot = len(self.connected_states[prev_robot_id]) - 1
-        assert (
-            cur_robot_id == 0
-            or timestep > max_time_prev_robot
-            or self.get_connected_states(cur_robot_id, timestep).issuperset(
-                self.get_connected_states(prev_robot_id, timestep)
-            )
-        ), "The current connected set being modified is not a super set of the connected set for the previous robot at the same timestep. This indicates an issue"
-
-        for i in range(len(self.connected_states[cur_robot_id]), timestep+1):
+        i = 0
+        while len(self.connected_states[cur_robot_id]) < timestep + 1:
             self.connected_states[cur_robot_id].append(set())
             for prev_robot_id in range(cur_robot_id):
                 prev_conn_set = self.get_connected_states(prev_robot_id, i)
                 self.connected_states[cur_robot_id][i].update(prev_conn_set)
+            i+=1
 
         self.connected_states[cur_robot_id][timestep].add(loc_id)
+        if cur_robot_id + 1 < self._robots.get_num_robots():
+            self.add_connected_state(cur_robot_id + 1, timestep, loc_id)
 
     def add_rigid_state(self, cur_robot_id, timestep, loc_id):
         assert self.is_connected_state(cur_robot_id, timestep, loc_id)
         prev_robot_id = cur_robot_id - 1
 
-        max_time_prev_robot = len(self.rigid_states[prev_robot_id]) - 1
-        assert (
-            cur_robot_id == 0
-            or timestep > max_time_prev_robot
-            or self.get_rigid_states(cur_robot_id, timestep).issuperset(
-                self.get_rigid_states(prev_robot_id, timestep)
-            )
-        ), "The current rigid set being modified is not a super set of the rigid set for the previous robot at the same timestep. This indicates an issue"
-
-        for i in range(len(self.rigid_states[cur_robot_id]), timestep+1):
+        for i in range(len(self.rigid_states[cur_robot_id]), timestep + 1):
             self.rigid_states[cur_robot_id].append(set())
             for prev_robot_id in range(cur_robot_id):
                 prev_rigid_set = self.get_rigid_states(prev_robot_id, i)
                 self.rigid_states[cur_robot_id][i].update(prev_rigid_set)
-
 
         self.rigid_states[cur_robot_id][timestep].add(loc_id)
 

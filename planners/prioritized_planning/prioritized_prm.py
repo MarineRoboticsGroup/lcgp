@@ -32,11 +32,13 @@ class PriorityPrm:
     def __init__(self, robots, env, goals):
         # Roadmap Parameters
         self._N_SAMPLE = 4*850
+        self._N_SAMPLE = 850
         self._N_KNN = 10
         self._MAX_EDGE_LEN = 1.0
+        self._MAX_EDGE_LEN = 2.0
         self._NUM_ROWS = 15
         self._NUM_COLS = 15
-        self._GRID_SPACING = 0.25
+        self._GRID_SPACING = 0.5
         # Swarm Parameters
         self._robots = robots
         self._sensing_radius = robots.get_sensing_radius()
@@ -288,6 +290,9 @@ class PriorityPrm:
             cur_robot_id, timestep, loc_id
         )
         if not conflictFree:
+            print(cur_robot_id)
+            print(self.constraintSets.conflict_states[cur_robot_id])
+            print(self.constraintSets.rigid_states[cur_robot_id])
             print(
                 "Has Conflict, denying robot %d, time: %d, loc: %d"
                 % (cur_robot_id, timestep, loc_id)
@@ -329,20 +334,6 @@ class PriorityPrm:
                         # print(f"Robot {cur_robot_id} collided with robot {other_robot_id} due to goal location condition")
                         return False
 
-        # * Trying heuristic tricks to get configuration to spread out more
-        # if cur_robot_id == 1 :
-        #     loc0 = self.get_location_at_time(0, timestep)
-        # loc1 = self._roadmap.get_loc(loc_id)
-        # if calc_dist_between_locations(loc0, loc1) < 1:
-        #         return False
-        # if cur_robot_id == 2:
-        # loc0 = self.get_location_at_time(0, timestep)
-        # loc1 = self.get_location_at_time(1, timestep)
-        # loc2 = self._roadmap.get_loc(loc_id)
-        # if calc_dist_between_locations(loc0, loc2) < 2:
-        #     return False
-        # if calc_dist_between_locations(loc1, loc2) < 1:
-        #   return False
         return True
 
     def get_node_key(self, node, useTime):

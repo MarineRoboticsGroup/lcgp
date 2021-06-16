@@ -23,6 +23,34 @@ pip install git+https://github.com/evanhempel/python-flamegraph.git
 python trial.py
 ```
 
+## Potential Issues
+
+While not as elegant as we would like, due to the implementation there may be
+need for some parameter tuning. Here we list some issues where the various
+parameters of the planner may benefit from tuning.
+
+If the planner is finding conflicts and the message being printed is `valid set
+not growing`, this may be due to one of two issues. As a first 
+
+## Useful for debugging
+
+If the planner is having issues planning and it is unclear if it's a bug or if
+it genuinely is unable to find paths, inside the `prioritized_prm.py` file we
+have the ability to plot the trajectories for all robots `[0,..,n-1]` and show the
+state of all of the points on the PRM (which set they belong to, if any) of
+robot `n`. As default there is a `if False:` branch in the
+`perform_planning` function, to turn this plotting on change `False` to `True`.
+This will plot after each robot plans its path (remember, prioritized planning
+so the robots plan independently in sequence).
+The full code looks like this:
+
+```Python
+if False:
+    self.constraintSets.animate_valid_states(
+        self._coord_trajs, cur_robot_id + 1
+    )
+```
+
 ## Files and Folders
 
 - trial.py: main script from which path planning experiments are run
