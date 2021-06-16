@@ -288,6 +288,9 @@ class PriorityPrm:
             cur_robot_id, timestep, loc_id
         )
         if not conflictFree:
+            print(cur_robot_id)
+            print(self.constraintSets.conflict_states[cur_robot_id])
+            print(self.constraintSets.rigid_states[cur_robot_id])
             print(
                 "Has Conflict, denying robot %d, time: %d, loc: %d"
                 % (cur_robot_id, timestep, loc_id)
@@ -329,20 +332,6 @@ class PriorityPrm:
                         # print(f"Robot {cur_robot_id} collided with robot {other_robot_id} due to goal location condition")
                         return False
 
-        # * Trying heuristic tricks to get configuration to spread out more
-        # if cur_robot_id == 1 :
-        #     loc0 = self.get_location_at_time(0, timestep)
-        # loc1 = self._roadmap.get_loc(loc_id)
-        # if calc_dist_between_locations(loc0, loc1) < 1:
-        #         return False
-        # if cur_robot_id == 2:
-        # loc0 = self.get_location_at_time(0, timestep)
-        # loc1 = self.get_location_at_time(1, timestep)
-        # loc2 = self._roadmap.get_loc(loc_id)
-        # if calc_dist_between_locations(loc0, loc2) < 2:
-        #     return False
-        # if calc_dist_between_locations(loc1, loc2) < 1:
-        #   return False
         return True
 
     def get_node_key(self, node, useTime):
