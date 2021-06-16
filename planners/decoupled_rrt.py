@@ -36,7 +36,7 @@ class DecoupledRRT:
         goal_locs,
         obstacle_list,
         bounds,
-        max_move_dist=1.0,
+        max_move_dist=2.0,
         goal_sample_rate=5,
         max_iter=2000,
     ):

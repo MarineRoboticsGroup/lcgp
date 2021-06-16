@@ -256,7 +256,6 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(5, 3)
         self.add_node(2, 6)
-        print("test6")
 
     def init_test8_formation(self):
         self.add_node(2, 2)
@@ -267,6 +266,20 @@ class Graph:
         self.add_node(6, 6)
         self.add_node(8, 6)
         self.add_node(8, 8)
+
+    def init_test12_formation(self):
+        self.add_node(2, 2)
+        self.add_node(2, 4)
+        self.add_node(2, 6)
+        self.add_node(4, 2)
+        self.add_node(4, 4)
+        self.add_node(4, 6)
+        self.add_node(6, 2)
+        self.add_node(6, 4)
+        self.add_node(6, 6)
+        self.add_node(8, 2)
+        self.add_node(8, 4)
+        self.add_node(8, 6)
 
     def init_test20_formation(self):
         """Randomly chooses the ordering from a gridded up set of locations
