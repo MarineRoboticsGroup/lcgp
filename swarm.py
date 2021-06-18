@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from typing import Tuple
 
 import graph
 import math_utils
@@ -113,6 +114,9 @@ class Swarm:
         return posList
 
     def get_nth_eigval(self, n):
+        if n == 1:
+            fim = self.robot_graph.get_fisher_matrix()
+            return math_utils.get_least_eigval(fim)
         if self.get_num_robots() > 3:
             eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
             eigvals.sort()
@@ -138,16 +142,19 @@ class Swarm:
 
     """ Checks """
 
-    def test_rigidity_from_loc_list(self, loc_list):
+    def test_rigidity_from_loc_list(self, loc_list) -> Tuple[bool, bool]:
         assert isinstance(loc_list, list)
         if len(loc_list) < 3:
             return False
 
         fim = math_utils.build_fim_from_loc_list(
-            np.array(loc_list, dtype=np.float), self._sensing_radius, self.noise_model, self.noise_stddev
+            np.array(loc_list, dtype=np.float),
+            self._sensing_radius,
+            self.noise_model,
+            self.noise_stddev,
         )
         eigval = math_utils.get_least_eigval(fim)
-        return self.min_eigval <= eigval, 2*self.min_eigval <= eigval
+        return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)

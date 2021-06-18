@@ -217,22 +217,25 @@ class PriorityPrm:
                 if cur_robot_id == self._robots.get_num_robots() - 1:
                     print("All Planning Successful")
                     print()
+                    for robot_id, traj in enumerate(self._trajs):
+                        for tstep, loc_id in enumerate(traj):
+                            assert self.constraintSets.is_valid_state(
+                                robot_id, tstep, loc_id
+                            )
+                            if robot_id >= 3 and tstep > 0:
+                                assert self.constraintSets.is_rigid_state(
+                                    robot_id, tstep, loc_id
+                                ), f"robot {robot_id} time {tstep} loc_id {loc_id}"
                     return True
                 else:
 
                     # * update connected and rigid sets for next robot
-                    self.constraintSets.update_base_sets_from_robot_traj(
-                        self._trajs, cur_robot_id
-                    )
-
-                    # * update valid sets for next robot now that we have
                     (
                         hasConflict,
                         conflictTime,
-                    ) = self.constraintSets.construct_valid_sets(
-                        cur_robot_id + 1, self._trajs
+                    ) = self.constraintSets.update_constraint_sets(
+                        self._trajs, cur_robot_id
                     )
-
 
                     if hasConflict:
                         print(
@@ -240,9 +243,10 @@ class PriorityPrm:
                             % (cur_robot_id, conflictTime)
                         )
                         # * animation
-                        self.constraintSets.animate_valid_states(
-                            self._coord_trajs, cur_robot_id + 1
-                        )
+                        if False:
+                            self.constraintSets.animate_valid_states(
+                                self._coord_trajs, cur_robot_id + 1
+                            )
                         mintime = min(conflictTime, len(traj) - 1)
                         # conflictLocId = traj[conflictTime]
                         conflictLocId = traj[mintime]
@@ -268,6 +272,12 @@ class PriorityPrm:
                     "Planning Failed for robot %d. \nReverting to plan for robot %d\n"
                     % (cur_robot_id, cur_robot_id - 1)
                 )
+
+                if False:
+                    self.constraintSets.animate_valid_states(
+                        self._coord_trajs, cur_robot_id
+                    )
+
                 cur_robot_id -= 1
 
                 if cur_robot_id < 0:
