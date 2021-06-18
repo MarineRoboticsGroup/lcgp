@@ -508,7 +508,7 @@ def calc_localization_error(gnd_truth, est_locs):
     return errors
 
 
-def calc_absolute_trajectory_error(all_gnd_truths, all_est_locs):
+def calc_rmse_i(all_gnd_truths, all_est_locs):
     num_robots = all_gnd_truths[0].shape[0]
     squared_diff_sums = [0.0 for i in range(num_robots)]
     errors = [0.0 for i in range(num_robots)]
@@ -521,9 +521,29 @@ def calc_absolute_trajectory_error(all_gnd_truths, all_est_locs):
             dist = calc_dist_between_locations(gnd_truth[robotIndex], est_locs[robotIndex])
             squared_diff_sums[robotIndex] += dist**2
 
-    print("Errors:", errors, "\nDiff sums:", squared_diff_sums)
     for robotIndex in range(num_robots):
-        print(robotIndex)
         errors[robotIndex] = (squared_diff_sums[robotIndex]/num_robots)**(1/2)
 
+    return errors
+
+def calc_rmse_t(all_gnd_truths, all_est_locs):
+    num_robots = all_gnd_truths[0].shape[0]
+    num_timesteps = len(all_gnd_truths)
+    se = [[] for i in range(num_timesteps)]
+    errors = [0.0 for i in range(num_timesteps)]
+
+    for timestep in range(len(all_gnd_truths)):
+        gnd_truth = all_gnd_truths[timestep]
+        est_locs = all_est_locs[timestep]
+
+        for robotIndex in range(num_robots):
+            dist = calc_dist_between_locations(gnd_truth[robotIndex], est_locs[robotIndex])
+            se[timestep].append(dist**2)
+
+    for timestep in range(num_timesteps):
+        errors[timestep] = (sum(se[timestep])/num_timesteps)**(1/2)
+    all_se = []
+    for vals in se:
+        all_se += vals
+    print("Max SE:", max(all_se))
     return errors

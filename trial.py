@@ -89,6 +89,7 @@ def test_trajectory(
     dist_moved = [0.0 for i in range(robots.get_num_robots())]
     all_gnd_truths = []
     all_est_locs = []
+    current_guess = [0.0 for i in range(robots.get_num_robots()-3)]
 
     print("Total timesteps:", num_total_timesteps)
     while not (traj_indices == final_traj_indices):
@@ -96,9 +97,12 @@ def test_trajectory(
         min_eigval = robots.get_nth_eigval(1)
         min_eigvals.append(min_eigval)
         graph = robots.get_robot_graph()
-        est_locs = graph.perform_snl()
-        # est_locs = graph.perform_snl(solver="sdp_with_spring")
         config = robots.get_position_list_tuples()
+        for robotIndex in range(robots.get_num_robots()-3):
+            if graph.get_node_degree(robotIndex) > 0:
+                current_guess[robotIndex] = config[robotIndex]
+        # est_locs = graph.perform_snl()
+        est_locs = graph.perform_snl(init_guess=current_guess.copy(), solver="spring")
         error_list = math_utils.calc_localization_error(
             np.array(config), est_locs)
         all_gnd_truths.append(np.array(config))
@@ -218,9 +222,13 @@ def test_trajectory(
     print("Avg Localization Error:", avg_error)
     print("Max Localization Error:", worst_error)
 
-    ate_list = math_utils.calc_absolute_trajectory_error(all_gnd_truths, all_est_locs)
-    print("Avg Absolute Trajectory Error:", sum(ate_list) / float(len(ate_list)))
-    print("Max Absolute Trajectory Error:", max(ate_list))
+    rmse_t_list = math_utils.calc_rmse_t(all_gnd_truths, all_est_locs)
+    print("Avg RMSE_t:", sum(rmse_t_list) / float(len(rmse_t_list)))
+    print("Max RMSE_t:", max(rmse_t_list))
+
+    rmse_i_list = math_utils.calc_rmse_i(all_gnd_truths, all_est_locs)
+    print("Avg RMSE_i:", sum(rmse_i_list) / float(len(rmse_i_list)))
+    print("Max RMSE_i:", max(rmse_i_list))
 
     print("Total Timesteps:", total_time)
     print("Number of Nonrigid Timesteps:", nonrigid_time)
@@ -929,8 +937,8 @@ if __name__ == "__main__":
     """
     run_tests = False
     # exp = 'coupled_astar'
-    # exp = "decoupled_rrt"
-    exp = "priority_prm"
+    exp = "decoupled_rrt"
+    # exp = "priority_prm"
     # exp = "coupled_lazysp"
     # exp = "potential_field"
     # exp = "read_file"
