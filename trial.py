@@ -85,7 +85,10 @@ def test_trajectory(
     min_eigvals = []
     mean_error_list = []
     only_plot_trajectories = False
+
     dist_moved = [0.0 for i in range(robots.get_num_robots())]
+    all_gnd_truths = []
+    all_est_locs = []
 
     print("Total timesteps:", num_total_timesteps)
     while not (traj_indices == final_traj_indices):
@@ -98,36 +101,38 @@ def test_trajectory(
         config = robots.get_position_list_tuples()
         error_list = math_utils.calc_localization_error(
             np.array(config), est_locs)
+        all_gnd_truths.append(np.array(config))
+        all_est_locs.append(est_locs)
         mean_error = sum(error_list) / len(error_list)
         mean_error_list.append(mean_error)
 
         # if true does not show rigidity plot on bottom
-        if only_plot_trajectories:
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=False,
-                animation=True,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=True,
-                animation=False,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
+        # if only_plot_trajectories:
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=False,
+        #         animation=True,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=True,
+        #         animation=False,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
 
-        else:
-            plot.test_trajectory_plot(
-                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
-            )
+        # else:
+        #     plot.test_trajectory_plot(
+        #         robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
+        #     )
 
         trajectory_img_path = (
             f"{cwd}/figures/animations/traj_{trial_timestamp}_time{total_time}.png"
@@ -212,6 +217,10 @@ def test_trajectory(
     avg_error = sum(mean_error_list) / float(len(mean_error_list))
     print("Avg Localization Error:", avg_error)
     print("Max Localization Error:", worst_error)
+
+    ate_list = math_utils.calc_absolute_trajectory_error(all_gnd_truths, all_est_locs)
+    print("Avg Absolute Trajectory Error:", sum(ate_list) / float(len(ate_list)))
+    print("Max Absolute Trajectory Error:", max(ate_list))
 
     print("Total Timesteps:", total_time)
     print("Number of Nonrigid Timesteps:", nonrigid_time)

@@ -31,21 +31,25 @@ def is_square_matrix(mat):
 
 
 def matprint_block(mat, fmt="g"):
-    col_maxes = [max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T]
+    col_maxes = [max([len(("{:" + fmt + "}").format(x))
+                     for x in col]) for col in mat.T]
     for j, x in enumerate(mat):
         if j % 2 == 0:
             print("__  __  __   __  __  __  __  __  __  __  __  __  __")
             print("")
         for i, y in enumerate(x):
             if i % 2 == 1:
-                print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end=" | ")
+                print(
+                    ("{:" + str(col_maxes[i]) + fmt + "}").format(y), end=" | ")
             else:
-                print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
+                print(
+                    ("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
         print("")
 
 
 def matprint(mat, fmt="g"):
-    col_maxes = [max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T]
+    col_maxes = [max([len(("{:" + fmt + "}").format(x))
+                     for x in col]) for col in mat.T]
     for x in mat:
         for i, y in enumerate(x):
             print(("{:" + str(col_maxes[i]) + fmt + "}").format(y), end="  ")
@@ -418,13 +422,13 @@ def get_partial_deriv_of_matrix(K, index, graph):
             raise AssertionError
 
         # Kii
-        A[2 * i : 2 * i + 2, 2 * i : 2 * i + 2] += dKii_di
+        A[2 * i: 2 * i + 2, 2 * i: 2 * i + 2] += dKii_di
         # Kjj
-        A[2 * j : 2 * j + 2, 2 * j : 2 * j + 2] += dKjj_di
+        A[2 * j: 2 * j + 2, 2 * j: 2 * j + 2] += dKjj_di
         # Kij
-        A[2 * i : 2 * i + 2, 2 * j : 2 * j + 2] += dKij_di
+        A[2 * i: 2 * i + 2, 2 * j: 2 * j + 2] += dKij_di
         # Kji
-        A[2 * j : 2 * j + 2, 2 * i : 2 * i + 2] += dKji_di
+        A[2 * j: 2 * j + 2, 2 * i: 2 * i + 2] += dKji_di
 
     return A
 
@@ -480,6 +484,9 @@ def generate_random_loc(xlb: float, xub: float, ylb: float, yub: float) -> Tuple
     return (x_val, y_val)
 
 
+""" Error Utils """
+
+
 def calc_localization_error(gnd_truth, est_locs):
     if not (gnd_truth.shape == est_locs.shape):
         print("Ground Truth Locs", gnd_truth)
@@ -494,4 +501,25 @@ def calc_localization_error(gnd_truth, est_locs):
     diff = gnd_truth - est_locs
     for row in range(num_rows):
         errors.append(la.norm(diff[row]))
+    return errors
+
+
+def calc_absolute_trajectory_error(all_gnd_truths, all_est_locs):
+    num_robots = all_gnd_truths[0].shape[0]
+    squared_diff_sums = [0.0 for i in range(num_robots)]
+    errors = [0.0 for i in range(num_robots)]
+
+    for timestep in range(len(all_gnd_truths)):
+        gnd_truth = all_gnd_truths[timestep]
+        est_locs = all_est_locs[timestep]
+
+        for robotIndex in range(num_robots):
+            dist = calc_dist_between_locations(gnd_truth[robotIndex], est_locs[robotIndex])
+            squared_diff_sums[robotIndex] += dist**2
+
+    print("Errors:", errors, "\nDiff sums:", squared_diff_sums)
+    for robotIndex in range(num_robots):
+        print(robotIndex)
+        errors[robotIndex] = (squared_diff_sums[robotIndex]/num_robots)**(1/2)
+
     return errors
