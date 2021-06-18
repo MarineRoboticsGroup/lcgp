@@ -920,8 +920,8 @@ if __name__ == "__main__":
     """
     run_tests = False
     # exp = 'coupled_astar'
-    exp = "decoupled_rrt"
-    # exp = "priority_prm"
+    # exp = "decoupled_rrt"
+    exp = "priority_prm"
     # exp = "coupled_lazysp"
     # exp = "potential_field"
     # exp = "read_file"

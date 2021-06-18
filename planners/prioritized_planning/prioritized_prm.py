@@ -268,6 +268,10 @@ class PriorityPrm:
                     "Planning Failed for robot %d. \nReverting to plan for robot %d\n"
                     % (cur_robot_id, cur_robot_id - 1)
                 )
+
+                self.constraintSets.animate_valid_states(
+                    self._coord_trajs, cur_robot_id
+                )
                 cur_robot_id -= 1
 
                 if cur_robot_id < 0:
