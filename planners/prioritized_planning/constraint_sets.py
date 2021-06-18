@@ -34,7 +34,8 @@ class ConstraintSets:
         self.updated_state[0] = True  # first robot never needs to update constraints
 
         # initialize first robot valid set
-        self.construct_valid_sets(0, None)
+        self._init_first_robot_valid_set()
+        # self.construct_valid_sets(0, None)
 
     def get_all_neighbors_of_set(self, loc_set: Set[int]):
         """return set of all direct neighbors
@@ -73,12 +74,11 @@ class ConstraintSets:
             Set[int]: the reachable states at this timestep
         """
         # need to handle edge case for t=0
-        if timestep > 0:
-            reachable_at_last_timestep = self.get_reachable_states(
-                robot_id, timestep - 1
-            )
-        else:
-            reachable_at_last_timestep = set()
+        if timestep == 0:
+            start_loc = self._roadmap.get_start_index(robot_id)
+            return set([start_loc])
+
+        reachable_at_last_timestep = self.get_reachable_states(robot_id, timestep - 1)
         neighbors_last_timestep = self.get_all_neighbors_of_set(
             reachable_at_last_timestep
         )
@@ -110,10 +110,14 @@ class ConstraintSets:
                 return valid_states
         else:
             rigid_this_timestep = self.get_rigid_states(robot_id, timestep)
-            assert rigid_this_timestep.issuperset(reachable_this_timestep)
-            assert rigid_this_timestep.issubset(reachable_this_timestep)
 
-            valid_this_timestep = rigid_this_timestep.intersection(reachable_this_timestep)
+            # assert rigid_this_timestep.issubset(
+            #     reachable_this_timestep
+            # ), f"{rigid_this_timestep}\n{reachable_this_timestep}\n{reachable_this_timestep - rigid_this_timestep }"
+
+            valid_this_timestep = rigid_this_timestep.intersection(
+                reachable_this_timestep
+            )
             for valid_loc_id in valid_this_timestep:
                 valid_states.add(valid_loc_id)
             return valid_states
@@ -152,6 +156,35 @@ class ConstraintSets:
                     rigid_states_next_robot.add(candidate_loc_id)
 
         return rigid_states_this_robot, rigid_states_next_robot
+
+    def _init_first_robot_valid_set(self):
+        update_robot_id = 0
+        start_id = self._roadmap.get_start_index(update_robot_id)
+        goal_id = self._roadmap.get_goal_index(update_robot_id)
+
+        # initialize these with starting location
+        self.reachable_states[update_robot_id] = [set([start_id])]
+        self.valid_states[update_robot_id] = [set([start_id])]
+
+        timestep = 0
+        # while goal is not in most recent valid state keep iterating
+        while goal_id not in self.valid_states[update_robot_id][-1]:
+
+            # update reachable locations for this timestep
+            reachable_this_timestep = self._get_reachable_state_propagation(
+                update_robot_id, timestep
+            )
+            for reachable_loc_id in reachable_this_timestep:
+                self.add_reachable_state(update_robot_id, timestep, reachable_loc_id)
+
+            # update valid locations for this timestep
+            valid_this_timestep = self._get_valid_state_propagation(
+                update_robot_id, timestep
+            )
+            for valid_loc_id in valid_this_timestep:
+                self.add_valid_state(update_robot_id, timestep, valid_loc_id)
+
+            timestep += 1
 
     def update_constraint_sets(self, trajs, cur_robot_id) -> Tuple[bool, int]:
 
@@ -222,205 +255,6 @@ class ConstraintSets:
             if goal_id in valid_this_timestep:
                 return False, None
 
-    #! this is where magic happens
-    def update_base_sets_from_robot_traj(self, trajs, cur_robot_id):
-        assert trajs[cur_robot_id], "Tried to update based on nonexisting trajectory"
-
-        # TODO if is the first non-anchor node then we need to check all the
-        # neighbors of all of the first 3 trajectories for connectedness and rigidity
-
-        update_robot_id = cur_robot_id + 1
-
-        # copy over all current connected states because we know that won't
-        # change. This only holds for rigid states because we have known
-        # 'anchor' nodes so rigidity is monotonic
-        self.connected_states[update_robot_id] = copy.deepcopy(
-            self.connected_states[cur_robot_id]
-        )
-
-        self.rigid_states[update_robot_id] = [set()]
-
-        # for first few robots just add connected states
-        if update_robot_id < 3:
-            for timestep, loc_id in enumerate(trajs[cur_robot_id]):
-                loc = self._roadmap.get_loc(loc_id)
-                neighbors = self._roadmap.get_neighbors_within_radius(
-                    loc, self._robots._sensing_radius
-                )
-                for loc_id in neighbors:
-                    self.add_connected_state(update_robot_id, timestep, loc_id)
-        # for robot 3 we have to check rigidity for all the neighbors of the
-        # previous trajectories, as we couldn't check rigidity until now
-        elif update_robot_id == 3:
-            for robot_id in range(3):
-                for timestep, loc_id in enumerate(trajs[robot_id]):
-                    loc = self._roadmap.get_loc(loc_id)
-                    neighbors = self._roadmap.get_neighbors_within_radius(
-                        loc, self._robots._sensing_radius
-                    )
-                    for loc_id in neighbors:
-                        already_conn_state = self.is_connected_state(
-                            cur_robot_id, timestep, loc_id
-                        )
-                        if already_conn_state and update_robot_id > 2:
-                            already_rigid_state = self.is_rigid_state(
-                                update_robot_id, timestep, loc_id
-                            )
-                            if not already_rigid_state:
-                                if self.state_would_be_rigid(
-                                    trajs, update_robot_id, timestep, loc_id
-                                ):
-                                    self.add_rigid_state(
-                                        update_robot_id, timestep, loc_id
-                                    )
-                        else:
-                            self.add_connected_state(update_robot_id, timestep, loc_id)
-        else:
-            # add new states based on newest trajectory
-            # for all remaining robots we add new connected states and then
-            # check over all connected states to see if they would be rigid
-            for timestep, loc_id in enumerate(trajs[cur_robot_id]):
-                loc = self._roadmap.get_loc(loc_id)
-                neighbors = self._roadmap.get_neighbors_within_radius(
-                    loc, self._robots._sensing_radius
-                )
-                # update connected states
-                for loc_id in neighbors:
-                    self.add_connected_state(update_robot_id, timestep, loc_id)
-
-                # iterate over all connected states to find rigid states
-                all_conn_states = self.get_connected_states(
-                    update_robot_id, timestep + 1
-                )
-                for loc_id in all_conn_states:
-                    already_rigid_state = self.is_rigid_state(
-                        update_robot_id, timestep, loc_id
-                    )
-                    if not already_rigid_state:
-                        if self.state_would_be_rigid(
-                            trajs, update_robot_id, timestep, loc_id
-                        ):
-                            self.add_rigid_state(update_robot_id, timestep, loc_id)
-
-        self.updated_state[update_robot_id] = True
-
-    #! this is where magic happens
-    def construct_valid_sets(
-        self, update_robot_id: int, trajs: List[List[Set[int]]]
-    ) -> Tuple[bool, int]:
-        """sets the reachable states and valid states for the specified
-        robot. This requires having already updated the connected and rigid
-        states for the given robot
-
-        This function will return the time a conflict is found at if there
-        is a conflict
-
-        Args:
-            update_robot_id (int): the robot to construct the valid sets
-                for
-            trajs (list[list[set[int]]]): [description]
-
-        Returns
-            Tuple[bool, int]:
-                bool: true if has conflict, false if not
-                int: timestep of conflict, None if no conflict
-        """
-        assert self.updated_state[update_robot_id] == True
-        assert update_robot_id >= 0
-        start_id = self._roadmap.get_start_index(update_robot_id)
-        goal_id = self._roadmap.get_goal_index(update_robot_id)
-        reachable_sets_ = [set([start_id])]
-        valid_sets_ = [set([start_id])]
-        timestep = 0
-        time_past_goal_cntr = 3
-        wait_for_valid_growth_cntr = time_past_goal_cntr + 2
-        assert wait_for_valid_growth_cntr > time_past_goal_cntr
-        has_conflict = False
-        found_goal = False
-        while time_past_goal_cntr:
-
-            # found goal location, add a few more sets just to be safe
-            if goal_id in valid_sets_[timestep] or found_goal and False:
-                found_goal = True
-                time_past_goal_cntr -= 1
-
-            # update reachable and valid sets
-            for loc_id in reachable_sets_[timestep]:
-                self.add_reachable_state(update_robot_id, timestep, loc_id)
-
-            for loc_id in valid_sets_[timestep]:
-                self.add_valid_state(update_robot_id, timestep, loc_id)
-
-            # if valid set is empty return conflict where the conflict is
-            # the time of the empty valid set
-            if not valid_sets_[timestep]:
-                print("valid set is empty")
-                assert False, "If this is happening we should evaluate it"
-                has_conflict = True
-                return has_conflict, timestep
-
-            #! need to update this to be fine if the next robots goal location
-            # is inside the valid set
-            # if valid set hasn't added new locations for 2 counts then
-            # return conflict at time when this began
-            if not wait_for_valid_growth_cntr:
-                print("valid set not growing")
-                has_conflict = True
-                return has_conflict, timestep - 2
-
-            # extend the size of the reachable and valid sets
-            reachable_sets_.append(set())
-            valid_sets_.append(set())
-
-            neighbors = self.get_all_neighbors_of_set(valid_sets_[timestep])
-            conflicts = self.get_conflict_states(update_robot_id, timestep + 1)
-
-            if update_robot_id == 0:
-                occupied = set()
-            else:
-                occupied = self.get_occupied_states(
-                    trajs, update_robot_id, timestep + 1
-                )
-
-            # reachable points for next timestep are any currently valid points
-            # + their neighbors - conflicts - occupied points
-            reachable_sets_[timestep + 1] = (
-                valid_sets_[timestep]
-                .union(neighbors)
-                .difference(conflicts)
-                .difference(occupied)
-            )
-
-            if update_robot_id == 0:
-                valid_sets_[timestep + 1] = copy.deepcopy(reachable_sets_[timestep + 1])
-            elif update_robot_id < 3:
-                connected_states = self.get_connected_states(
-                    update_robot_id, timestep + 1
-                )
-                valid_sets_[timestep + 1] = connected_states.intersection(
-                    reachable_sets_[timestep + 1]
-                )
-            else:
-                rigid_states = self.get_rigid_states(update_robot_id, timestep + 1)
-                valid_sets_[timestep + 1] = rigid_states.intersection(
-                    reachable_sets_[timestep + 1]
-                )
-
-            timestep += 1
-
-            # if valid set hasnt added new locations decrement counter
-            if not valid_sets_[timestep].difference(valid_sets_[timestep - 1]):
-                wait_for_valid_growth_cntr -= 1
-            elif wait_for_valid_growth_cntr < 2:
-                wait_for_valid_growth_cntr = 2
-
-        #! do these need to be deep copies?
-        self.reachable_states[update_robot_id] = reachable_sets_
-        self.valid_states[update_robot_id] = valid_sets_
-
-        # if successful return None as conflict
-        return has_conflict, None
-
     ###### Check Status #######
     def state_would_be_rigid(
         self, trajs, cur_robot_id, cur_timestep, node_id
@@ -448,7 +282,7 @@ class ConstraintSets:
 
         num_neighbors = 0
         cur_node_loc = self._roadmap.get_loc(node_id)
-        loc_list = [cur_node_loc]
+        loc_list = []
         # iterate over positions of all already planned trajectories
         for robot_id in range(cur_robot_id):
             # build list of x,y locations
@@ -467,6 +301,8 @@ class ConstraintSets:
             if dist_to_other_robot < 1e-2:
                 return False, False
 
+        loc_list.append(cur_node_loc)
+
         # must be within sensing radius of 2 robots to be rigid
         if num_neighbors < 2:
             return False, False
@@ -476,6 +312,8 @@ class ConstraintSets:
         is_rigid, next_robot_is_rigid = self._robots.test_rigidity_from_loc_list(
             loc_list
         )
+        assert isinstance(is_rigid, bool), f"{type(is_rigid)}"
+        assert isinstance(next_robot_is_rigid, bool), f"{type(next_robot_is_rigid)}"
         return is_rigid, next_robot_is_rigid
 
     def is_occupied_state(self, trajs, cur_robot_id, timestep, loc_id):
@@ -491,8 +329,17 @@ class ConstraintSets:
         else:
             return False
 
-    def is_rigid_state(self, cur_robot_id, timestep, loc_id):
-        return False
+    def is_rigid_state(self, cur_robot_id: int, timestep: int, loc_id: int) -> bool:
+        """returns whether a given state is rigid
+
+        Args:
+            cur_robot_id (int): [description]
+            timestep (int): [description]
+            loc_id (int): [description]
+
+        Returns:
+            bool: if the state is rigid
+        """
         rigid_set = self.get_rigid_states(cur_robot_id, timestep)
         if rigid_set is None:
             return False

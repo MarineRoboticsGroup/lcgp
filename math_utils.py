@@ -67,13 +67,9 @@ def get_list_all_eigvals(mat):
         val = np.zeros(mat.shape[0])
     return val
 
-
 def get_least_eigval(mat):
-    try:
-        val = la.eigh(mat, eigvals_only=True, subset_by_index=[0, 0])
-        return val
-    except:
-        return 0
+    val = la.eigvalsh(mat, subset_by_index=[0, 0])
+    return float(val[0])
 
 
 def get_nth_eigval(mat, n):

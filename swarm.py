@@ -114,6 +114,9 @@ class Swarm:
         return posList
 
     def get_nth_eigval(self, n):
+        if n == 1:
+            fim = self.robot_graph.get_fisher_matrix()
+            return math_utils.get_least_eigval(fim)
         if self.get_num_robots() > 3:
             eigvals = math_utils.get_list_all_eigvals(self.fisher_info_matrix)
             eigvals.sort()
