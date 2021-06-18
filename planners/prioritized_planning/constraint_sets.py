@@ -126,6 +126,7 @@ class ConstraintSets:
         assert isinstance(robot_id, int)
         assert robot_id >= 3
         assert isinstance(timestep, int)
+        assert timestep >= 0
 
         reachable_this_timestep = self.get_reachable_states(robot_id, timestep)
         assert isinstance(reachable_this_timestep, set)
@@ -141,7 +142,12 @@ class ConstraintSets:
         for candidate_loc_id in rigid_candidate_states:
 
             # if already found this to be rigid continue
-            if self.is_rigid_state(robot_id, timestep, candidate_loc_id):
+            # need to first handle edge case of timestep being past length of
+            # the current rigid states because otherwise we are checking if the
+            # location was rigid at the previous timestep
+            if timestep < len(self.rigid_states[robot_id]) and self.is_rigid_state(
+                robot_id, timestep, candidate_loc_id
+            ):
                 continue
 
             state_rigid_this_robot, state_rigid_next_robot = self.state_would_be_rigid(
@@ -198,6 +204,7 @@ class ConstraintSets:
 
         # this is the amount of time we want to build the valid set past the end of the trajectory
         time_past_traj = 5
+        has_found_goal = False
 
         start_id = self._roadmap.get_start_index(update_robot_id)
         goal_id = self._roadmap.get_goal_index(update_robot_id)
@@ -220,6 +227,7 @@ class ConstraintSets:
             for neighbor_id in neighbors:
                 self.add_connected_state(update_robot_id, timestep, neighbor_id)
 
+        # update other sets
         for timestep in range(len(curr_traj) + time_past_traj):
 
             # update reachable locations for this timestep
@@ -253,7 +261,12 @@ class ConstraintSets:
 
             # if found goal id maybe we can exit?
             if goal_id in valid_this_timestep:
-                return False, None
+                has_found_goal = True
+
+        if has_found_goal:
+            return False, None
+        else:
+            return True, len(curr_traj) + time_past_traj
 
     ###### Check Status #######
     def state_would_be_rigid(
@@ -341,6 +354,7 @@ class ConstraintSets:
             bool: if the state is rigid
         """
         rigid_set = self.get_rigid_states(cur_robot_id, timestep)
+
         if rigid_set is None:
             return False
         return loc_id in rigid_set
@@ -421,17 +435,10 @@ class ConstraintSets:
         return self.conflict_states[cur_robot_id][timestep]
 
     ###### Add/Remove/Clear #######
-    #! see note below
-    # TODO something about setting the connected states is currently wrong
     def add_connected_state(self, cur_robot_id, timestep, loc_id):
 
-        i = 0
         while len(self.connected_states[cur_robot_id]) < timestep + 1:
             self.connected_states[cur_robot_id].append(set())
-            # for prev_robot_id in range(cur_robot_id):
-            #     prev_conn_set = self.get_connected_states(prev_robot_id, i)
-            #     self.connected_states[cur_robot_id][i].update(prev_conn_set)
-            i += 1
 
         # if not already known, add state as connected
         if loc_id not in self.connected_states[cur_robot_id][timestep]:
@@ -446,11 +453,6 @@ class ConstraintSets:
 
         while len(self.rigid_states[cur_robot_id]) < timestep + 1:
             self.rigid_states[cur_robot_id].append(set())
-        # for i in range(len(self.rigid_states[cur_robot_id]), timestep + 1):
-        #     self.rigid_states[cur_robot_id].append(set())
-        # for prev_robot_id in range(cur_robot_id):
-        #     prev_rigid_set = self.get_rigid_states(prev_robot_id, i)
-        #     self.rigid_states[cur_robot_id][i].update(prev_rigid_set)
 
         self.rigid_states[cur_robot_id][timestep].add(loc_id)
 
