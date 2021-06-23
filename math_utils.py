@@ -70,6 +70,9 @@ def get_list_all_eigvals(mat):
 
 def get_least_eigval(mat):
     val = la.eigvalsh(mat, subset_by_index=[0, 0])
+    if val > 1e20:
+        vals = la.eigvalsh(mat)
+        return float(vals[0])
     return float(val[0])
 
 

@@ -176,7 +176,7 @@ def solve_snl_with_sdp(num_nodes:int, node_node_dists:Dict,
 def spring_solver(estimated_locs, anchor_locs, node_node_dists, node_anchor_dists):
     num_nodes = len(estimated_locs)
     n = len(estimated_locs) + len(anchor_locs)
-    spring_model_params = (5*n, 0.2, 0.05, False)
+    spring_model_params = (5*n, 0.01, 0.05, False)
 
     anchor_loc_arr = None
     for key in anchor_locs:
