@@ -978,18 +978,21 @@ if __name__ == "__main__":
         different_end_times_test(exp)
 
     elif run_experiments:
-        # planners = ["priority_prm", "decoupled_rrt", "potential_field"]
+        planners = ["priority_prm", "decoupled_rrt", "potential_field"]
+        test_settings = [("test8", 8, "curve_maze"),
+                        ("test8", 8, "adversarial1"),
+                        ("test6", 6, "rectangle"),
+                        ("test20", 20, "rectangle"),
+                        ("test12", 12, "curve_maze"),
+                        ("test12", 12, "adversarial1"),
+                        ("test20", 20, "curve_maze"),
+                        ("test20", 20, "adversarial1")]
+        # planners = ["priority_prm"]
         # test_settings = [("test8", 8, "curve_maze"),
-        #                 ("test8", 8, "adversarial1"),
-        #                 ("test6", 6, "rectangle"),
-        #                 ("test20", 20, "rectangle"),
-        #                 ("test12", 12, "curve_maze"),
-        #                 ("test12", 12, "adversarial1"),
-        #                 ("test20", 20, "curve_maze"),
-        #                 ("test20", 20, "adversarial1")]
-        planners = ["priority_prm"]
-        test_settings = [("test12", 12, "adversarial1")]
-        prm_orderings = 50
+        #                  ("test12", 12, "adversarial1"),
+        #                  ("test20", 20, "rectangle"),
+        #                  ("test20", 20, "curve_maze")]
+        prm_orderings = 4
 
         all_results = dict()
         queue = multiprocessing.Queue()
@@ -1049,10 +1052,11 @@ if __name__ == "__main__":
                         results["num_robots"] = nRobots
                         results["setting"] = setting
                         results["avg_dist"] = results["total_dist"]/nRobots
-                        success =True
+                        success = True
+                        results["order"] = order
 
                     all_results[planner]["test_case_"+str(test_case+1)] = results
-                    with open("results.json", "w") as outfile:
+                    with open("results_min_eig_1.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
                     current_iter += 1

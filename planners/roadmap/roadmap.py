@@ -77,11 +77,11 @@ class Roadmap:
             print("%s not found. Generating Sample Locs" % self._sample_locs_filename)
             self.sample_locs = np.array(self.generate_sample_locs())
             self.nodeKDTree = kdtree.KDTree(self.sample_locs)
-            self.write_sample_locs()
-            print("New sample locations written to file")
+            # self.write_sample_locs()
+            # print("New sample locations written to file")
             self._roadmap = self.generate_roadmap()
-            self.write_roadmap()
-            print("New roadmap written to file")
+            # self.write_roadmap()
+            # print("New roadmap written to file")
 
     @abstractmethod
     def generate_sample_locs(self) -> List[List]:

@@ -7,7 +7,7 @@ import math_utils
 
 
 class Swarm:
-    def __init__(self, sensingRadius, noise_model, noise_stddev, priority_order):
+    def __init__(self, sensingRadius, noise_model, noise_stddev, priority_order=0):
         self._sensing_radius = sensingRadius
 
         assert noise_model == "add" or noise_model == "lognorm"
