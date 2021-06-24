@@ -1,4 +1,4 @@
-from planners.prioritized_planning import prioritized_prm
+from planners.prioritized_planning import prioritized_prm, a_star
 from planners import potential_field
 from planners import coupled_lazysp
 from planners import decoupled_rrt
@@ -123,32 +123,32 @@ def test_trajectory(
                 np.random.normal(0.0, 1.0)
 
         # if true does not show rigidity plot on bottom
-        # if only_plot_trajectories:
-        #     plot.plot(
-        #         robots.get_robot_graph(),
-        #         env,
-        #         blocking=False,
-        #         animation=True,
-        #         goals=goals,
-        #         clear_last=True,
-        #         show_goals=True,
-        #         show_graph_edges=True,
-        #     )
-        #     plot.plot(
-        #         robots.get_robot_graph(),
-        #         env,
-        #         blocking=True,
-        #         animation=False,
-        #         goals=goals,
-        #         clear_last=True,
-        #         show_goals=True,
-        #         show_graph_edges=True,
-        #     )
+        if only_plot_trajectories:
+            plot.plot(
+                robots.get_robot_graph(),
+                env,
+                blocking=False,
+                animation=True,
+                goals=goals,
+                clear_last=True,
+                show_goals=True,
+                show_graph_edges=True,
+            )
+            plot.plot(
+                robots.get_robot_graph(),
+                env,
+                blocking=True,
+                animation=False,
+                goals=goals,
+                clear_last=True,
+                show_goals=True,
+                show_graph_edges=True,
+            )
 
-        # else:
-        #     plot.test_trajectory_plot(
-        #         robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
-        #     )
+        else:
+            plot.test_trajectory_plot(
+                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
+            )
 
         trajectory_img_path = (
             f"{cwd}/figures/animations/traj_{trial_timestamp}_time{total_time}.png"
@@ -571,6 +571,12 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     traj = priority_prm.planning(useTime=useTime)
     return traj
 
+def get_a_star_path(robots, environment, goals, useTime):
+    a_star_planner = a_star.AStar(
+        robots=robots, env=environment, goals=goals
+    )
+    traj = a_star_planner.planning(useTime=useTime)
+    return traj
 
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(
@@ -735,6 +741,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == "potential_field":
         trajs = get_potential_field_path(robots, env, goals)
+    elif expName == "a_star":
+        trajs = get_a_star_path(robots, env, goals, useTime=useTime)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -978,20 +986,18 @@ if __name__ == "__main__":
         different_end_times_test(exp)
 
     elif run_experiments:
-        planners = ["priority_prm", "decoupled_rrt", "potential_field"]
-        test_settings = [("test8", 8, "curve_maze"),
-                        ("test8", 8, "adversarial1"),
-                        ("test6", 6, "rectangle"),
-                        ("test20", 20, "rectangle"),
-                        ("test12", 12, "curve_maze"),
-                        ("test12", 12, "adversarial1"),
-                        ("test20", 20, "curve_maze"),
-                        ("test20", 20, "adversarial1")]
-        # planners = ["priority_prm"]
+        # planners = ["priority_prm"]#, "decoupled_rrt", "potential_field"]
+        planners = ["a_star"]
         # test_settings = [("test8", 8, "curve_maze"),
-        #                  ("test12", 12, "adversarial1"),
-        #                  ("test20", 20, "rectangle"),
-        #                  ("test20", 20, "curve_maze")]
+        #                 ("test8", 8, "adversarial1"),
+        #                 ("test6", 6, "rectangle"),
+        #                 ("test20", 20, "rectangle"),
+        #                 ("test12", 12, "curve_maze"),
+        #                 ("test12", 12, "adversarial1"),
+        #                 ("test20", 20, "curve_maze"),
+        #                 ("test20", 20, "adversarial1")]
+        # planners = ["priority_prm"]
+        test_settings = [("test20", 20, "adversarial1")]
         prm_orderings = 4
 
         all_results = dict()
@@ -1037,7 +1043,7 @@ if __name__ == "__main__":
                         queue))
 
                     p.start()
-                    p.join(80)
+                    p.join(160)
                     if p.is_alive():
                         print("Whoops, had to kill")
                         p.kill()
@@ -1056,7 +1062,7 @@ if __name__ == "__main__":
                         results["order"] = order
 
                     all_results[planner]["test_case_"+str(test_case+1)] = results
-                    with open("results_min_eig_1.json", "w") as outfile:
+                    with open("results_a_star.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
                     current_iter += 1

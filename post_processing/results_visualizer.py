@@ -39,16 +39,16 @@ def display_results_from_file(results):
         # save
 
 # load json
-with open('./results_min_eig_1.json') as f:
+with open('./results_a_star.json') as f:
     results = json.load(f)
 display_results_from_file(results)
-print("\n")
+# print("\n")
 
-with open('./results_min_eig_2.json') as f:
-    results = json.load(f)
-display_results_from_file(results)
-print("\n")
+# with open('./results_min_eig_2.json') as f:
+#     results = json.load(f)
+# display_results_from_file(results)
+# print("\n")
 
-with open('./results_min_eig_3.json') as f:
-    results = json.load(f)
-display_results_from_file(results)
+# with open('./results_min_eig_3.json') as f:
+#     results = json.load(f)
+# display_results_from_file(results)
