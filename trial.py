@@ -67,6 +67,7 @@ def test_trajectory(
     assert trajs is not None
 
     robot_size = 0.4
+    ensemble_size = 10
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
@@ -105,50 +106,58 @@ def test_trajectory(
         min_eigvals.append(min_eigval)
         graph = robots.get_robot_graph()
         config = robots.get_position_list_tuples()
-        # for robotIndex in range(robots.get_num_robots()-3):
-        #     if graph.get_node_degree(robotIndex) > 0:
-        #         current_guess[robotIndex] = config[robotIndex] + np.random.normal(0, 1.0)
-        # est_locs = graph.perform_snl()
+
         est_locs = graph.perform_snl(
-            init_guess=current_guess.copy(), solver="spring")
+            init_guess=current_guess.copy(), solver="spring_init_noise")
+        if ensemble_size > 1:
+            for i in range(ensemble_size-1):
+                single_est = graph.perform_snl(
+                    init_guess=current_guess.copy(), solver="spring_init_noise")
+                est_locs = [[est_locs[i][0]+single_est[i][0],
+                            est_locs[i][1]+single_est[i][1]]
+                            for i in range(len(est_locs))]
+
+            est_locs = [[est_locs[i][0]/ensemble_size,
+                        est_locs[i][1]/ensemble_size]
+                        for i in range(len(est_locs))]
+
         error_list = math_utils.calc_localization_error(
-            np.array(config), est_locs)
+            np.array(config), np.array(est_locs))
         all_gnd_truths.append(np.array(config))
         all_est_locs.append(est_locs)
         mean_error = sum(error_list) / len(error_list)
         mean_error_list.append(mean_error)
 
         for robotIndex in range(robots.get_num_robots()-3):
-            current_guess[robotIndex] = est_locs[robotIndex] + \
-                np.random.normal(0.0, 1.0)
+            current_guess[robotIndex] = est_locs[robotIndex]
 
         # if true does not show rigidity plot on bottom
-        if only_plot_trajectories:
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=False,
-                animation=True,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=True,
-                animation=False,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
+        # if only_plot_trajectories:
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=False,
+        #         animation=True,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=True,
+        #         animation=False,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
 
-        else:
-            plot.test_trajectory_plot(
-                robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
-            )
+        # else:
+        #     plot.test_trajectory_plot(
+        #         robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
+        #     )
 
         trajectory_img_path = (
             f"{cwd}/figures/animations/traj_{trial_timestamp}_time{total_time}.png"
@@ -571,12 +580,14 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     traj = priority_prm.planning(useTime=useTime)
     return traj
 
+
 def get_a_star_path(robots, environment, goals, useTime):
     a_star_planner = a_star.AStar(
         robots=robots, env=environment, goals=goals
     )
     traj = a_star_planner.planning(useTime=useTime)
     return traj
+
 
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(
@@ -684,7 +695,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         envBounds, setting=setting, num_obstacles=n_obstacles)
 
     # Initialize Robots
-    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev, priority_order)
+    robots = swarm.Swarm(sensingRadius, noise_model,
+                         noise_stddev, priority_order)
 
     # if we are using certain configurations then we might generate goals or
     # starting conditions that aren't legal so we will cycle through
@@ -987,18 +999,21 @@ if __name__ == "__main__":
 
     elif run_experiments:
         # planners = ["priority_prm"]#, "decoupled_rrt", "potential_field"]
-        planners = ["a_star"]
-        # test_settings = [("test8", 8, "curve_maze"),
-        #                 ("test8", 8, "adversarial1"),
-        #                 ("test6", 6, "rectangle"),
-        #                 ("test20", 20, "rectangle"),
-        #                 ("test12", 12, "curve_maze"),
-        #                 ("test12", 12, "adversarial1"),
-        #                 ("test20", 20, "curve_maze"),
-        #                 ("test20", 20, "adversarial1")]
+        # planners = ["priority_prm", "a_star"]
+        planners = ["priority_prm"]
+        test_settings = [
+                         ("test8", 8, "curve_maze"),
+                         ("test8", 8, "adversarial1"),
+                         ("test6", 6, "rectangle"),
+                        #  ("test20", 20, "rectangle"),
+                         ("test12", 12, "curve_maze"),
+                         ("test12", 12, "adversarial1"),
+                         ("test20", 20, "curve_maze"),
+                         ("test20", 20, "adversarial1"),
+                        ]
         # planners = ["priority_prm"]
-        test_settings = [("test20", 20, "adversarial1")]
-        prm_orderings = 4
+        # test_settings = [("test8", 8, "adversarial1")]
+        prm_orderings = 2
 
         all_results = dict()
         queue = multiprocessing.Queue()
@@ -1011,7 +1026,8 @@ if __name__ == "__main__":
                 success = False
                 while not success and (order == 0 or (planner == "priority_prm" and order < prm_orderings)):
 
-                    print("Iteration:", current_iter, "\nTest parameters:", test_settings[test_case])
+                    print("Iteration:", current_iter,
+                          "\nTest parameters:", test_settings[test_case])
 
                     form, nRobots, setting = test_settings[test_case]
                     experimentInfo = (
@@ -1058,11 +1074,12 @@ if __name__ == "__main__":
                         results["num_robots"] = nRobots
                         results["setting"] = setting
                         results["avg_dist"] = results["total_dist"]/nRobots
-                        success = True
                         results["order"] = order
+                        success = True
 
-                    all_results[planner]["test_case_"+str(test_case+1)] = results
-                    with open("results_a_star.json", "w") as outfile:
+                    all_results[planner]["test_case_" +
+                                         str(test_case+1)] = results
+                    with open("eig_3_results.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
                     current_iter += 1

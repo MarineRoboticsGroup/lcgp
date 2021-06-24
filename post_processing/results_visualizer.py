@@ -35,11 +35,12 @@ def display_results_from_file(results):
         df = pd.DataFrame(data, index=index, columns=columns)
         df_t = df.T
         json_formatted = df_t.to_json(orient='split')
-        print(pd.read_json(json_formatted, orient='split'))
+        print(planner)
+        print(pd.read_json(json_formatted, orient='split') ,'\n')
         # save
 
 # load json
-with open('./results_a_star.json') as f:
+with open('./ensemble_results.json') as f:
     results = json.load(f)
 display_results_from_file(results)
 # print("\n")

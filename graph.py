@@ -72,6 +72,16 @@ class Graph:
                     node_node_dists,
                     node_anchor_dists
                 )
+            elif solver == "spring_init_noise":
+                init_guess = [[init_guess[i][0]+np.random.normal(0, self.noise_stddev),
+                               init_guess[i][1]+np.random.normal(0, self.noise_stddev)]
+                               for i in range(len(init_guess))]
+                loc_est = spring_solver(
+                    init_guess,
+                    anchor_locs,
+                    node_node_dists,
+                    node_anchor_dists
+                )
             else:
                 loc_est = solve_snl_with_sdp(
                     num_nodes,
