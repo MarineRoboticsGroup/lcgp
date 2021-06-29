@@ -1,4 +1,4 @@
-from snl import solve_snl_with_sdp
+from snl import solve_snl_with_sdp, spring_solver
 import kdtree
 import environment
 import math_utils
@@ -65,16 +65,33 @@ class Graph:
                     node_anchor_dists[edge] = noisy_dist
                 else:
                     node_node_dists[edge] = noisy_dist
-
-            loc_est = solve_snl_with_sdp(
-                num_nodes,
-                node_node_dists,
-                node_anchor_dists,
-                anchor_locs,
-                anchor_ids,
-                init_guess=init_guess,
-                solver=solver,
-            )
+            if solver == "spring":
+                loc_est = spring_solver(
+                    init_guess,
+                    anchor_locs,
+                    node_node_dists,
+                    node_anchor_dists
+                )
+            elif solver == "spring_init_noise":
+                init_guess = [[init_guess[i][0]+np.random.normal(0, self.noise_stddev),
+                               init_guess[i][1]+np.random.normal(0, self.noise_stddev)]
+                               for i in range(len(init_guess))]
+                loc_est = spring_solver(
+                    init_guess,
+                    anchor_locs,
+                    node_node_dists,
+                    node_anchor_dists
+                )
+            else:
+                loc_est = solve_snl_with_sdp(
+                    num_nodes,
+                    node_node_dists,
+                    node_anchor_dists,
+                    anchor_locs,
+                    anchor_ids,
+                    init_guess=init_guess,
+                    solver=solver,
+                )
             return loc_est
         else:
             anchor_locs = np.array([self.get_node_loc_tuple(i) for i in range(num_anchors)])

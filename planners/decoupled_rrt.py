@@ -36,7 +36,7 @@ class DecoupledRRT:
         goal_locs,
         obstacle_list,
         bounds,
-        max_move_dist=2.0,
+        max_move_dist=1.0,
         goal_sample_rate=5,
         max_iter=2000,
     ):
@@ -63,13 +63,13 @@ class DecoupledRRT:
 
     def planning(self):
         print("Beginning Decoupled RRT Planner")
-        for i, startPos in enumerate(self.start):
-            print(
-                "Starting Location:",
-                startPos.get_loc_tuple(),
-                "End Goal:",
-                self.end[i].get_loc_tuple(),
-            )
+        # for i, startPos in enumerate(self.start):
+        #     print(
+        #         "Starting Location:",
+        #         startPos.get_loc_tuple(),
+        #         "End Goal:",
+        #         self.end[i].get_loc_tuple(),
+        #     )
 
         self.node_list = [[startLoc] for startLoc in self.start]
         for i in range(self.max_iter):

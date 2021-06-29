@@ -150,11 +150,11 @@ if __name__ == "__main__":
         NotImplementedError: attempted to convert trajectory in unsupported manner
     """
     # TODO: support processing multiple files at once / take input file as an arg
-    input_file = "traj_1004.txt"
+    input_file = "traj_1624903139.txt"
 
-    # grouping = "robots"  # write in groupings by robot trajectories
+    grouping = "robots"  # write in groupings by robot trajectories
     # grouping = "coordinates" # write grouped by coordinates
-    grouping = "both"
+    # grouping = "both"
 
     if grouping == "robots":
         output_file = "robots_"+input_file

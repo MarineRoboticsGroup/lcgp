@@ -1,4 +1,4 @@
-from planners.prioritized_planning import prioritized_prm
+from planners.prioritized_planning import prioritized_prm, a_star
 from planners import potential_field
 from planners import coupled_lazysp
 from planners import decoupled_rrt
@@ -18,6 +18,8 @@ import flamegraph
 import math_utils
 import plot
 import swarm
+import json
+import multiprocessing
 
 warnings.filterwarnings("ignore")
 
@@ -65,6 +67,7 @@ def test_trajectory(
     assert trajs is not None
 
     robot_size = 0.4
+    ensemble_size = 10
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
@@ -89,22 +92,44 @@ def test_trajectory(
     dist_moved = [0.0 for i in range(robots.get_num_robots())]
     all_gnd_truths = []
     all_est_locs = []
+    current_guess = [0.0 for i in range(robots.get_num_robots()-3)]
+
+    init_config = robots.get_position_list_tuples()
+    init_graph = robots.get_robot_graph()
+    for robotIndex in range(robots.get_num_robots()-3):
+        current_guess[robotIndex] = init_config[robotIndex]
 
     print("Total timesteps:", num_total_timesteps)
     while not (traj_indices == final_traj_indices):
-        print("Current timestep:", total_time)
+        # print("Current timestep:", total_time)
         min_eigval = robots.get_nth_eigval(1)
         min_eigvals.append(min_eigval)
         graph = robots.get_robot_graph()
-        est_locs = graph.perform_snl()
-        # est_locs = graph.perform_snl(solver="sdp_with_spring")
         config = robots.get_position_list_tuples()
+
+        est_locs = graph.perform_snl(
+            init_guess=current_guess.copy(), solver="spring_init_noise")
+        if ensemble_size > 1:
+            for i in range(ensemble_size-1):
+                single_est = graph.perform_snl(
+                    init_guess=current_guess.copy(), solver="spring_init_noise")
+                est_locs = [[est_locs[i][0]+single_est[i][0],
+                            est_locs[i][1]+single_est[i][1]]
+                            for i in range(len(est_locs))]
+
+            est_locs = [[est_locs[i][0]/ensemble_size,
+                        est_locs[i][1]/ensemble_size]
+                        for i in range(len(est_locs))]
+
         error_list = math_utils.calc_localization_error(
-            np.array(config), est_locs)
+            np.array(config), np.array(est_locs))
         all_gnd_truths.append(np.array(config))
         all_est_locs.append(est_locs)
         mean_error = sum(error_list) / len(error_list)
         mean_error_list.append(mean_error)
+
+        for robotIndex in range(robots.get_num_robots()-3):
+            current_guess[robotIndex] = est_locs[robotIndex]
 
         # if true does not show rigidity plot on bottom
         # if only_plot_trajectories:
@@ -202,45 +227,60 @@ def test_trajectory(
         #     plt.pause(10)
 
     # plot the last timestep in the trajectory
-    plot.test_trajectory_plot(
-        robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
-    )
-    plt.pause(1)
-    trajectory_img_path = (
-        f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
-    )
-    plt.savefig(trajectory_img_path)
-    plt.close()
+    # plot.test_trajectory_plot(
+    #     robots.get_robot_graph(), env, goals, min_eigvals, robots.min_eigval, num_total_timesteps
+    # )
+    # plt.pause(1)
+    # trajectory_img_path = (
+    #     f"{cwd}/figures/animations/traj_time{total_time}_{trial_timestamp}.png"
+    # )
+    # plt.savefig(trajectory_img_path)
+    # plt.close()
 
+    results = dict()
     # print out some basic statistics on the trajectory
     worst_error = max(mean_error_list)
     avg_error = sum(mean_error_list) / float(len(mean_error_list))
     print("Avg Localization Error:", avg_error)
     print("Max Localization Error:", worst_error)
+    results["avg_loc_error"] = avg_error
+    results["max_loc_error"] = worst_error
 
-    ate_list = math_utils.calc_absolute_trajectory_error(all_gnd_truths, all_est_locs)
-    print("Avg Absolute Trajectory Error:", sum(ate_list) / float(len(ate_list)))
-    print("Max Absolute Trajectory Error:", max(ate_list))
+    rmse_t_list = math_utils.calc_rmse_t(all_gnd_truths, all_est_locs)
+    print("Avg RMSE_t:", sum(rmse_t_list) / float(len(rmse_t_list)))
+    print("Max RMSE_t:", max(rmse_t_list))
+    results["avg_rmse_t"] = sum(rmse_t_list) / float(len(rmse_t_list))
+    results["max_rmse_t"] = max(rmse_t_list)
+
+    rmse_i_list = math_utils.calc_rmse_i(all_gnd_truths, all_est_locs)
+    print("Avg RMSE_i:", sum(rmse_i_list) / float(len(rmse_i_list)))
+    print("Max RMSE_i:", max(rmse_i_list))
+    results["avg_rmse_i"] = sum(rmse_i_list) / float(len(rmse_i_list))
+    results["max_rmse_i"] = max(rmse_i_list)
 
     print("Total Timesteps:", total_time)
     print("Number of Nonrigid Timesteps:", nonrigid_time)
-
     print("Total distance moved:", sum(dist_moved))
+    results["total_time"] = total_time
+    results["nonrigid_time"] = nonrigid_time
+    results["percent_nonrigid"] = nonrigid_time/total_time*100
+    results["total_dist"] = sum(dist_moved)
 
     # * some plotting to compare the eigenvalue with the localization error
-    eigval_plt, = plt.plot(min_eigvals, label="Eigval")
-    error_plt, = plt.plot(mean_error_list, label="Mean Error")
-    plt.hlines([robots.min_eigval], 0, len(min_eigvals))
-    plt.title("Minimum Eigenvalue over Time")
-    plt.ylabel("Eigenvalue")
-    plt.xlabel("time")
-    plt.legend(handles=[eigval_plt, error_plt])
-    plt.show()
+    # eigval_plt, = plt.plot(min_eigvals, label="Eigval")
+    # error_plt, = plt.plot(mean_error_list, label="Mean Error")
+    # plt.hlines([robots.min_eigval], 0, len(min_eigvals))
+    # plt.title("Minimum Eigenvalue over Time")
+    # plt.ylabel("Eigenvalue")
+    # plt.xlabel("time")
+    # plt.legend(handles=[eigval_plt, error_plt])
+    # plt.show()
 
     # figure_path = (
     #     f"{cwd}/figures/plan_{plan_name}_noise_{sensor_noise}_{trial_timestamp}.png"
     # )
     # plt.savefig(figure_path)
+    return results
 
 
 def is_feasible_planning_problem(swarm, env, goals: List, planner: str):
@@ -531,6 +571,14 @@ def get_priority_prm_path(robots, environment, goals, useTime):
     return success, traj
 
 
+def get_a_star_path(robots, environment, goals, useTime):
+    a_star_planner = a_star.AStar(
+        robots=robots, env=environment, goals=goals
+    )
+    traj = a_star_planner.planning(useTime=useTime)
+    return traj
+
+
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(
         robots=robots, env=environment, goals=goals)
@@ -615,7 +663,7 @@ def init_goals(
     raise NotImplementedError
 
 
-def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
+def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
     np.random.seed(seed)
 
     expName, useTime, useRelative, showAnimation, profile, timestamp = experimentInfo
@@ -626,6 +674,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         noise_model,
         min_eigval,
         noise_stddev,
+        priority_order
     ) = swarmInfo
     setting, bounds, n_obstacles = envInfo
 
@@ -636,7 +685,8 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         envBounds, setting=setting, num_obstacles=n_obstacles)
 
     # Initialize Robots
-    robots = swarm.Swarm(sensingRadius, noise_model, noise_stddev)
+    robots = swarm.Swarm(sensingRadius, noise_model,
+                         noise_stddev, priority_order)
 
     # if we are using certain configurations then we might generate goals or
     # starting conditions that aren't legal so we will cycle through
@@ -691,6 +741,9 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         success, trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == "potential_field":
         success, trajs = get_potential_field_path(robots, env, goals)
+        trajs = get_potential_field_path(robots, env, goals)
+    elif expName == "a_star":
+        trajs = get_a_star_path(robots, env, goals, useTime=useTime)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -712,7 +765,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
-    if success:
+<<<<<<< HEAD
         if useRelative:
             print("Converting trajectory from absolute to relative")
             trajs = convert_absolute_traj_to_relative(trajs)
@@ -729,8 +782,30 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
                 sensor_noise=noise_stddev,
             )
 
+=======
+    # TODO evaluate how to handle planning failures
+    if success:
+        if useRelative:
+            print("Converting trajectory from absolute to relative")
+            trajs = convert_absolute_traj_to_relative(trajs)
+
+        if showAnimation:
+            print("Showing trajectory animation")
+            results = test_trajectory(
+                robots,
+                env,
+                trajs,
+                goals,
+                expName,
+                relativeTraj=useRelative,
+                sensor_noise=noise_stddev)
+            results["planning_time"] = endPlanning - startPlanning
+            if queue:
+                queue.put(results)
+
     else: #success == False
         print(f"Planning failed!!!")
+>>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
 
 
 def many_robot_simple_move_test(exp):
@@ -922,9 +997,16 @@ if __name__ == "__main__":
     Any parameters that need to be changed should be accessible from here
     """
     run_tests = False
+    run_experiments = True
+
     # exp = 'coupled_astar'
+<<<<<<< HEAD
     # exp = "decoupled_rrt"
     exp = "priority_prm"
+=======
+    exp = "decoupled_rrt"
+    # exp = "priority_prm"
+>>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
     # exp = "potential_field"
     # exp = "read_file"
 
@@ -933,6 +1015,94 @@ if __name__ == "__main__":
         plan_anchor_only_test(exp)
         many_robot_simple_move_test(exp)
         different_end_times_test(exp)
+
+    elif run_experiments:
+        # planners = ["priority_prm", "decoupled_rrt", "a_star"]
+        planners = ["priority_prm"]
+        # planners = ["decoupled_rrt"]
+        test_settings = [
+                         ("test6", 6, "rectangle"),
+                         ("test8", 8, "curve_maze"),
+                         ("test8", 8, "adversarial1"),
+                        #  ("test12", 12, "adversarial1"),
+                        #  ("test20", 20, "adversarial1"),
+                        # #  ("test20", 20, "rectangle"),
+                        #  ("test12", 12, "curve_maze"),
+                        #  ("test20", 20, "curve_maze"),
+                        ]
+        # planners = ["priority_prm"]
+        # test_settings = [("test8", 8, "adversarial1")]
+        prm_orderings = 2
+
+        all_results = dict()
+        queue = multiprocessing.Queue()
+
+        current_iter = 1
+        for planner in planners:
+            all_results[planner] = dict()
+            for test_case in range(len(test_settings)):
+                order = 0
+                success = False
+                while not success and (order == 0 or (planner == "priority_prm" and order < prm_orderings)):
+
+                    print("Iteration:", current_iter,
+                          "\nTest parameters:", test_settings[test_case])
+
+                    form, nRobots, setting = test_settings[test_case]
+                    experimentInfo = (
+                        planner,
+                        False,
+                        False,
+                        True,
+                        False,
+                        1)
+                    swarmInfo = (
+                        nRobots,
+                        form,
+                        10,
+                        "add",
+                        -10,
+                        .25,
+                        order)
+                    envInfo = (
+                        setting,
+                        (35, 35),
+                        0)
+                    seed = 1  # seed the randomization
+
+                    p = multiprocessing.Process(target=main, args=(
+                        experimentInfo,
+                        swarmInfo,
+                        envInfo,
+                        seed,
+                        queue))
+
+                    p.start()
+                    p.join(80)
+                    if p.is_alive():
+                        print("Whoops, had to kill")
+                        p.kill()
+                        p.join()
+                        results = {"success": False}
+
+                    else:
+                        results = queue.get()
+                        results["success"] = True
+                        results["planner"] = planner
+                        results["form"] = form
+                        results["num_robots"] = nRobots
+                        results["setting"] = setting
+                        results["avg_dist"] = results["total_dist"]/nRobots
+                        results["order"] = order
+                        success = True
+
+                    all_results[planner]["test_case_" +
+                                         str(test_case+1)] = results
+                    with open("a_opt_init_results.json", "w") as outfile:
+                        json.dump(all_results, outfile)
+
+                    current_iter += 1
+                    order += 1
 
     else:
         # whether to use time as extra planning dimension
@@ -948,9 +1118,15 @@ if __name__ == "__main__":
         profile = False
 
         # the timestamp for replaying a recorded path (only when exp=="read_file")
-        timestamp = 1600223009  # RRT
+        # timestamp = 1600223009  # RRT
         # timestamp = 1600226369  # PRM
-        # timestamp = 1
+        timestamp = 1
+
+        # Format: exp_# robots_env
+        # exps: rrt, prm, pf
+        # envs: curve, adv1, rect
+        # timestamp = "rrt_20_adv1"
+        print("Planner:", exp, "Replay name:", timestamp)
 
         experimentInfo = (exp, useTime, useRelative,
                           showAnimation, profile, timestamp)
@@ -964,7 +1140,7 @@ if __name__ == "__main__":
         # swarmForm = 'random'
         # swarmForm = "simple_vicon"
 
-        # the number of robots in the swarm
+        # the number of  in the swarm
         nRobots = 8
 
         # the sensor noise model (additive or multiplicative gaussian)
@@ -973,11 +1149,14 @@ if __name__ == "__main__":
         # the noise of the range sensors
         noise_stddev = 0.25
 
+        # the permutation of the nodes to use for planning, 0 is the default order
+        priority_order = 0
+
         # the sensing horizon of the range sensors
         sensingRadius = 10
 
         # the rigidity constraint on the network
-        min_eigval = 0.1
+        min_eigval = .1
 
         swarmInfo = (
             nRobots,
@@ -986,14 +1165,15 @@ if __name__ == "__main__":
             noise_model,
             min_eigval,
             noise_stddev,
+            priority_order,
         )
 
         # the layout of the environment to plan in
         # setting = "random"
-        setting = "curve_maze"
+        # setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        # setting = 'simple_vicon'
+        setting = 'simple_vicon'
         # setting = "obstacle_vicon"
         # setting = "rectangle"
 

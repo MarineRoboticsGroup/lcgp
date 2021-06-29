@@ -7,7 +7,7 @@ import math_utils
 
 
 class Swarm:
-    def __init__(self, sensingRadius, noise_model, noise_stddev):
+    def __init__(self, sensingRadius, noise_model, noise_stddev, priority_order=0):
         self._sensing_radius = sensingRadius
 
         assert noise_model == "add" or noise_model == "lognorm"
@@ -15,6 +15,7 @@ class Swarm:
         self.noise_stddev = noise_stddev
         self.robot_graph = graph.Graph(self.noise_model, self.noise_stddev)
         self.time_fim_build = 0
+        self.priority_order = priority_order
 
     """ Swarm Utils """
 
@@ -54,7 +55,7 @@ class Swarm:
             print("The given formation is not valid\n")
             raise NotImplementedError
 
-        # self.reorder_robots()
+        self.reorder_robots()
         self.update_swarm()
 
     def initialize_swarm_from_loc_list_of_tuples(self, loc_list):
@@ -78,7 +79,41 @@ class Swarm:
         self.fisher_info_matrix = self.robot_graph.get_fisher_matrix()
 
     def reorder_robots(self):
-        raise NotImplementedError
+        # can produce any permutation of the robots
+        # Math from: https://stackoverflow.com/questions/1506078/fast-permutation-number-permutation-mapping-algorithms
+        num_nodes = self.robot_graph.get_num_nodes()
+        # go from max value to modify order at beginning of the list first,
+        # this is why there're reverses too
+        working_order = (np.math.factorial(num_nodes)-1) - self.priority_order
+
+        # convert number to indices
+        relative_indices = []
+        base = 2
+        for i in range(num_nodes-1):
+            relative_indices.append(working_order % base)
+            working_order = working_order//base
+            base += 1
+        relative_indices.reverse()
+        relative_indices.append(0)
+
+        # reorder the nodes
+        all_nodes = self.robot_graph.get_node_loc_list()
+        all_nodes.reverse()
+        ordered_nodes = [None for i in range(num_nodes)]
+        for i in range(num_nodes):
+            relative_index = 0
+            for j in range(num_nodes):
+                if not ordered_nodes[j]:
+                    if relative_index == relative_indices[i]:
+                        ordered_nodes[j] = all_nodes[i]
+                        break
+                    else:
+                        relative_index += 1\
+
+        # reinitialize with correct node order
+        self.robot_graph.remove_all_nodes()
+        self.robot_graph.initialize_from_location_list(
+            ordered_nodes, self._sensing_radius)
 
     def update_swarm(self):
         self.robot_graph.update_edges_by_radius(self._sensing_radius)
@@ -153,8 +188,13 @@ class Swarm:
             self.noise_model,
             self.noise_stddev,
         )
-        eigval = math_utils.get_least_eigval(fim)
-        return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
+        # # Use E Optimality
+        # eigval = math_utils.get_least_eigval(fim)
+        # return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
+
+        # Use A Optimality (min_eigval misnamed for this application)
+        trace = math_utils.get_a_optimality_criteria(fim)
+        return bool(self.min_eigval <= trace), bool(2 * self.min_eigval <= trace)
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
