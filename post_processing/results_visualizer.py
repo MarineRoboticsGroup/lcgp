@@ -40,7 +40,7 @@ def display_results_from_file(results):
         # save
 
 # load json
-with open('./ensemble_results.json') as f:
+with open('./eig_1_results.json') as f:
     results = json.load(f)
 display_results_from_file(results)
 # print("\n")

@@ -1,8 +1,8 @@
             planning_time avg_loc_error max_loc_error avg_rmse_i max_rmse_i avg_rmse_t max_rmse_t   avg_dist
 potential_field
 test_case_1            --            --            --         --         --         --         --         --
-test_case_2      0.258708      0.536377      0.914827   1.524684   4.931363   0.329303   0.629383  34.641229
-test_case_3            --            --            --         --         --         --         --         --
+test_case_2            --            --            --         --         --         --         --         --
+test_case_3      0.258708      0.536377      0.914827   1.524684   4.931363   0.329303   0.629383  34.641229 #previous ordering was a mistake
 test_case_4            --            --            --         --         --         --         --         --
 test_case_5            --            --            --         --         --         --         --         --
 test_case_6            --            --            --         --         --         --         --         --

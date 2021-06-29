@@ -329,6 +329,9 @@ def ground_nodes_in_matrix(A, n, nodes):
     B = np.delete(A, l, axis=1)
     return B
 
+def get_a_optimality_criteria(mat):
+    mat_inv = la.inv(mat)
+    return -np.trace(mat_inv)
 
 """ Matrix Calculus """
 

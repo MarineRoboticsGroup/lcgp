@@ -188,8 +188,13 @@ class Swarm:
             self.noise_model,
             self.noise_stddev,
         )
-        eigval = math_utils.get_least_eigval(fim)
-        return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
+        # # Use E Optimality
+        # eigval = math_utils.get_least_eigval(fim)
+        # return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
+
+        # Use A Optimality (min_eigval misnamed for this application)
+        trace = math_utils.get_a_optimality_criteria(fim)
+        return bool(self.min_eigval <= trace), bool(2 * self.min_eigval <= trace)
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)

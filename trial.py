@@ -987,7 +987,6 @@ if __name__ == "__main__":
     # exp = 'coupled_astar'
     exp = "decoupled_rrt"
     # exp = "priority_prm"
-    # exp = "coupled_lazysp"
     # exp = "potential_field"
     # exp = "read_file"
 
@@ -998,18 +997,18 @@ if __name__ == "__main__":
         different_end_times_test(exp)
 
     elif run_experiments:
-        # planners = ["priority_prm"]#, "decoupled_rrt", "potential_field"]
-        # planners = ["priority_prm", "a_star"]
+        # planners = ["priority_prm", "decoupled_rrt", "a_star"]
         planners = ["priority_prm"]
+        # planners = ["decoupled_rrt"]
         test_settings = [
+                         ("test6", 6, "rectangle"),
                          ("test8", 8, "curve_maze"),
                          ("test8", 8, "adversarial1"),
-                         ("test6", 6, "rectangle"),
-                        #  ("test20", 20, "rectangle"),
-                         ("test12", 12, "curve_maze"),
-                         ("test12", 12, "adversarial1"),
-                         ("test20", 20, "curve_maze"),
-                         ("test20", 20, "adversarial1"),
+                        #  ("test12", 12, "adversarial1"),
+                        #  ("test20", 20, "adversarial1"),
+                        # #  ("test20", 20, "rectangle"),
+                        #  ("test12", 12, "curve_maze"),
+                        #  ("test20", 20, "curve_maze"),
                         ]
         # planners = ["priority_prm"]
         # test_settings = [("test8", 8, "adversarial1")]
@@ -1042,7 +1041,7 @@ if __name__ == "__main__":
                         form,
                         10,
                         "add",
-                        .1,
+                        -10,
                         .25,
                         order)
                     envInfo = (
@@ -1059,7 +1058,7 @@ if __name__ == "__main__":
                         queue))
 
                     p.start()
-                    p.join(160)
+                    p.join(80)
                     if p.is_alive():
                         print("Whoops, had to kill")
                         p.kill()
@@ -1079,7 +1078,7 @@ if __name__ == "__main__":
 
                     all_results[planner]["test_case_" +
                                          str(test_case+1)] = results
-                    with open("eig_3_results.json", "w") as outfile:
+                    with open("a_opt_init_results.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
                     current_iter += 1
@@ -1151,10 +1150,10 @@ if __name__ == "__main__":
 
         # the layout of the environment to plan in
         # setting = "random"
-        setting = "curve_maze"
+        # setting = "curve_maze"
         # setting = 'adversarial1'
         # setting = 'adversarial2'
-        # setting = 'simple_vicon'
+        setting = 'simple_vicon'
         # setting = "obstacle_vicon"
         # setting = "rectangle"
 
