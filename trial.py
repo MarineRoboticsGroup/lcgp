@@ -743,7 +743,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         success, trajs = get_potential_field_path(robots, env, goals)
         trajs = get_potential_field_path(robots, env, goals)
     elif expName == "a_star":
-        trajs = get_a_star_path(robots, env, goals, useTime=useTime)
+        success, trajs = get_a_star_path(robots, env, goals, useTime=useTime)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -765,24 +765,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
-<<<<<<< HEAD
-        if useRelative:
-            print("Converting trajectory from absolute to relative")
-            trajs = convert_absolute_traj_to_relative(trajs)
-
-        if showAnimation:
-            print("Showing trajectory animation")
-            test_trajectory(
-                robots,
-                env,
-                trajs,
-                goals,
-                expName,
-                relativeTraj=useRelative,
-                sensor_noise=noise_stddev,
-            )
-
-=======
     # TODO evaluate how to handle planning failures
     if success:
         if useRelative:
@@ -800,12 +782,11 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
                 relativeTraj=useRelative,
                 sensor_noise=noise_stddev)
             results["planning_time"] = endPlanning - startPlanning
-            if queue:
+            if queue is not None:
                 queue.put(results)
 
     else: #success == False
         print(f"Planning failed!!!")
->>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
 
 
 def many_robot_simple_move_test(exp):
@@ -1000,13 +981,8 @@ if __name__ == "__main__":
     run_experiments = True
 
     # exp = 'coupled_astar'
-<<<<<<< HEAD
-    # exp = "decoupled_rrt"
-    exp = "priority_prm"
-=======
     exp = "decoupled_rrt"
     # exp = "priority_prm"
->>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
     # exp = "potential_field"
     # exp = "read_file"
 
