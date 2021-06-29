@@ -81,7 +81,7 @@ class AStar:
         if not self.perform_planning(useTime):
             assert False, "The planning failed"
         print("Full set of trajectories found!")
-        return self._coord_trajs
+        return True, self._coord_trajs
 
     def astar_planning(self, cur_robot_id, useTime):
         start_id = self._roadmap.get_start_index(cur_robot_id)
@@ -294,23 +294,6 @@ class AStar:
     # * this is where a lot of the magic happens!
     def state_is_valid(self, cur_robot_id, timestep, loc_id):
         assert cur_robot_id >= 0
-        conflictFree = not self.constraintSets.is_conflict_state(
-            cur_robot_id, timestep, loc_id
-        )
-        if not conflictFree:
-            print(cur_robot_id)
-            print(self.constraintSets.conflict_states[cur_robot_id])
-            print(self.constraintSets.rigid_states[cur_robot_id])
-            print(
-                "Has Conflict, denying robot %d, time: %d, loc: %d"
-                % (cur_robot_id, timestep, loc_id)
-            )
-            return False
-        # is_valid_state = self.constraintSets.is_valid_state(
-        #     cur_robot_id, timestep, loc_id
-        # )
-        # if not is_valid_state:
-        #     return False
 
         # check for collisions with other robots
         # will treat robot as a 0.4 m x 0.4 m square

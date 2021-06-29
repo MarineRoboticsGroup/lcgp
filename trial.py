@@ -575,8 +575,8 @@ def get_a_star_path(robots, environment, goals, useTime):
     a_star_planner = a_star.AStar(
         robots=robots, env=environment, goals=goals
     )
-    traj = a_star_planner.planning(useTime=useTime)
-    return traj
+    success, traj = a_star_planner.planning(useTime=useTime)
+    return success, traj
 
 
 def get_potential_field_path(robots, environment, goals):
@@ -729,6 +729,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
     ##### Perform Planning ######
     #############################
     startPlanning = time.time()
+    success = False
     if profile:
         fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{trial_timestamp}.log"
         fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
@@ -743,7 +744,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         success, trajs = get_potential_field_path(robots, env, goals)
         trajs = get_potential_field_path(robots, env, goals)
     elif expName == "a_star":
-        trajs = get_a_star_path(robots, env, goals, useTime=useTime)
+        success, trajs = get_a_star_path(robots, env, goals, useTime=useTime)
     elif expName == "read_file":
         assert (
             timestamp is not None
@@ -765,24 +766,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
-<<<<<<< HEAD
-        if useRelative:
-            print("Converting trajectory from absolute to relative")
-            trajs = convert_absolute_traj_to_relative(trajs)
-
-        if showAnimation:
-            print("Showing trajectory animation")
-            test_trajectory(
-                robots,
-                env,
-                trajs,
-                goals,
-                expName,
-                relativeTraj=useRelative,
-                sensor_noise=noise_stddev,
-            )
-
-=======
     # TODO evaluate how to handle planning failures
     if success:
         if useRelative:
@@ -800,12 +783,15 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
                 relativeTraj=useRelative,
                 sensor_noise=noise_stddev)
             results["planning_time"] = endPlanning - startPlanning
+            results["success"] = True
             if queue:
                 queue.put(results)
 
     else: #success == False
         print(f"Planning failed!!!")
->>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
+        if queue:
+            results = {"success": False}
+            queue.put(results)
 
 
 def many_robot_simple_move_test(exp):
@@ -1000,13 +986,8 @@ if __name__ == "__main__":
     run_experiments = True
 
     # exp = 'coupled_astar'
-<<<<<<< HEAD
     # exp = "decoupled_rrt"
     exp = "priority_prm"
-=======
-    exp = "decoupled_rrt"
-    # exp = "priority_prm"
->>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
     # exp = "potential_field"
     # exp = "read_file"
 
@@ -1018,21 +999,21 @@ if __name__ == "__main__":
 
     elif run_experiments:
         # planners = ["priority_prm", "decoupled_rrt", "a_star"]
-        planners = ["priority_prm", "a_star"]
-        # planners = ["decoupled_rrt"]
+        # planners = ["a_star"]
+        planners = ["priority_prm"]
         test_settings = [
-                         ("test6", 6, "rectangle"),
+                        #  ("test6", 6, "rectangle"),
                         #  ("test8", 8, "curve_maze"),
                         #  ("test8", 8, "adversarial1"),
                         #  ("test12", 12, "adversarial1"),
                         #  ("test20", 20, "adversarial1"),
-                        # #  ("test20", 20, "rectangle"),
+                        #  ("test20", 20, "rectangle"),
                         #  ("test12", 12, "curve_maze"),
                         #  ("test20", 20, "curve_maze"),
                         ]
         # planners = ["priority_prm"]
         # test_settings = [("test8", 8, "adversarial1")]
-        prm_orderings = 2
+        prm_orderings = 1
 
         all_results = dict()
         queue = multiprocessing.Queue()
@@ -1079,7 +1060,7 @@ if __name__ == "__main__":
                         queue))
 
                     p.start()
-                    p.join(80)
+                    p.join(600)
                     if p.is_alive():
                         print("Whoops, had to kill")
                         p.kill()
@@ -1088,14 +1069,14 @@ if __name__ == "__main__":
 
                     else:
                         results = queue.get()
-                        results["success"] = True
-                        results["planner"] = planner
-                        results["form"] = form
-                        results["num_robots"] = nRobots
-                        results["setting"] = setting
-                        results["avg_dist"] = results["total_dist"]/nRobots
-                        results["order"] = order
-                        success = True
+                        if results["success"] == True:
+                            results["planner"] = planner
+                            results["form"] = form
+                            results["num_robots"] = nRobots
+                            results["setting"] = setting
+                            results["avg_dist"] = results["total_dist"]/nRobots
+                            results["order"] = order
+                            success = True
 
                     all_results[planner]["test_case_" +
                                          str(test_case+1)] = results
