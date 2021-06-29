@@ -287,7 +287,6 @@ class AStar:
     ###### A* Helpers #######
     def node_is_valid(self, curNode, cur_robot_id):
         assert cur_robot_id >= 0
-        return True
         loc_id = curNode.index
         timestep = curNode.timestep
         return self.state_is_valid(cur_robot_id, timestep, loc_id)

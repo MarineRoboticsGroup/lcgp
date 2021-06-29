@@ -998,7 +998,7 @@ if __name__ == "__main__":
 
     elif run_experiments:
         # planners = ["priority_prm", "decoupled_rrt", "a_star"]
-        planners = ["priority_prm", "a_star"]
+        planners = ["priority_prm"]
         # planners = ["decoupled_rrt"]
         test_settings = [
                          ("test6", 6, "rectangle"),
@@ -1012,7 +1012,7 @@ if __name__ == "__main__":
                         ]
         # planners = ["priority_prm"]
         # test_settings = [("test8", 8, "adversarial1")]
-        prm_orderings = 2
+        prm_orderings = 10
 
         all_results = dict()
         queue = multiprocessing.Queue()
@@ -1021,9 +1021,9 @@ if __name__ == "__main__":
         for planner in planners:
             all_results[planner] = dict()
             for test_case in range(len(test_settings)):
-                order = 0
+                order = 1
                 success = False
-                while not success and (order == 0 or (planner == "priority_prm" and order < prm_orderings)):
+                while order == 1 or (planner == "priority_prm" and order < prm_orderings):
 
                     print("Iteration:", current_iter,
                           "\nTest parameters:", test_settings[test_case],
@@ -1042,9 +1042,9 @@ if __name__ == "__main__":
                         form,
                         10,
                         "add",
-                        -10,
+                        -.1*order,
                         .25,
-                        order)
+                        0)
                     envInfo = (
                         setting,
                         (35, 35),
@@ -1059,7 +1059,7 @@ if __name__ == "__main__":
                         queue))
 
                     p.start()
-                    p.join(80)
+                    p.join(30)
                     if p.is_alive():
                         print("Whoops, had to kill")
                         p.kill()
@@ -1074,11 +1074,11 @@ if __name__ == "__main__":
                         results["num_robots"] = nRobots
                         results["setting"] = setting
                         results["avg_dist"] = results["total_dist"]/nRobots
-                        results["order"] = order
+                        results["min_val"] = -1*order
                         success = True
 
                     all_results[planner]["test_case_" +
-                                         str(test_case+1)] = results
+                                         str(test_case+1)+str(-.1*order)] = results
                     with open("a_opt_init_results.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
