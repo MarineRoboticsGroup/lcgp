@@ -560,25 +560,15 @@ def get_decoupled_rrt_path(robots, environment, goals):
     #              max_move_dist=3.0, goal_sample_rate=5, max_iter=500
     path = rrt_planner.planning()
 
-    return path
-
-
-def get_coupled_lazysp_path(robots, environment, goals):
-
-    lazysp_planner = coupled_lazysp.LazySp(
-        robots=robots, env=environment, goals=goals)
-
-    traj = lazysp_planner.perform_planning()
-
-    return traj
+    return True, path
 
 
 def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(
         robots=robots, env=environment, goals=goals
     )
-    traj = priority_prm.planning(useTime=useTime)
-    return traj
+    success, traj = priority_prm.planning(useTime=useTime)
+    return success, traj
 
 
 def get_a_star_path(robots, environment, goals, useTime):
@@ -592,8 +582,8 @@ def get_a_star_path(robots, environment, goals, useTime):
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(
         robots=robots, env=environment, goals=goals)
-    traj = field.planning()
-    return traj
+    success, traj = field.planning()
+    return success, traj
 
 
 def init_goals(
@@ -746,12 +736,11 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
     if (
         expName == "decoupled_rrt"
     ):  # generate trajectories via naive fully decoupled rrt
-        trajs = get_decoupled_rrt_path(robots, env, goals)
-    elif expName == "coupled_lazysp":
-        trajs = get_coupled_lazysp_path(robots, env, goals)
+        success, trajs = get_decoupled_rrt_path(robots, env, goals)
     elif expName == "priority_prm":
-        trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
+        success, trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == "potential_field":
+        success, trajs = get_potential_field_path(robots, env, goals)
         trajs = get_potential_field_path(robots, env, goals)
     elif expName == "a_star":
         trajs = get_a_star_path(robots, env, goals, useTime=useTime)
@@ -761,11 +750,13 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         ), "trying to read trajectory file but no timestamp specified"
         traj_filepath = f"{cwd}/trajs/traj_{timestamp}.txt"
         trajs = read_traj_from_file(traj_filepath)
+        success = True
     else:
         raise AssertionError
 
     endPlanning = time.time()
     print("Time Planning:", endPlanning - startPlanning)
+    assert isinstance(success, bool)
 
     if profile:
         fg_thread.stop()
@@ -774,23 +765,47 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
-    if useRelative:
-        print("Converting trajectory from absolute to relative")
-        trajs = convert_absolute_traj_to_relative(trajs)
+<<<<<<< HEAD
+        if useRelative:
+            print("Converting trajectory from absolute to relative")
+            trajs = convert_absolute_traj_to_relative(trajs)
 
-    if showAnimation:
-        print("Showing trajectory animation")
-        results = test_trajectory(
-            robots,
-            env,
-            trajs,
-            goals,
-            expName,
-            relativeTraj=useRelative,
-            sensor_noise=noise_stddev)
-        results["planning_time"] = endPlanning - startPlanning
-        if queue:
-            queue.put(results)
+        if showAnimation:
+            print("Showing trajectory animation")
+            test_trajectory(
+                robots,
+                env,
+                trajs,
+                goals,
+                expName,
+                relativeTraj=useRelative,
+                sensor_noise=noise_stddev,
+            )
+
+=======
+    # TODO evaluate how to handle planning failures
+    if success:
+        if useRelative:
+            print("Converting trajectory from absolute to relative")
+            trajs = convert_absolute_traj_to_relative(trajs)
+
+        if showAnimation:
+            print("Showing trajectory animation")
+            results = test_trajectory(
+                robots,
+                env,
+                trajs,
+                goals,
+                expName,
+                relativeTraj=useRelative,
+                sensor_noise=noise_stddev)
+            results["planning_time"] = endPlanning - startPlanning
+            if queue:
+                queue.put(results)
+
+    else: #success == False
+        print(f"Planning failed!!!")
+>>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
 
 
 def many_robot_simple_move_test(exp):
@@ -985,8 +1000,13 @@ if __name__ == "__main__":
     run_experiments = True
 
     # exp = 'coupled_astar'
+<<<<<<< HEAD
+    # exp = "decoupled_rrt"
+    exp = "priority_prm"
+=======
     exp = "decoupled_rrt"
     # exp = "priority_prm"
+>>>>>>> cf4b8248815373ce6e3e96ac4e33f8d6853f776e
     # exp = "potential_field"
     # exp = "read_file"
 

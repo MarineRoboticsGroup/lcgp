@@ -79,9 +79,10 @@ class PriorityPrm:
 
     def planning(self, useTime=False):
         if not self.perform_planning(useTime):
-            assert False, "The planning failed"
+            print("The planning failed")
+            return False, None
         print("Full set of trajectories found!")
-        return self._coord_trajs
+        return True, self._coord_trajs
 
     def astar_planning(self, cur_robot_id, useTime):
         start_id = self._roadmap.get_start_index(cur_robot_id)
@@ -269,8 +270,7 @@ class PriorityPrm:
                         cur_robot_id += 1
             else:
                 print(
-                    "Planning Failed for robot %d. \nReverting to plan for robot %d\n"
-                    % (cur_robot_id, cur_robot_id - 1)
+                    f"Planning Failed for robot {cur_robot_id}"
                 )
 
                 if False:
@@ -278,11 +278,7 @@ class PriorityPrm:
                         self._coord_trajs, cur_robot_id
                     )
 
-                cur_robot_id -= 1
-
-                if cur_robot_id < 0:
-                    print("Failed to find paths")
-                    return False
+                return False
 
     ###### A* Helpers #######
     def node_is_valid(self, curNode, cur_robot_id):

@@ -165,9 +165,9 @@ class PotentialField:
 
         # End conditions
             if self.allRobotsFoundGoal():
-                return self._trajs
+                return True, self._trajs
         print("Not enough iterations")
-        return self._trajs
+        return False, self._trajs
 
 
 ####################
