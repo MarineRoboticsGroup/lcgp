@@ -520,32 +520,22 @@ def get_decoupled_rrt_path(robots, environment, goals):
     #              max_move_dist=3.0, goal_sample_rate=5, max_iter=500
     path = rrt_planner.planning()
 
-    return path
-
-
-def get_coupled_lazysp_path(robots, environment, goals):
-
-    lazysp_planner = coupled_lazysp.LazySp(
-        robots=robots, env=environment, goals=goals)
-
-    traj = lazysp_planner.perform_planning()
-
-    return traj
+    return True, path
 
 
 def get_priority_prm_path(robots, environment, goals, useTime):
     priority_prm = prioritized_prm.PriorityPrm(
         robots=robots, env=environment, goals=goals
     )
-    traj = priority_prm.planning(useTime=useTime)
-    return traj
+    success, traj = priority_prm.planning(useTime=useTime)
+    return success, traj
 
 
 def get_potential_field_path(robots, environment, goals):
     field = potential_field.PotentialField(
         robots=robots, env=environment, goals=goals)
-    traj = field.planning()
-    return traj
+    success, traj = field.planning()
+    return success, traj
 
 
 def init_goals(
@@ -696,24 +686,24 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
     if (
         expName == "decoupled_rrt"
     ):  # generate trajectories via naive fully decoupled rrt
-        trajs = get_decoupled_rrt_path(robots, env, goals)
-    elif expName == "coupled_lazysp":
-        trajs = get_coupled_lazysp_path(robots, env, goals)
+        success, trajs = get_decoupled_rrt_path(robots, env, goals)
     elif expName == "priority_prm":
-        trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
+        success, trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == "potential_field":
-        trajs = get_potential_field_path(robots, env, goals)
+        success, trajs = get_potential_field_path(robots, env, goals)
     elif expName == "read_file":
         assert (
             timestamp is not None
         ), "trying to read trajectory file but no timestamp specified"
         traj_filepath = f"{cwd}/trajs/traj_{timestamp}.txt"
         trajs = read_traj_from_file(traj_filepath)
+        success = True
     else:
         raise AssertionError
 
     endPlanning = time.time()
     print("Time Planning:", endPlanning - startPlanning)
+    assert isinstance(success, bool)
 
     if profile:
         fg_thread.stop()
@@ -722,21 +712,25 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999):
         fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
         subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
-    if useRelative:
-        print("Converting trajectory from absolute to relative")
-        trajs = convert_absolute_traj_to_relative(trajs)
+    if success:
+        if useRelative:
+            print("Converting trajectory from absolute to relative")
+            trajs = convert_absolute_traj_to_relative(trajs)
 
-    if showAnimation:
-        print("Showing trajectory animation")
-        test_trajectory(
-            robots,
-            env,
-            trajs,
-            goals,
-            expName,
-            relativeTraj=useRelative,
-            sensor_noise=noise_stddev,
-        )
+        if showAnimation:
+            print("Showing trajectory animation")
+            test_trajectory(
+                robots,
+                env,
+                trajs,
+                goals,
+                expName,
+                relativeTraj=useRelative,
+                sensor_noise=noise_stddev,
+            )
+
+    else: #success == False
+        print(f"Planning failed!!!")
 
 
 def many_robot_simple_move_test(exp):
@@ -931,7 +925,6 @@ if __name__ == "__main__":
     # exp = 'coupled_astar'
     # exp = "decoupled_rrt"
     exp = "priority_prm"
-    # exp = "coupled_lazysp"
     # exp = "potential_field"
     # exp = "read_file"
 
