@@ -112,7 +112,7 @@ class PriorityPrm:
         while True:
             # if out of options, return conflict information
             if not openSet:
-                self.plot_failed_search(closedSet)
+                # self.plot_failed_search(closedSet)
                 return ([], success)
 
             # find minimum cost in openSet

@@ -75,6 +75,9 @@ def test_trajectory_plot(
     threshold_eigval: float,
     num_total_timesteps: int,
 ):
+    assert isinstance(min_eigvals, list)
+    assert isinstance(threshold_eigval, float)
+    assert isinstance(num_total_timesteps, int)
 
     axs1 = plt.subplot(211)
     axs2 = plt.subplot(212)
@@ -86,7 +89,7 @@ def test_trajectory_plot(
     axs1.set_xlim(xlb, xub)
     axs1.set_ylim(ylb, yub)
     axs2.set_xlim(0, num_total_timesteps)
-    axs2.set_ylim(-1, 15)
+    axs2.set_ylim(-15, 15)
 
     # plot goals
     for i, goalLoc in enumerate(goals):
@@ -127,7 +130,7 @@ def test_trajectory_plot(
 
     # colormap and boundaries
     cmap = ListedColormap(["r", "g"])
-    norm = BoundaryNorm([-1, threshold_eigval, 100], cmap.N)
+    norm = BoundaryNorm([threshold_eigval], cmap.N)
     lc = LineCollection(segments, cmap=cmap, norm=norm)
     lc.set_array(_min_eigvals_interp)
     lc.set_linewidth(2)
