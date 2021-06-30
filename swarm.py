@@ -20,11 +20,12 @@ class Swarm:
     """ Swarm Utils """
 
     def initialize_swarm(
-        self, env, bounds, formation="square", nRobots=None, min_eigval=0.75
+        self, env, bounds, formation="square", nRobots=None, e_opt_val=0.75, a_opt_val = -.5
     ):
         # initialize formation and edges
         self._start_config = formation
-        self.min_eigval = min_eigval
+        self.e_opt_val = e_opt_val
+        self.a_opt_val = a_opt_val
         self.robot_graph.remove_all_nodes()
         self.robot_graph.remove_all_edges()
 
@@ -190,11 +191,11 @@ class Swarm:
         )
         # # Use E Optimality
         # eigval = math_utils.get_least_eigval(fim)
-        # return self.min_eigval <= eigval, 2 * self.min_eigval <= eigval
+        # return self.e_opt_val <= eigval, 2 * self.e_opt_val <= eigval
 
-        # Use A Optimality (min_eigval misnamed for this application)
-        trace = math_utils.get_a_optimality_criteria(fim)
-        return bool(self.min_eigval <= trace), bool(2 * self.min_eigval <= trace)
+        # Use A Optimality
+        a_val = math_utils.get_a_optimality_criteria(fim)
+        return bool(self.a_opt_val <= a_val), bool(2 * self.a_opt_val <= a_val)
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
