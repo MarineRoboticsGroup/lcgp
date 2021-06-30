@@ -1016,8 +1016,13 @@ if __name__ == "__main__":
     run_experiments = True
 
     # exp = 'coupled_astar'
+<<<<<<< HEAD
+    exp = "decoupled_rrt"
+    # exp = "priority_prm"
+=======
     # exp = "decoupled_rrt"
     exp = "priority_prm"
+>>>>>>> 9ffe0be480c8652224bc54cb13b9ec3c97f218e6
     # exp = "potential_field"
     # exp = "read_file"
 
