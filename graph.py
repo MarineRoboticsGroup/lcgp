@@ -1,4 +1,4 @@
-from snl import solve_snl_with_sdp, spring_solver
+from snl import solve_snl_with_sdp, spring_solver, sp_optimize
 import kdtree
 import environment
 import math_utils
@@ -41,10 +41,10 @@ class Graph:
         num_anchors = 3
         num_nodes = self.get_num_nodes() - num_anchors
         if num_nodes > 0:
-            anchor_ids = [v + num_nodes for v in range(num_anchors)]
+            anchor_ids = [v for v in range(num_anchors)]
             anchor_locs = {}
-            for id in anchor_ids:
-                anchor_locs[id] = self.get_node_loc_tuple(id)
+            for anc_id in anchor_ids:
+                anchor_locs[anc_id] = self.get_node_loc_tuple(anc_id)
             node_node_dists = {}
             node_anchor_dists = {}
             for edge in self.get_graph_edge_list():
@@ -72,6 +72,14 @@ class Graph:
                     node_node_dists,
                     node_anchor_dists
                 )
+
+            elif solver == "sp_optimize":
+                loc_est = sp_optimize(
+                    init_guess,
+                    anchor_locs,
+                    node_node_dists,
+                    node_anchor_dists
+                )
             elif solver == "spring_init_noise":
                 init_guess = [[init_guess[i][0]+np.random.normal(0, self.noise_stddev),
                                init_guess[i][1]+np.random.normal(0, self.noise_stddev)]
@@ -82,7 +90,7 @@ class Graph:
                     node_node_dists,
                     node_anchor_dists
                 )
-            else:
+            elif solver == "sdp":
                 loc_est = solve_snl_with_sdp(
                     num_nodes,
                     node_node_dists,
@@ -92,6 +100,9 @@ class Graph:
                     init_guess=init_guess,
                     solver=solver,
                 )
+            else:
+                print(f"Solver: {solver} not implemented!")
+                raise NotImplementedError
             return loc_est
         else:
             anchor_locs = np.array([self.get_node_loc_tuple(i) for i in range(num_anchors)])
@@ -223,6 +234,14 @@ class Graph:
         assert self.node_exists(nodeNum)
         node = self.nodes[nodeNum]
         return node.get_node_degree()
+
+    def nonanchors_are_k_connected(self, k: int) -> bool:
+        assert k > 0
+        for i in range(3, self.get_num_nodes()):
+            d = self.get_node_degree(i)
+            if d < k:
+                return False
+        return True
 
     def get_node_connection_list(self, nodeNum):
         node = self.nodes[nodeNum]

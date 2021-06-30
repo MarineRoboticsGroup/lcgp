@@ -68,6 +68,10 @@ def get_list_all_eigvals(mat):
     return val
 
 
+def get_e_optimality(fim):
+    return get_least_eigval(fim)
+
+
 def get_least_eigval(mat):
     val = la.eigvalsh(mat, subset_by_index=[0, 0])
     if val > 1e20:
@@ -329,9 +333,27 @@ def ground_nodes_in_matrix(A, n, nodes):
     B = np.delete(A, l, axis=1)
     return B
 
-def get_a_optimality_criteria(mat):
-    mat_inv = la.inv(mat)
-    return -np.trace(mat_inv)
+
+@numba.njit()
+def get_a_optimality(fim):
+    # vals = la.eigh(fim, eigvals_only=True)
+    vals = np.linalg.eigvalsh(fim)
+    # assert len(fim) == len(vals)
+    # vals[np.abs(vals) < eps] = 0
+    vals = np.real(vals)
+
+    cost = 0
+    for ii in range(len(vals)):
+        v = vals[ii]
+        if v <= 1e-3:
+            return -np.inf
+        else:
+            cost -= 1/v
+
+    return cost
+    # fim_inv = la.pinv(fim)
+    # return -np.trace(fim_inv)
+
 
 """ Matrix Calculus """
 
@@ -523,9 +545,10 @@ def calc_rmse_i(all_gnd_truths, all_est_locs):
             squared_diff_sums[robotIndex] += dist ** 2
 
     for robotIndex in range(num_robots):
-        errors[robotIndex] = (squared_diff_sums[robotIndex]/num_robots)**(1/2)
+        errors[robotIndex] = (squared_diff_sums[robotIndex] / num_robots) ** (1 / 2)
 
     return errors
+
 
 def calc_rmse_t(all_gnd_truths, all_est_locs):
     num_robots = all_gnd_truths[0].shape[0]
@@ -538,11 +561,13 @@ def calc_rmse_t(all_gnd_truths, all_est_locs):
         est_locs = all_est_locs[timestep]
 
         for robotIndex in range(num_robots):
-            dist = calc_dist_between_locations(gnd_truth[robotIndex], est_locs[robotIndex])
-            se[timestep].append(dist**2)
+            dist = calc_dist_between_locations(
+                gnd_truth[robotIndex], est_locs[robotIndex]
+            )
+            se[timestep].append(dist ** 2)
 
     for timestep in range(num_timesteps):
-        errors[timestep] = (sum(se[timestep])/num_timesteps)**(1/2)
+        errors[timestep] = (sum(se[timestep]) / num_timesteps) ** (1 / 2)
     all_se = []
     for vals in se:
         all_se += vals
