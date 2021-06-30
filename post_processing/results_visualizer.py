@@ -10,22 +10,26 @@ def display_results_from_file(results):
                 "planning_time",
                 "avg_loc_error",
                 "max_loc_error",
-                "avg_rmse_i",
-                "max_rmse_i",
-                "avg_rmse_t",
-                "max_rmse_t",
+                # "avg_rmse_i",
+                # "max_rmse_i",
+                # "avg_rmse_t",
+                # "max_rmse_t",
                 "avg_dist",
                 ]
-        data = [[] for i in range(8)]
+        data = [[] for i in range(4)]
         for test_case in results[planner]:
             columns.append(test_case)
             if results[planner][test_case]["success"]:
                 for i in range(len(index)):
+                    if i != 0:
+                        prefix = "& "
+                    else:
+                        prefix = ""
                     var = index[i]
                     if var in results[planner][test_case].keys():
-                        data[i].append(results[planner][test_case][var])
+                        data[i].append(prefix + str(round(results[planner][test_case][var], 3)))
                     else:
-                        data[i].append("--")
+                        data[i].append(prefix + "--")
             else:
                 for i in range(len(index)):
                     data[i].append("--")
@@ -40,7 +44,7 @@ def display_results_from_file(results):
         # save
 
 # load json
-with open('./a_opt_init_results.json') as f:
+with open('./june_30_results_v1.json') as f:
     results = json.load(f)
 display_results_from_file(results)
 # print("\n")

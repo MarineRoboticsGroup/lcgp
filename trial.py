@@ -139,35 +139,35 @@ def test_trajectory(
             current_guess[robotIndex] = est_locs[robotIndex]
 
         # if true does not show rigidity plot on bottom
-        if only_plot_trajectories:
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=False,
-                animation=True,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
-            plot.plot(
-                robots.get_robot_graph(),
-                env,
-                blocking=True,
-                animation=False,
-                goals=goals,
-                clear_last=True,
-                show_goals=True,
-                show_graph_edges=True,
-            )
+        # if only_plot_trajectories:
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=False,
+        #         animation=True,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
+        #     plot.plot(
+        #         robots.get_robot_graph(),
+        #         env,
+        #         blocking=True,
+        #         animation=False,
+        #         goals=goals,
+        #         clear_last=True,
+        #         show_goals=True,
+        #         show_graph_edges=True,
+        #     )
 
-        else:
-            # plot.test_trajectory_plot(
-            #     robots.get_robot_graph(), env, goals, e_opt_vals, robots.e_opt_val, num_total_timesteps
-            # )
-            plot.test_trajectory_plot(
-                robots.get_robot_graph(), env, goals, a_opt_vals, robots.a_opt_val, num_total_timesteps
-            )
+        # else:
+        #     # plot.test_trajectory_plot(
+        #     #     robots.get_robot_graph(), env, goals, e_opt_vals, robots.e_opt_val, num_total_timesteps
+        #     # )
+        #     plot.test_trajectory_plot(
+        #         robots.get_robot_graph(), env, goals, a_opt_vals, robots.a_opt_val, num_total_timesteps
+        #     )
 
         trajectory_img_path = (
             f"{cwd}/figures/animations/traj_{trial_timestamp}_time{total_time}.png"
@@ -763,7 +763,7 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
         success, trajs = get_priority_prm_path(robots, env, goals, useTime=useTime)
     elif expName == "potential_field":
         success, trajs = get_potential_field_path(robots, env, goals)
-        trajs = get_potential_field_path(robots, env, goals)
+        # trajs = get_potential_field_path(robots, env, goals)
     elif expName == "a_star":
         success, trajs = get_a_star_path(robots, env, goals, useTime=useTime)
     elif expName == "read_file":
@@ -1030,20 +1030,20 @@ if __name__ == "__main__":
     elif run_experiments:
         # planners = ["priority_prm", "decoupled_rrt", "a_star"]
         # planners = ["a_star"]
-        planners = ["priority_prm"]
+        # planners = ["potential_field"]
         test_settings = [
-                        #  ("test6", 6, "rectangle"),
+                         ("test6", 6, "rectangle"),
                          ("test8", 8, "curve_maze"),
-                        #  ("test8", 8, "adversarial1"),
-                        #  ("test12", 12, "adversarial1"),
-                        #  ("test20", 20, "adversarial1"),
+                         ("test8", 8, "adversarial1"),
+                         ("test12", 12, "adversarial1"),
+                         ("test20", 20, "adversarial1"),
                         #  ("test20", 20, "rectangle"),
                         #  ("test12", 12, "curve_maze"),
                         #  ("test20", 20, "curve_maze"),
                         ]
-        # planners = ["priority_prm"]
+        planners = ["priority_prm"]
         # test_settings = [("test8", 8, "adversarial1")]
-        prm_orderings = 1
+        prm_orderings = 2
 
         all_results = dict()
         queue = multiprocessing.Queue()
@@ -1111,7 +1111,7 @@ if __name__ == "__main__":
 
                     all_results[planner]["test_case_" +
                                          str(test_case+1)] = results
-                    with open("a_opt_init_results.json", "w") as outfile:
+                    with open("june_30_results_v1.json", "w") as outfile:
                         json.dump(all_results, outfile)
 
                     current_iter += 1

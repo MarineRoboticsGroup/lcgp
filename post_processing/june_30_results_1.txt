@@ -1,0 +1,41 @@
+priority_prm_a_opt
+                      planning_time avg_loc_error max_loc_error  avg_dist
+test_case_1                 03.043       & 0.615       & 0.836  & 36.272
+test_case_2                 03.893       & 1.276       & 2.374  & 45.178
+test_case_3                 05.041       & 1.034       & 1.871   & 83.22
+test_case_4                 07.965       & 1.379       & 2.298  & 83.553
+test_case_5                 21.605       & 3.903      & 10.368  & 79.042 
+
+priority_prm_e_opt
+                      planning_time avg_loc_error max_loc_error  avg_dist
+test_case_1                 03.071        & 0.61        & 0.84  & 36.106
+test_case_2                 04.156       & 1.215       & 2.325  & 45.602
+test_case_3                 05.434       & 1.304       & 2.721  & 81.155
+test_case_4                 11.756       & 1.076        & 2.96  & 83.385
+test_case_5                 19.601       & 3.912      & 11.189   & 78.79 
+
+a_star
+                      planning_time avg_loc_error max_loc_error  avg_dist
+test_case_1                 03.067       & 0.591       & 0.879   & 36.02
+test_case_2                 04.234        & 1.25       & 2.301    & 45.0
+test_case_3                 05.508       & 1.157       & 2.214  & 80.644
+test_case_4                 09.455       & 1.114       & 3.031  & 83.495
+test_case_5                 19.639       & 4.057      & 11.454  & 77.893 
+
+decoupled_rrt
+                      planning_time avg_loc_error max_loc_error   avg_dist
+test_case_1                 00.386       & 1.095       & 1.826   & 42.257
+test_case_2                 02.687       & 1.271       & 2.324   & 59.966
+test_case_3                 08.674       & 1.355       & 2.446  & 108.688
+test_case_4                 13.355         & 0.7       & 1.636  & 111.539
+test_case_5                 20.788       & 0.736       & 1.799  & 100.202 
+
+potential_field
+            planning_time avg_loc_error max_loc_error  avg_dist
+test_case_1                 0.162       & 0.536       & 0.915  & 34.641
+test_case_2                    --            --            --        --
+test_case_3                    --            --            --        --
+test_case_4                    --            --            --        --
+test_case_5                    --            --            --        -- 
+
+
