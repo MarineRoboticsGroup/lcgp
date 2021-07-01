@@ -15,8 +15,9 @@ def display_results_from_file(results):
                 # "avg_rmse_t",
                 # "max_rmse_t",
                 "avg_dist",
+                # "order"
                 ]
-        data = [[] for i in range(4)]
+        data = [[] for i in range(len(index))]
         for test_case in results[planner]:
             columns.append(test_case)
             if results[planner][test_case]["success"]:
@@ -44,7 +45,7 @@ def display_results_from_file(results):
         # save
 
 # load json
-with open('./june_30_results_v1.json') as f:
+with open('./june_30_results_v2_select_results.json') as f:
     results = json.load(f)
 display_results_from_file(results)
 # print("\n")

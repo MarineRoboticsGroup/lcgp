@@ -68,7 +68,7 @@ def test_trajectory(
 
     robot_size = 0.4
     ensemble_size = 10
-    optimality_type = "a"
+    optimality_type = "e"
 
     traj_filepath = f"{cwd}/trajs/traj_{trial_timestamp}.txt"
     if not plan_name == "read_file":
@@ -94,7 +94,7 @@ def test_trajectory(
     dist_moved = [0.0 for i in range(robots.get_num_robots())]
     all_gnd_truths = []
     all_est_locs = []
-    current_guess = [0.0 for i in range(robots.get_num_robots()-3)]
+    current_guess = np.array([[0.0, 0.0] for i in range(robots.get_num_robots()-3)])
 
     init_config = robots.get_position_list_tuples()
     init_graph = robots.get_robot_graph()
@@ -103,23 +103,23 @@ def test_trajectory(
 
     print("Total timesteps:", num_total_timesteps)
     while not (traj_indices == final_traj_indices):
-        # print("Current timestep:", total_time)
+        print("Current timestep:", total_time)
         e_opt_val = robots.get_nth_eigval(1)
         e_opt_vals.append(e_opt_val)
 
         fim = robots.fisher_info_matrix
-        a_opt_val = math_utils.get_a_optimality_criteria(fim)
+        a_opt_val = math_utils.get_a_optimality(fim)
         a_opt_vals.append(a_opt_val)
 
         graph = robots.get_robot_graph()
         config = robots.get_position_list_tuples()
 
         est_locs = graph.perform_snl(
-            init_guess=current_guess.copy(), solver="spring_init_noise")
+            init_guess=current_guess.copy(), solver="sp_optimize")
         if ensemble_size > 1:
             for i in range(ensemble_size-1):
                 single_est = graph.perform_snl(
-                    init_guess=current_guess.copy(), solver="spring_init_noise")
+                    init_guess=current_guess.copy(), solver="sp_optimize")
                 est_locs = [[est_locs[i][0]+single_est[i][0],
                             est_locs[i][1]+single_est[i][1]]
                             for i in range(len(est_locs))]
@@ -807,6 +807,10 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
             results["success"] = True
             if queue:
                 queue.put(results)
+        results = {"planning_time": endPlanning - startPlanning}
+        results["success"] = True
+        if queue:
+            queue.put(results)
 
     else: #success == False
         print(f"Planning failed!!!")
@@ -1016,13 +1020,8 @@ if __name__ == "__main__":
     run_experiments = True
 
     # exp = 'coupled_astar'
-<<<<<<< HEAD
-    exp = "decoupled_rrt"
-    # exp = "priority_prm"
-=======
     # exp = "decoupled_rrt"
     exp = "priority_prm"
->>>>>>> 9ffe0be480c8652224bc54cb13b9ec3c97f218e6
     # exp = "potential_field"
     # exp = "read_file"
 
@@ -1033,15 +1032,15 @@ if __name__ == "__main__":
         different_end_times_test(exp)
 
     elif run_experiments:
-        # planners = ["priority_prm", "decoupled_rrt", "a_star"]
+        # planners = ["decoupled_rrt", "a_star", "potential_field"]
         # planners = ["a_star"]
         # planners = ["potential_field"]
         test_settings = [
-                         ("test6", 6, "rectangle"),
-                         ("test8", 8, "curve_maze"),
-                         ("test8", 8, "adversarial1"),
+                        #  ("test6", 6, "rectangle"),
+                        #  ("test8", 8, "curve_maze"),
+                        #  ("test8", 8, "adversarial1"),
                          ("test12", 12, "adversarial1"),
-                         ("test20", 20, "adversarial1"),
+                        #  ("test20", 20, "adversarial1"),
                         #  ("test20", 20, "rectangle"),
                         #  ("test12", 12, "curve_maze"),
                         #  ("test20", 20, "curve_maze"),
@@ -1070,7 +1069,7 @@ if __name__ == "__main__":
                         planner,
                         False,
                         False,
-                        True,
+                        False,
                         False,
                         1)
                     swarmInfo = (
@@ -1078,7 +1077,7 @@ if __name__ == "__main__":
                         form,
                         10,
                         "add",
-                        .1,
+                        .10,
                         -4.0,
                         .25,
                         order)
@@ -1096,7 +1095,7 @@ if __name__ == "__main__":
                         queue))
 
                     p.start()
-                    p.join(600)
+                    p.join(6000)
                     if p.is_alive():
                         print("Whoops, had to kill")
                         p.kill()
@@ -1106,18 +1105,18 @@ if __name__ == "__main__":
                     else:
                         results = queue.get()
                         if results["success"] == True:
-                            results["planner"] = planner
-                            results["form"] = form
-                            results["num_robots"] = nRobots
-                            results["setting"] = setting
-                            results["avg_dist"] = results["total_dist"]/nRobots
-                            results["order"] = order
+                            # results["planner"] = planner
+                            # results["form"] = form
+                            # results["num_robots"] = nRobots
+                            # results["setting"] = setting
+                            # results["avg_dist"] = results["total_dist"]/nRobots
+                            # results["order"] = order
                             success = True
 
                     all_results[planner]["test_case_" +
                                          str(test_case+1)] = results
-                    with open("june_30_results_v1.json", "w") as outfile:
-                        json.dump(all_results, outfile)
+                    # with open("june_30_planning_times_prm_25_results_v2.json", "w") as outfile:
+                    #     json.dump(all_results, outfile)
 
                     current_iter += 1
                     order += 1

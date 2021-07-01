@@ -190,12 +190,12 @@ class Swarm:
             self.noise_stddev,
         )
         # # Use E Optimality
-        # eigval = math_utils.get_least_eigval(fim)
-        # return self.e_opt_val <= eigval, 2 * self.e_opt_val <= eigval
+        eigval = math_utils.get_least_eigval(fim)
+        return self.e_opt_val <= eigval, 2 * self.e_opt_val <= eigval
 
         # Use A Optimality
-        a_val = math_utils.get_a_optimality_criteria(fim)
-        return bool(self.a_opt_val <= a_val), bool(2 * self.a_opt_val <= a_val)
+        # a_val = math_utils.get_a_optimality(fim)
+        # return bool(self.a_opt_val <= a_val), bool(2 * self.a_opt_val <= a_val)
 
     def is_swarm_rigid(self):
         eigval = self.get_nth_eigval(4)
