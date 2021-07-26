@@ -83,7 +83,7 @@ class Graph:
             elif solver == "spring_init_noise":
                 init_guess = [[init_guess[i][0]+np.random.normal(0, self.noise_stddev),
                                init_guess[i][1]+np.random.normal(0, self.noise_stddev)]
-                               for i in range(len(init_guess))]
+                              for i in range(len(init_guess))]
                 loc_est = spring_solver(
                     init_guess,
                     anchor_locs,
@@ -105,7 +105,8 @@ class Graph:
                 raise NotImplementedError
             return loc_est
         else:
-            anchor_locs = np.array([self.get_node_loc_tuple(i) for i in range(num_anchors)])
+            anchor_locs = np.array([self.get_node_loc_tuple(i)
+                                   for i in range(num_anchors)])
             return anchor_locs
 
     """ Initialize and Format Graph """
@@ -285,6 +286,15 @@ class Graph:
         self.add_node(4, 2)
         self.add_node(2, 3)
 
+    def init_test1_formation(self):
+        self.add_node(2, 2)
+
+    def init_test4_formation(self):
+        self.add_node(2, 2)
+        self.add_node(2, 4)
+        self.add_node(4, 2)
+        self.add_node(4, 4)
+
     def init_test6_formation(self):
         self.add_node(3, 3)
         self.add_node(4, 2)
@@ -298,10 +308,10 @@ class Graph:
         self.add_node(2, 4)
         self.add_node(4, 2)
         self.add_node(4, 4)
+        self.add_node(6, 2)
         self.add_node(6, 4)
-        self.add_node(6, 6)
-        self.add_node(8, 6)
-        self.add_node(8, 8)
+        self.add_node(8, 2)
+        self.add_node(8, 4)
 
     def init_test12_formation(self):
         self.add_node(2, 2)
@@ -316,6 +326,25 @@ class Graph:
         self.add_node(8, 2)
         self.add_node(8, 4)
         self.add_node(8, 6)
+
+    def init_test16_formation(self):
+        self.add_node(2, 2)
+        self.add_node(2, 4)
+        self.add_node(2, 6)
+        self.add_node(2, 8)
+        self.add_node(4, 2)
+        self.add_node(4, 4)
+        self.add_node(4, 6)
+        self.add_node(4, 8)
+        self.add_node(6, 2)
+        self.add_node(6, 4)
+        self.add_node(6, 6)
+        self.add_node(6, 8)
+        self.add_node(8, 2)
+        self.add_node(8, 4)
+        self.add_node(8, 6)
+        self.add_node(8, 8)
+
 
     def init_test20_formation(self):
         """Randomly chooses the ordering from a gridded up set of locations
@@ -347,17 +376,20 @@ class Graph:
         locs = [loc]
 
         def distance(loc, ref_loc):
-            dist = np.sqrt((loc[0] - ref_loc[0]) ** 2 + (loc[1] - ref_loc[1]) ** 2)
+            dist = np.sqrt((loc[0] - ref_loc[0]) ** 2 +
+                           (loc[1] - ref_loc[1]) ** 2)
             return dist
 
         while len(locs) < num_robots:
-            loc = math_utils.generate_random_loc(2, bounds[0] / 2, 2, bounds[1] / 2)
+            loc = math_utils.generate_random_loc(
+                2, bounds[0] / 2, 2, bounds[1] / 2)
 
             if not env.is_free_space(loc):
                 continue
 
             satisfies_conditions = True
-            dists = np.array([distance(loc, existing_loc) for existing_loc in locs])
+            dists = np.array([distance(loc, existing_loc)
+                             for existing_loc in locs])
             if (dists < 1).any():
                 satisfies_conditions = False
             elif len(locs) == 1:

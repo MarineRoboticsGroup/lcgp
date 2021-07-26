@@ -20,7 +20,7 @@ class Swarm:
     """ Swarm Utils """
 
     def initialize_swarm(
-        self, env, bounds, formation="square", nRobots=None, e_opt_val=0.75, a_opt_val = -.5
+        self, env, bounds, formation="square", nRobots=None, e_opt_val=0.75, a_opt_val=-.5
     ):
         # initialize formation and edges
         self._start_config = formation
@@ -34,12 +34,18 @@ class Swarm:
 
         if init_form == "square":
             self.robot_graph.init_square_formation()
+        elif init_form == "test1":
+            self.robot_graph.init_test1_formation()
+        elif init_form == "test4":
+            self.robot_graph.init_test4_formation()
         elif init_form == "test6":
             self.robot_graph.init_test6_formation()
         elif init_form == "test8":
             self.robot_graph.init_test8_formation()
         elif init_form == "test12":
             self.robot_graph.init_test12_formation()
+        elif init_form == "test16":
+            self.robot_graph.init_test16_formation()
         elif init_form == "test20":
             self.robot_graph.init_test20_formation()
         elif init_form == "random":

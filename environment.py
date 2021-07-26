@@ -78,7 +78,7 @@ class Environment:
     def init_adversarial1_env(self):
         xlb, xub, ylb, yub = self._bounds
         radius = .75
-        increments = 65
+        increments = 130
         # make left and right walls
         for y in np.linspace(ylb, yub, increments):
             cenLeft = (xlb, y)
@@ -243,7 +243,7 @@ class Environment:
 
     def init_obstacle_vicon_env(self):
         xlb, xub, ylb, yub = self._bounds
-        radius = .2 #accounts for robot size
+        radius = .2  # accounts for robot size
         increments = 40
         # make left and right walls
         for y in np.linspace(ylb, yub, increments):
@@ -264,9 +264,9 @@ class Environment:
             self.add_obstacle(obs)
 
         all_obstacles = [((3.0, 1.4), (.40, .50))]
-                        #  ((3.0, .7), (.25, .25)),
-                        #  ((1.0, 1.0), (.15, .15)),
-                        #  ((3.0, 2.0), (.20, .30))] #((x,y), (depth, width))
+        #  ((3.0, .7), (.25, .25)),
+        #  ((1.0, 1.0), (.15, .15)),
+        #  ((3.0, 2.0), (.20, .30))] #((x,y), (depth, width))
 
         for i in range(len(all_obstacles)):
             (x_0, y_0) = all_obstacles[i][0]

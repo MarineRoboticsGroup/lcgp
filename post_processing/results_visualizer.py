@@ -45,7 +45,7 @@ def display_results_from_file(results):
         # save
 
 # load json
-with open('./june_30_results_v2_select_results.json') as f:
+with open('./july_1_results_v2.json') as f:
     results = json.load(f)
 display_results_from_file(results)
 # print("\n")

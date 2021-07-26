@@ -254,6 +254,7 @@ class PriorityPrm:
                         print(
                             "Conflict at", conflictLocId, "at time", conflictTime, "\n"
                         )
+                        return False # Function below always raises assertion error anyway
                         self.constraintSets.undo_global_sets_updates(cur_robot_id)
                         self.constraintSets.add_conflict(
                             cur_robot_id, conflictTime, conflictLocId
