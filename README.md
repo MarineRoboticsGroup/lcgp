@@ -1,4 +1,4 @@
-# Rigidity Based Planning
+# Prioritized, Localizability-Constrained Graph Planning
 
 This repo contains code for path-planning of 2-dimensional range-only
 multi-robot networks.
@@ -84,3 +84,4 @@ to perform profiling you can just set `profile=True` in the main function of
 you. To see how this script works you can look at *profiling/flamegraph.bash*
 
 @author Alan Papalia
+@author Nicole Thumma
