@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import environment
-import flamegraph
 import math_utils
 import plot
 import swarm
@@ -751,9 +750,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
     #############################
     startPlanning = time.time()
     success = False
-    if profile:
-        fg_log_path = f"{cwd}/profiling/rgcp_flamegraph_profiling_{trial_timestamp}.log"
-        fg_thread = flamegraph.start_profile_thread(fd=open(fg_log_path, "w"))
 
     if (
         expName == "decoupled_rrt"
@@ -779,13 +775,6 @@ def main(experimentInfo, swarmInfo, envInfo, seed=99999999, queue=None):
     endPlanning = time.time()
     print("Time Planning:", endPlanning - startPlanning)
     assert isinstance(success, bool)
-
-    if profile:
-        fg_thread.stop()
-        fg_image_path = f"{cwd}/profiling/flamegraph_profile_{trial_timestamp}.svg"
-        fg_script_path = f"{cwd}/flamegraph/flamegraph.pl"
-        fg_bash_command = f"bash {cwd}/profiling/flamegraph.bash {fg_script_path} {fg_log_path} {fg_image_path}"
-        subprocess.call(fg_bash_command.split(), stdout=subprocess.PIPE)
 
     # TODO evaluate how to handle planning failures
     if success:

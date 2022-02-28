@@ -1,6 +1,6 @@
 """
 Probabilistic Road Map (PRM) Planner
-
+tt
 author: Alan Papalia (@alanpapalia)
 """
 
@@ -19,7 +19,6 @@ from typing import List, Tuple, Set
 
 # pylint: disable=import-error
 from planners.roadmap.roadmap import Roadmap
-from planners.roadmap.manhattan_roadmap import ManhattanRoadmap
 from planners.roadmap.random_roadmap import RandomRoadmap
 from planners.prioritized_planning.constraint_sets import ConstraintSets
 import math_utils
@@ -51,28 +50,14 @@ class PriorityPrm:
         self._trajs = None
         self._coord_trajs = None
         # Necessary Objects
-        manhattan_map = False
-        if manhattan_map:
-            self._roadmap = ManhattanRoadmap(
-                self._robots,
-                self._env,
-                self._goal_locs,
-                self._N_SAMPLE,
-                self._N_KNN,
-                self._MAX_EDGE_LEN,
-                self._NUM_ROWS,
-                self._NUM_COLS,
-                self._GRID_SPACING,
-            )
-        else:
-            self._roadmap = RandomRoadmap(
-                self._robots,
-                self._env,
-                self._goal_locs,
-                self._N_SAMPLE,
-                self._N_KNN,
-                self._MAX_EDGE_LEN,
-            )
+        self._roadmap = RandomRoadmap(
+            self._robots,
+            self._env,
+            self._goal_locs,
+            self._N_SAMPLE,
+            self._N_KNN,
+            self._MAX_EDGE_LEN,
+        )
 
         # self.plot_roadmap()
         self.constraintSets = ConstraintSets(self._robots, self._env, self._roadmap)
