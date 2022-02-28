@@ -36,8 +36,3 @@ if False:
         self._coord_trajs, cur_robot_id + 1
     )
 ```
-
-
-@author Alan Papalia
-
-@author Nicole Thumma
