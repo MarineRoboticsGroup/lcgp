@@ -18,15 +18,6 @@ conda install -c conda-forge chaospy
 python trial.py
 ```
 
-## Potential Issues
-
-While not as elegant as we would like, due to the implementation there may be
-need for some parameter tuning. Here we list some issues where the various
-parameters of the planner may benefit from tuning.
-
-If the planner is finding conflicts and the message being printed is `valid set
-not growing`, this may be due to one of two issues. As a first 
-
 ## Useful for debugging
 
 If the planner is having issues planning and it is unclear if it's a bug or if
